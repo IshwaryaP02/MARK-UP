@@ -1,0 +1,6 @@
+{
+  "name": "Smart Attendance Management System",
+  "description": "Enterprise SaaS platform for attendance tracking across Student, Faculty, HOD, and Admin roles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

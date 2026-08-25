@@ -1,145 +1,177 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Shield, User, GraduationCap, Users, Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
 import { UserRole } from '../../types';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
+import './login.css';
+
+const ROLES: Record<UserRole, { label: string; placeholder: string; autocomplete: string; pattern: RegExp; error: string }> = {
+  admin: { label: 'Username :', placeholder: 'Enter your username', autocomplete: 'username', pattern: /^[a-zA-Z0-9._-]{3,32}$/, error: 'Enter a valid username (3-32 characters).' },
+  hod: { label: 'Employee ID :', placeholder: 'Enter your employee ID', autocomplete: 'username', pattern: /^[a-zA-Z0-9-]{3,20}$/, error: 'Enter a valid employee ID.' },
+  faculty: { label: 'Employee ID :', placeholder: 'Enter your employee ID', autocomplete: 'username', pattern: /^[a-zA-Z0-9-]{3,20}$/, error: 'Enter a valid employee ID.' },
+  student: { label: 'Register Number :', placeholder: 'Enter your register number', autocomplete: 'username', pattern: /^[a-zA-Z0-9]{5,20}$/, error: 'Enter a valid register number.' },
+};
+
+const REMEMBER_KEY = 'college-login-remember';
 
 export const LoginPage: React.FC = () => {
   const { login } = useApp();
   const [selectedRole, setSelectedRole] = useState<UserRole>('admin');
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [identifierError, setIdentifierError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [status, setStatus] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(REMEMBER_KEY) || 'null');
+      if (saved && ROLES[saved.role as UserRole]) {
+        setSelectedRole(saved.role);
+        setIdentifier(saved.id || '');
+        setRemember(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    const role = ROLES[selectedRole];
+    let ok = true;
+
+    setIdentifierError('');
+    setPasswordError('');
+    setStatus('');
+
+    if (!role.pattern.test(identifier)) {
+      setIdentifierError(role.error);
+      ok = false;
+    }
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      ok = false;
+    }
+    if (!ok) return;
+
+    try {
+      if (remember) {
+        localStorage.setItem(REMEMBER_KEY, JSON.stringify({ role: selectedRole, id: identifier }));
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
+      }
+    } catch {
+      /* storage unavailable */
+    }
+
     login(selectedRole);
   };
 
-  const demoAccounts: { role: UserRole; name: string; email: string; icon: React.ElementType }[] = [
-    { role: 'admin', name: 'Dr. Robert Vance (Admin)', email: 'admin@university.edu', icon: Shield },
-    { role: 'hod', name: 'Dr. Alan Turing (HOD - CSE)', email: 'hod.cs@university.edu', icon: Users },
-    { role: 'faculty', name: 'Prof. Sarah Jenkins (Faculty)', email: 'sarah.jenkins@university.edu', icon: User },
-    { role: 'student', name: 'Alex Mercer (Student)', email: 'alex.mercer@student.edu', icon: GraduationCap }
-  ];
+  const role = ROLES[selectedRole];
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-[#313866]/10 via-transparent to-[#313866]/20">
-      <div className="w-full max-w-md bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-3xl p-6 sm:p-8 shadow-2xl">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-[#313866] dark:bg-[#8A92D0] text-white dark:text-[#0D1127] flex items-center justify-center font-black text-xl shadow-lg mx-auto mb-3">
-            SA
-          </div>
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            Smart Attendance SaaS
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Enterprise Portal for University & Institutional Tracking
-          </p>
-        </div>
+    <div className="login-page">
+      <section className="card" aria-labelledby="login-title">
+        <header className="card__head">
+          <img className="logo" src="/assets/logo.svg" alt="College logo" />
+          <p className="college-name">Government Arts &amp; Science College</p>
+          <p className="college-sub">Affiliated to the University · Estd. 1965</p>
+          <h1 className="card__title" id="login-title">Login to your account</h1>
+        </header>
 
-        {/* Role Selector Tabs */}
-        <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-100 dark:bg-[#161B33] rounded-2xl mb-6">
-          {(['admin', 'hod', 'faculty', 'student'] as UserRole[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => {
-                setSelectedRole(r);
-                setEmail(`${r}@university.edu`);
-              }}
-              className={`py-2 text-[11px] font-bold uppercase rounded-xl transition-all ${
-                selectedRole === r
-                  ? 'bg-[#313866] text-white dark:bg-[#8A92D0] dark:text-[#0D1127] shadow-md'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Account Email
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-              <input
-                type="email"
+        <form className="form" onSubmit={handleLogin} noValidate>
+          {/* Login As */}
+          <div className="field">
+            <label className="label" htmlFor="loginAs">Login As :</label>
+            <div className="select-wrap">
+              <select
+                className="control select"
+                id="loginAs"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value as UserRole)}
                 required
-                value={email || `${selectedRole}@university.edu`}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 text-xs bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866] font-medium"
-              />
+              >
+                <option value="admin">Admin</option>
+                <option value="hod">HOD</option>
+                <option value="faculty">Faculty</option>
+                <option value="student">Student</option>
+              </select>
+              <svg className="icon icon--chevron" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                Password
-              </label>
+          {/* Dynamic identifier field */}
+          <div className="field">
+            <label className="label" htmlFor="identifier">{role.label}</label>
+            <input
+              className="control"
+              type="text"
+              id="identifier"
+              placeholder={role.placeholder}
+              autoComplete={role.autocomplete}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+            />
+            {identifierError && <p className="error" role="alert">{identifierError}</p>}
+          </div>
+
+          {/* Password */}
+          <div className="field">
+            <label className="label" htmlFor="password">Password :</label>
+            <div className="input-wrap">
+              <input
+                className="control"
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
               <button
+                className="toggle"
                 type="button"
-                onClick={() => setForgotOpen(true)}
-                className="text-[11px] font-medium text-[#313866] dark:text-[#8A92D0] hover:underline"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                Forgot password?
+                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="12" cy="12" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.9" />
+                </svg>
               </button>
             </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-              <input
-                type="password"
-                required
-                value={password || 'password123'}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 text-xs bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
-              />
-            </div>
+            {passwordError && <p className="error" role="alert">{passwordError}</p>}
           </div>
 
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-2 py-3 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-all shadow-md"
-          >
-            Sign In to {selectedRole.toUpperCase()} Dashboard
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <div className="row">
+            <label className="remember">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+              />
+              <span>Remember Me</span>
+            </label>
+            <button type="button" className="link" onClick={() => setForgotOpen(true)}>
+              Forgot Password?
+            </button>
+          </div>
+
+          <button className="btn" type="submit">Login</button>
+          {status && <p className="status" role="status">{status}</p>}
         </form>
 
-        {/* Quick Demo Switcher */}
-        <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" />
-            Quick Demo Auto-Login
-          </p>
-          <div className="space-y-2">
-            {demoAccounts.map((acc) => {
-              const Icon = acc.icon;
-              return (
-                <button
-                  key={acc.role}
-                  onClick={() => {
-                    login(acc.role);
-                  }}
-                  className="w-full flex items-center justify-between p-2.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-[#161B33] hover:bg-[#F3F4F9] dark:hover:bg-[#313866]/40 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl transition-all"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 text-[#313866] dark:text-[#8A92D0] shrink-0" />
-                    <span>{acc.name}</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-[#313866] dark:text-[#8A92D0] uppercase">
-                    Auto Login
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+        <footer className="card__foot">
+          <span className="pill">Don't have an account? <a className="link" href="#signup">Sign Up now</a></span>
+        </footer>
+      </section>
 
       <ForgotPasswordModal isOpen={forgotOpen} onClose={() => setForgotOpen(false)} />
     </div>

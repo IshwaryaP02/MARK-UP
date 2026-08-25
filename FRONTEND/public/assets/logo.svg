@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="College logo placeholder">
+  <circle cx="48" cy="48" r="46" fill="#ffffff" stroke="#131f4a" stroke-width="4" />
+  <path d="M48 24 78 40 48 56 18 40Z" fill="#131f4a" />
+  <path d="M30 46v14c0 6 8 10 18 10s18-4 18-10V46" fill="none" stroke="#131f4a" stroke-width="5" stroke-linecap="round" />
+</svg>

@@ -365,7 +365,7 @@ export const StudentManagement: React.FC = () => {
               <input
                 type="number"
                 min={1}
-                max={8}
+                max={6}
                 value={formData.semester || 4}
                 onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"

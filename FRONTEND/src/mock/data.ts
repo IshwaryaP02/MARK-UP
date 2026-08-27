@@ -12,7 +12,8 @@ import {
   CalendarEvent,
   AuditLog,
   BackupSnapshot,
-  AppNotification
+  AppNotification,
+  Circular
 } from '../types';
 
 export const mockUsers: User[] = [
@@ -196,6 +197,7 @@ export const mockFaculty: Faculty[] = [
     designation: 'Assistant Professor',
     phone: '+1 (555) 014-4321',
     assignedSubjectIds: ['sub-cs401', 'sub-cs404'],
+    tutorFor: { semester: 4, section: 'A' },
     active: true
   },
   {
@@ -444,6 +446,126 @@ export const mockTimetableSlots: TimetableSlot[] = [
     departmentId: 'dept-cs',
     semester: 4,
     section: 'A'
+  },
+
+  // Wednesday
+  {
+    id: 'tt-wed-p1',
+    day: 'Wednesday',
+    periodNumber: 1,
+    startTime: '09:00 AM',
+    endTime: '09:50 AM',
+    subjectId: 'sub-cs401',
+    subjectCode: 'CS401',
+    subjectName: 'Data Structures & Algorithms',
+    facultyId: 'usr-faculty-1',
+    facultyName: 'Prof. Sarah Jenkins',
+    roomNo: 'Lab-302',
+    departmentId: 'dept-cs',
+    semester: 4,
+    section: 'A'
+  },
+  {
+    id: 'tt-wed-p3',
+    day: 'Wednesday',
+    periodNumber: 3,
+    startTime: '11:00 AM',
+    endTime: '11:50 AM',
+    subjectId: 'sub-cs404',
+    subjectCode: 'CS404',
+    subjectName: 'Web Technology & Frameworks',
+    facultyId: 'usr-faculty-1',
+    facultyName: 'Prof. Sarah Jenkins',
+    roomNo: 'Lab-104',
+    departmentId: 'dept-cs',
+    semester: 4,
+    section: 'A'
+  },
+
+  // Thursday
+  {
+    id: 'tt-thu-p2',
+    day: 'Thursday',
+    periodNumber: 2,
+    startTime: '10:00 AM',
+    endTime: '10:50 AM',
+    subjectId: 'sub-cs401',
+    subjectCode: 'CS401',
+    subjectName: 'Data Structures & Algorithms',
+    facultyId: 'usr-faculty-1',
+    facultyName: 'Prof. Sarah Jenkins',
+    roomNo: 'Lab-302',
+    departmentId: 'dept-cs',
+    semester: 4,
+    section: 'A'
+  },
+  {
+    id: 'tt-thu-p4',
+    day: 'Thursday',
+    periodNumber: 4,
+    startTime: '01:30 PM',
+    endTime: '02:20 PM',
+    subjectId: 'sub-cs404',
+    subjectCode: 'CS404',
+    subjectName: 'Web Technology & Frameworks',
+    facultyId: 'usr-faculty-1',
+    facultyName: 'Prof. Sarah Jenkins',
+    roomNo: 'Lab-104',
+    departmentId: 'dept-cs',
+    semester: 4,
+    section: 'A'
+  },
+
+  // Friday
+  {
+    id: 'tt-fri-p1',
+    day: 'Friday',
+    periodNumber: 1,
+    startTime: '09:00 AM',
+    endTime: '09:50 AM',
+    subjectId: 'sub-cs404',
+    subjectCode: 'CS404',
+    subjectName: 'Web Technology & Frameworks',
+    facultyId: 'usr-faculty-1',
+    facultyName: 'Prof. Sarah Jenkins',
+    roomNo: 'Lab-104',
+    departmentId: 'dept-cs',
+    semester: 4,
+    section: 'A'
+  },
+  {
+    id: 'tt-fri-p3',
+    day: 'Friday',
+    periodNumber: 3,
+    startTime: '11:00 AM',
+    endTime: '11:50 AM',
+    subjectId: 'sub-cs401',
+    subjectCode: 'CS401',
+    subjectName: 'Data Structures & Algorithms',
+    facultyId: 'usr-faculty-1',
+    facultyName: 'Prof. Sarah Jenkins',
+    roomNo: 'Lab-302',
+    departmentId: 'dept-cs',
+    semester: 4,
+    section: 'A'
+  },
+
+  // Saturday
+  {
+    id: 'tt-sat-p2',
+    day: 'Saturday',
+    periodNumber: 2,
+    startTime: '10:00 AM',
+    endTime: '10:50 AM',
+    subjectId: 'sub-cs401',
+    subjectCode: 'CS401',
+    subjectName: 'Data Structures & Algorithms',
+    facultyId: 'usr-faculty-1',
+    facultyName: 'Prof. Sarah Jenkins',
+    roomNo: 'Lab-302',
+    departmentId: 'dept-cs',
+    semester: 4,
+    section: 'A'
   }
 ];
 
@@ -653,5 +775,45 @@ export const mockNotifications: AppNotification[] = [
     timestamp: '2 hours ago',
     read: true,
     type: 'success'
+  }
+];
+
+export const mockCirculars: Circular[] = [
+  {
+    id: 'circ-001',
+    title: 'Mid-Semester Examination Schedule',
+    description: 'The mid-semester examinations for even semester courses will commence from 20th August 2026. All students are advised to check their individual timetables and report to examination halls 15 minutes before the scheduled time.',
+    target: 'all_students',
+    departmentId: 'dept-cs',
+    departmentName: 'Computer Science & Engineering',
+    course: 'UG',
+    year: 'III',
+    shift: 'First Shift',
+    validFrom: '2026-08-15',
+    validUntil: '2026-08-25',
+    status: 'published',
+    signedBy: 'Dr. Alan Turing',
+    signedAt: '2026-08-10 10:30 AM',
+    publishedAt: '2026-08-10 11:00 AM',
+    publishedBy: 'Dr. Alan Turing',
+    recipientCount: 60,
+    createdBy: 'Dr. Alan Turing',
+    createdAt: '2026-08-10 09:15 AM'
+  },
+  {
+    id: 'circ-002',
+    title: 'Department Meeting - August 2026',
+    description: 'Monthly department meeting to discuss curriculum updates, lab infrastructure upgrades, and upcoming accreditation preparations. All faculty members are requested to attend.',
+    target: 'all_faculty',
+    departmentId: 'dept-cs',
+    departmentName: 'Computer Science & Engineering',
+    validFrom: '2026-08-12',
+    validUntil: '2026-08-14',
+    status: 'signed',
+    signedBy: 'Dr. Alan Turing',
+    signedAt: '2026-08-12 08:00 AM',
+    recipientCount: 4,
+    createdBy: 'Dr. Alan Turing',
+    createdAt: '2026-08-11 03:00 PM'
   }
 ];

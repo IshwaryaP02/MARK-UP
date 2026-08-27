@@ -63,6 +63,7 @@ export interface Faculty {
   phone: string;
   assignedSubjectIds: string[];
   isHOD?: boolean;
+  tutorFor?: { semester: number; section: string };
   active: boolean;
 }
 
@@ -248,4 +249,33 @@ export interface AppNotification {
   type: 'info' | 'warning' | 'success' | 'danger';
   link?: string;
   targetRole?: UserRole;
+  targetClass?: { semester: number; section: string };
+}
+
+export type CircularTarget = 'all_faculty' | 'individual_faculty' | 'all_students' | 'specific_students' | 'tutor_class';
+export type CircularStatus = 'draft' | 'signed' | 'published' | 'archived';
+
+export interface Circular {
+  id: string;
+  title: string;
+  description: string;
+  target: CircularTarget;
+  departmentId: string;
+  departmentName: string;
+  course?: string;
+  year?: string;
+  shift?: string;
+  attachmentUrl?: string;
+  validFrom: string;
+  validUntil: string;
+  status: CircularStatus;
+  signedBy?: string;
+  signedAt?: string;
+  publishedAt?: string;
+  publishedBy?: string;
+  recipientCount: number;
+  selectedFacultyIds?: string[];
+  targetClass?: { semester: number; section: string };
+  createdBy: string;
+  createdAt: string;
 }

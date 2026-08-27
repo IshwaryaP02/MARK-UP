@@ -9,7 +9,8 @@ import {
   FileText,
   Settings,
   Eye,
-  Palette
+  Palette,
+  BookOpen
 } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
@@ -30,7 +31,7 @@ export const BottomNav: React.FC = () => {
     if (role === 'faculty') {
       return [
         { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-        { id: 'mark_attendance', label: 'Mark', icon: CheckSquare },
+        { id: 'my_classes', label: 'My Classes', icon: BookOpen },
         { id: 'faculty_timetable', label: 'Schedule', icon: Calendar },
         { id: 'leave_queue', label: 'Leaves', icon: FileText },
         { id: 'settings', label: 'Themes', icon: Palette }
@@ -49,7 +50,7 @@ export const BottomNav: React.FC = () => {
     return [
       { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
       { id: 'hod_all_classes', label: 'All Classes', icon: Eye },
-      { id: 'faculty_monitoring', label: 'Faculty', icon: Users },
+      { id: 'hod_circulars', label: 'Circulars', icon: FileText },
       { id: 'hod_leaves', label: 'Leaves', icon: FileText },
       { id: 'settings', label: 'Themes', icon: Palette }
     ];

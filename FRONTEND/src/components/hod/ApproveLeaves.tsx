@@ -64,9 +64,9 @@ export const ApproveLeaves: React.FC = () => {
                 <p className="text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-xl leading-relaxed">
                   <strong>Reason:</strong> {lv.reason}
                 </p>
-                {lv.facultyNote && (
+                {lv.facultyApproval?.comment && (
                   <p className="text-[#313866] dark:text-[#8A92D0] bg-[#313866]/10 dark:bg-[#313866]/40 p-2.5 rounded-xl font-semibold">
-                    Advisor Recommendation: "{lv.facultyNote}"
+                    Advisor Recommendation: "{lv.facultyApproval.comment}"
                   </p>
                 )}
               </div>

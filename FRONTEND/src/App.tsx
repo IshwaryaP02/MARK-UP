@@ -30,6 +30,7 @@ import { FacultyReports } from './components/faculty/FacultyReports';
 import { StudentSearch } from './components/faculty/StudentSearch';
 import { LeaveQueue } from './components/faculty/LeaveQueue';
 import { SubstitutionManager } from './components/faculty/SubstitutionManager';
+import { TutorCircular } from './components/faculty/TutorCircular';
 
 // Student Components
 import { StudentDashboard } from './components/student/StudentDashboard';
@@ -47,6 +48,7 @@ import { FacultyMonitoring } from './components/hod/FacultyMonitoring';
 import { ApproveCorrections } from './components/hod/ApproveCorrections';
 import { ApproveLeaves } from './components/hod/ApproveLeaves';
 import { ApproveSubstitutions } from './components/hod/ApproveSubstitutions';
+import { HODCirculars } from './components/hod/HODCirculars';
 
 // Shared Components
 import { NotificationCenter } from './components/common/NotificationCenter';
@@ -98,6 +100,7 @@ const AppContent: React.FC = () => {
         case 'student_search': return <StudentSearch />;
         case 'leave_queue': return <LeaveQueue />;
         case 'substitution': return <SubstitutionManager />;
+        case 'tutor_circular': return <TutorCircular />;
         default: return <FacultyDashboard />;
       }
     }
@@ -120,6 +123,7 @@ const AppContent: React.FC = () => {
         case 'dashboard': return <HODDashboard />;
         case 'timetable_builder': return <TimetableBuilder />;
         case 'hod_all_classes': return <AllClassesView />;
+        case 'hod_circulars': return <HODCirculars />;
         case 'faculty_monitoring': return <FacultyMonitoring />;
         case 'hod_corrections': return <ApproveCorrections />;
         case 'hod_leaves': return <ApproveLeaves />;

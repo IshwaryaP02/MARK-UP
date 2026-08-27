@@ -7,21 +7,14 @@ import {
   Layers,
   Users,
   Download,
-  Calendar,
-  CheckCircle2,
-  XCircle,
-  TrendingDown,
-  TrendingUp,
   FileSpreadsheet,
   ArrowRight,
-  UserPlus,
   Search,
-  BookOpen,
   Clock
 } from 'lucide-react';
 
 export const AllClassesView: React.FC = () => {
-  const { students, subjects, departments, addStudent, addToast, currentUser, timetable } = useApp();
+  const { students, subjects, departments, addToast, currentUser, timetable } = useApp();
 
   const [selectedDeptId, setSelectedDeptId] = useState<string>(
     currentUser.departmentId || departments[0]?.id || 'dept-cs'
@@ -32,26 +25,8 @@ export const AllClassesView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStudentForModal, setSelectedStudentForModal] = useState<Student | null>(null);
 
-  // Add Student Form State
-  const [isAddStudentOpen, setIsAddStudentOpen] = useState<boolean>(false);
-  const [newStudent, setNewStudent] = useState({
-    name: '',
-    regNo: '',
-    rollNo: '',
-    departmentId: selectedDeptId,
-    semester: selectedSemester,
-    section: 'A',
-    email: '',
-    phone: '',
-    gender: 'Male' as 'Male' | 'Female' | 'Other',
-    fatherName: '',
-    motherName: '',
-    parentPhone: ''
-  });
-
   const availableSections = ['Section A', 'Section B', 'Section C', 'Section D'];
 
-  // Filter students for the selected class section
   const getClassStudents = (sec: string) => {
     const secLetter = sec.replace('Section ', '').trim();
     return students.filter(
@@ -62,7 +37,6 @@ export const AllClassesView: React.FC = () => {
     );
   };
 
-  // Generate mock attendance stats for student breakdown
   const getEnrichedStudentStats = (studentList: typeof students) => {
     return studentList.map((st, idx) => {
       const basePct = st.overallAttendancePct || 88;
@@ -90,50 +64,6 @@ export const AllClassesView: React.FC = () => {
       s.regNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.rollNo.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Sorting for Who has more Absents vs Presents
-  const sortedByAbsents = [...classStudentsEnriched].sort((a, b) => b.absentDays - a.absentDays);
-  const sortedByPresents = [...classStudentsEnriched].sort((a, b) => b.presentDays - a.presentDays);
-
-  const handleCreateStudentSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStudent.name || !newStudent.regNo) {
-      addToast('Validation Error', 'Student name and register number are required', 'danger');
-      return;
-    }
-
-    addStudent({
-      name: newStudent.name,
-      regNo: newStudent.regNo,
-      rollNo: newStudent.rollNo || `R-${Math.floor(100 + Math.random() * 900)}`,
-      departmentId: newStudent.departmentId,
-      semester: newStudent.semester,
-      section: newStudent.section,
-      email: newStudent.email || `${newStudent.regNo.toLowerCase()}@university.edu`,
-      phone: newStudent.phone || '9876543210',
-      gender: newStudent.gender,
-      fatherName: newStudent.fatherName,
-      motherName: newStudent.motherName,
-      parentPhone: newStudent.parentPhone,
-      address: 'University Campus Hostel'
-    });
-
-    setIsAddStudentOpen(false);
-    setNewStudent({
-      name: '',
-      regNo: '',
-      rollNo: '',
-      departmentId: selectedDeptId,
-      semester: selectedSemester,
-      section: 'A',
-      email: '',
-      phone: '',
-      gender: 'Male',
-      fatherName: '',
-      motherName: '',
-      parentPhone: ''
-    });
-  };
 
   const handleExportCSV = () => {
     if (!selectedClassSection) return;
@@ -163,7 +93,6 @@ export const AllClassesView: React.FC = () => {
     addToast('Report Exported', `Downloaded CSV attendance report for ${selectedClassSection}`, 'success');
   };
 
-  // Get school-style daily period schedule for a class section
   const getClassSchedule = (secLetter: string) => {
     return [
       { period: 1, time: '09:00 AM - 10:00 AM', subject: 'Data Structures & Algorithms', faculty: 'Dr. Alan Turing', room: 'LH-101' },
@@ -183,11 +112,10 @@ export const AllClassesView: React.FC = () => {
             <Layers className="w-5 h-5 text-[#313866] dark:text-[#8A92D0]" /> All Classes Inspector & Roster
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            School-style class view where students stay fixed in Class A/B/C/D and faculty rotate. Add new students and export class reports.
+            School-style class view where students stay fixed in Class A/B/C/D and faculty rotate. Search students and export class reports.
           </p>
         </div>
 
-        {/* Header Actions */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300">Semester:</label>
@@ -196,20 +124,13 @@ export const AllClassesView: React.FC = () => {
               onChange={(e) => setSelectedSemester(Number(e.target.value))}
               className="px-3 py-1.5 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+              {[1, 2, 3, 4, 5, 6].map((sem) => (
                 <option key={sem} value={sem}>
                   Semester {sem}
                 </option>
               ))}
             </select>
           </div>
-
-          <button
-            onClick={() => setIsAddStudentOpen(true)}
-            className="px-4 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:hover:bg-[#a3a8e0] text-white dark:text-[#0D1127] text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0"
-          >
-            <UserPlus className="w-4 h-4" /> Add New Student
-          </button>
         </div>
       </div>
 
@@ -269,7 +190,7 @@ export const AllClassesView: React.FC = () => {
           maxWidth="2xl"
         >
           <div className="space-y-5">
-            {/* School Period Schedule Preview */}
+            {/* Daily Period Schedule */}
             <div className="p-3.5 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
               <h4 className="text-xs font-extrabold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Daily Period Schedule (Rotating Faculty)
@@ -288,21 +209,19 @@ export const AllClassesView: React.FC = () => {
               </div>
             </div>
 
-            {/* Modal Controls Bar */}
+            {/* Search + Timeframe + Export */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
-              {/* Search input */}
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
                 <input
                   type="text"
-                  placeholder="Search student by name or register number..."
+                  placeholder="Search by Student Name, Register No, or Roll No..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#313866]"
                 />
               </div>
 
-              {/* Timeframe selector & Export */}
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 bg-white dark:bg-[#161B33] p-1 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold">
                   <button
@@ -332,7 +251,7 @@ export const AllClassesView: React.FC = () => {
               </div>
             </div>
 
-            {/* Complete Class Roster Breakdown Table */}
+            {/* Student Roster Table */}
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden">
               <div className="p-3 bg-zinc-50 dark:bg-[#0D1127] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs font-bold text-zinc-700 dark:text-zinc-300">
                 <span>Class Students ({filteredClassStudents.length} Enrolled)</span>
@@ -370,7 +289,7 @@ export const AllClassesView: React.FC = () => {
                               {st.name}
                             </button>
                             <span className="text-[10px] font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">{st.regNo}</span>
-                            <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 block">📱 {st.phone || '+91 98765 43210'}</span>
+                            <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 block">{'📱 '}{st.phone || '+91 98765 43210'}</span>
                           </td>
                           <td className="p-2.5 font-mono text-zinc-500">{st.rollNo}</td>
                           <td className="p-2.5 text-emerald-600 font-bold">{st.presentDays} Days</td>
@@ -389,109 +308,6 @@ export const AllClassesView: React.FC = () => {
           </div>
         </Modal>
       )}
-
-      {/* Add New Student Modal */}
-      <Modal
-        isOpen={isAddStudentOpen}
-        onClose={() => setIsAddStudentOpen(false)}
-        title="Register New Student to Class Roster"
-        subtitle="Add a new student into a specific class section (School-style fixed class assignment)"
-        maxWidth="xl"
-      >
-        <form onSubmit={handleCreateStudentSubmit} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Rahul Sharma"
-                value={newStudent.name}
-                onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Register Number *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. 2026CSE088"
-                value={newStudent.regNo}
-                onChange={(e) => setNewStudent({ ...newStudent, regNo: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Roll Number
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. R-45"
-                value={newStudent.rollNo}
-                onChange={(e) => setNewStudent({ ...newStudent, rollNo: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Assigned Class Section
-              </label>
-              <select
-                value={newStudent.section}
-                onChange={(e) => setNewStudent({ ...newStudent, section: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
-              >
-                <option value="A">Section A</option>
-                <option value="B">Section B</option>
-                <option value="C">Section C</option>
-                <option value="D">Section D</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Father Name
-              </label>
-              <input
-                type="text"
-                placeholder="Father's full name"
-                value={newStudent.fatherName}
-                onChange={(e) => setNewStudent({ ...newStudent, fatherName: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                Parent Phone Number
-              </label>
-              <input
-                type="text"
-                placeholder="Parent mobile number"
-                value={newStudent.parentPhone}
-                onChange={(e) => setNewStudent({ ...newStudent, parentPhone: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] text-white font-bold rounded-xl transition-all shadow-md"
-          >
-            Save & Add Student to Roster
-          </button>
-        </form>
-      </Modal>
 
       <StudentDetailModal
         isOpen={!!selectedStudentForModal}

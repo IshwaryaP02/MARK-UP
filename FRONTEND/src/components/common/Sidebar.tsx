@@ -12,7 +12,6 @@ import {
   FileSpreadsheet,
   Database,
   ShieldAlert,
-  CheckSquare,
   Clock,
   FileText,
   Repeat,
@@ -20,13 +19,17 @@ import {
   Eye,
   Bell,
   Palette,
-  PieChart
+  PieChart,
+  Send
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { currentUser, activeScreen, setActiveScreen, leaveRequests, correctionRequests, substitutionRequests } = useApp();
+  const { currentUser, activeScreen, setActiveScreen, leaveRequests, correctionRequests, substitutionRequests, facultyList } = useApp();
 
   const role = currentUser.role;
+
+  const myFaculty = facultyList.find((f) => f.id === currentUser.id);
+  const isTutor = !!myFaculty?.tutorFor;
 
   // Pending counts for badges
   const pendingLeaves = leaveRequests.filter((l) =>
@@ -63,9 +66,9 @@ export const Sidebar: React.FC = () => {
         return [
           { group: '', items: [
             { id: 'dashboard', label: 'Faculty Dashboard', icon: LayoutDashboard },
-            { id: 'mark_attendance', label: 'Mark Attendance', icon: CheckSquare, badge: 'Active' },
             { id: 'my_classes', label: 'My Classes', icon: BookOpen },
-            { id: 'faculty_timetable', label: 'Today\'s Timetable', icon: Calendar }
+            { id: 'faculty_timetable', label: 'Today\'s Timetable', icon: Calendar },
+            ...(isTutor ? [{ id: 'tutor_circular', label: 'Tutor Circular', icon: Send }] : [])
           ]},
           { group: 'Approvals & Tracking', items: [
             { id: 'leave_queue', label: 'Leave Requests', icon: FileText, badgeCount: pendingLeaves },
@@ -90,7 +93,7 @@ export const Sidebar: React.FC = () => {
             { id: 'dashboard', label: 'HOD Dashboard', icon: LayoutDashboard },
             { id: 'timetable_builder', label: 'Class Timetable Builder', icon: Calendar },
             { id: 'hod_all_classes', label: 'All Classes View', icon: Eye },
-            { id: 'faculty_monitoring', label: 'Faculty Compliance', icon: UserCheck }
+            { id: 'hod_circulars', label: 'Circulars', icon: FileText }
           ]},
           { group: 'Department Approvals', items: [
             { id: 'hod_leaves', label: 'Approve Leaves', icon: FileText, badgeCount: pendingLeaves },
@@ -136,12 +139,6 @@ export const Sidebar: React.FC = () => {
                       <Icon className={`w-4 h-4 ${isActive ? 'text-white dark:text-[#0D1127]' : 'text-zinc-400'}`} />
                       <span>{item.label}</span>
                     </div>
-
-                    {item.badge && (
-                      <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-400 text-zinc-950 rounded-md uppercase tracking-wider">
-                        {item.badge}
-                      </span>
-                    )}
 
                     {item.badgeCount !== undefined && item.badgeCount > 0 && (
                       <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${

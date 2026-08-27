@@ -14,7 +14,9 @@ import {
   CalendarEvent,
   AuditLog,
   BackupSnapshot,
-  AppNotification
+  AppNotification,
+  Circular,
+  CircularStatus
 } from '../types';
 import {
   mockUsers,
@@ -30,7 +32,8 @@ import {
   mockCalendarEvents,
   mockAuditLogs,
   mockBackupSnapshots,
-  mockNotifications
+  mockNotifications,
+  mockCirculars
 } from '../mock/data';
 
 export interface ToastMessage {
@@ -57,13 +60,16 @@ interface AppContextType {
   auditLogs: AuditLog[];
   backups: BackupSnapshot[];
   notifications: AppNotification[];
+  circulars: Circular[];
   isDarkMode: boolean;
   currentTheme: string;
   activeScreen: string;
+  attendanceSubjectId: string | null;
   commandPaletteOpen: boolean;
   toasts: ToastMessage[];
 
   // Actions
+  setAttendanceSubjectId: (subjectId: string | null) => void;
   login: (role?: UserRole) => void;
   logout: () => void;
   switchRole: (role: UserRole) => void;
@@ -109,6 +115,12 @@ interface AppContextType {
   triggerBackup: (type: 'manual' | 'automated') => void;
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
+
+  addCircular: (circular: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>) => void;
+  updateCircular: (circular: Circular) => void;
+  signCircular: (id: string, signerName: string) => void;
+  publishCircular: (id: string, publisherName: string) => void;
+  archiveCircular: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -163,6 +175,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(mockAuditLogs);
   const [backups, setBackups] = useState<BackupSnapshot[]>(mockBackupSnapshots);
   const [notifications, setNotifications] = useState<AppNotification[]>(mockNotifications);
+  const [circulars, setCirculars] = useState<Circular[]>(() => {
+    const saved = localStorage.getItem('smart_att_circulars');
+    return saved ? JSON.parse(saved) : mockCirculars;
+  });
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('smart_att_theme');
@@ -179,6 +195,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [activeScreen, setActiveScreen] = useState<string>('dashboard');
+  const [attendanceSubjectId, setAttendanceSubjectId] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -591,6 +608,106 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addToast('Notifications Cleared', 'All marked as read', 'info');
   };
 
+  // Circular CRUD
+  useEffect(() => {
+    localStorage.setItem('smart_att_circulars', JSON.stringify(circulars));
+  }, [circulars]);
+
+  const addCircular = (circularData: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>) => {
+    const newCircular: Circular = {
+      ...circularData,
+      id: 'circ-' + Date.now(),
+      recipientCount: 0,
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+    };
+    setCirculars((prev) => [newCircular, ...prev]);
+    logAudit('CREATE_CIRCULAR', 'Circulars', `Created circular: ${newCircular.title}`);
+    addToast('Circular Created', `"${newCircular.title}" saved as draft`, 'success');
+  };
+
+  const updateCircular = (updated: Circular) => {
+    setCirculars((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    logAudit('UPDATE_CIRCULAR', 'Circulars', `Updated circular: ${updated.title}`);
+    addToast('Circular Updated', `"${updated.title}" saved`, 'success');
+  };
+
+  const signCircular = (id: string, signerName: string) => {
+    setCirculars((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return {
+            ...c,
+            status: 'signed' as CircularStatus,
+            signedBy: signerName,
+            signedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          };
+        }
+        return c;
+      })
+    );
+    logAudit('SIGN_CIRCULAR', 'Circulars', `Circular ${id} signed by ${signerName}`);
+    addToast('Circular Signed', 'Ready for publishing', 'success');
+  };
+
+  const publishCircular = (id: string, publisherName: string) => {
+    setCirculars((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return {
+            ...c,
+            status: 'published' as CircularStatus,
+            publishedBy: publisherName,
+            publishedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          };
+        }
+        return c;
+      })
+    );
+
+    const circ = circulars.find((c) => c.id === id);
+    if (circ) {
+      const targetRole: UserRole | undefined =
+        circ.target === 'all_faculty' || circ.target === 'individual_faculty' ? 'faculty'
+        : circ.target === 'all_students' || circ.target === 'specific_students' || circ.target === 'tutor_class' ? 'student'
+        : undefined;
+
+      const recipientLabel =
+        circ.target === 'all_faculty' ? 'All Faculty'
+        : circ.target === 'individual_faculty' ? 'Selected Faculty'
+        : circ.target === 'all_students' ? 'All Students'
+        : circ.target === 'tutor_class' ? `Tutor Class (Sem ${circ.targetClass?.semester || ''} Sec ${circ.targetClass?.section || ''})`
+        : `${circ.course || ''} ${circ.year || ''} ${circ.shift || ''}`.trim() || 'Specific Students';
+
+      const newNotification: AppNotification = {
+        id: 'notif-circ-' + Date.now(),
+        title: `Circular: ${circ.title}`,
+        message: `${circ.description.substring(0, 120)}${circ.description.length > 120 ? '...' : ''}`,
+        timestamp: 'Just now',
+        read: false,
+        type: 'info',
+        targetRole,
+        targetClass: circ.target === 'tutor_class' ? circ.targetClass : undefined
+      };
+
+      setNotifications((prev) => [newNotification, ...prev]);
+    }
+
+    logAudit('PUBLISH_CIRCULAR', 'Circulars', `Circular ${id} published by ${publisherName}`);
+    addToast('Circular Published', 'Now visible to recipients', 'success');
+  };
+
+  const archiveCircular = (id: string) => {
+    setCirculars((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return { ...c, status: 'archived' as CircularStatus };
+        }
+        return c;
+      })
+    );
+    addToast('Circular Archived', 'Circular has been archived', 'info');
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -610,9 +727,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         auditLogs,
         backups,
         notifications,
+        circulars,
         isDarkMode,
         currentTheme,
         activeScreen,
+        attendanceSubjectId,
         commandPaletteOpen,
         toasts,
 
@@ -620,6 +739,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout,
         switchRole,
         setActiveScreen,
+        setAttendanceSubjectId,
         setCommandPaletteOpen,
         toggleDarkMode,
         setAppTheme,
@@ -659,7 +779,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         triggerBackup,
         markNotificationRead,
-        clearAllNotifications
+        clearAllNotifications,
+
+        addCircular,
+        updateCircular,
+        signCircular,
+        publishCircular,
+        archiveCircular
       }}
     >
       {children}

@@ -226,7 +226,8 @@
   border-radius: var(--field-radius);
   background: var(--btn-bg);
   color: var(--btn-ink);
-  font-family: var(--font-head) !important;  font-size: 1.3rem;
+  font-family: var(--font-head) !important;
+  font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;

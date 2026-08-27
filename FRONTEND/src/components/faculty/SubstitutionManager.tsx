@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SubstitutionRequest } from '../../types';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 import { Repeat, Plus, CheckCircle2, XCircle, UserCheck, Clock, Send, ShieldCheck } from 'lucide-react';
 
 export const SubstitutionManager: React.FC = () => {
-  const { substitutionRequests, facultyList, currentUser, requestSubstitution, respondSubstitution, addToast } = useApp();
+  const { substitutionRequests, facultyList, currentUser, submitSubstitutionRequest, reviewSubstitutionRequest, addToast } = useApp();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,8 +31,7 @@ export const SubstitutionManager: React.FC = () => {
     const subColleague = facultyList.find((f) => f.id === formData.substituteFacultyId);
     if (!formData.reason) return;
 
-    const newReq: SubstitutionRequest = {
-      id: `sub-${Date.now()}`,
+    submitSubstitutionRequest({
       date: formData.date,
       periodNumber: formData.periodNumber,
       subjectCode: formData.subjectCode,
@@ -44,18 +42,14 @@ export const SubstitutionManager: React.FC = () => {
       substituteFacultyName: subColleague?.name || 'Any Available Faculty',
       roomNo: 'Lab-302',
       section: 'A',
-      reason: formData.reason,
-      status: 'pending',
-      createdAt: 'Just now'
-    };
-
-    requestSubstitution(newReq);
+      reason: formData.reason
+    });
     setModalOpen(false);
     addToast('Substitution Requested', `Coverage request sent to ${subColleague?.name || 'Faculty Pool'}`, 'success');
   };
 
   const handleAcceptRequest = (reqId: string, requesterName: string, period: number) => {
-    respondSubstitution(reqId, 'approved');
+    reviewSubstitutionRequest(reqId, 'accept');
     addToast('Substitution Accepted', `You have accepted to substitute for ${requesterName} (Period ${period})`, 'success');
   };
 
@@ -115,7 +109,7 @@ export const SubstitutionManager: React.FC = () => {
 
                 <div className="flex items-center justify-end gap-2 pt-1">
                   <button
-                    onClick={() => respondSubstitution(req.id, 'rejected')}
+                    onClick={() => reviewSubstitutionRequest(req.id, 'reject')}
                     className="px-3 py-1.5 bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 hover:bg-rose-100 text-xs font-bold rounded-xl transition-colors"
                   >
                     Decline

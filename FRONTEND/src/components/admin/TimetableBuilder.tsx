@@ -388,7 +388,7 @@ export const TimetableBuilder: React.FC = () => {
               onChange={(e) => setSelectedSemester(Number(e.target.value))}
               className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             >
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+              {[1, 2, 3, 4, 5, 6].map((sem) => (
                 <option key={sem} value={sem}>
                   Semester {sem} (Year {Math.ceil(sem / 2)})
                 </option>

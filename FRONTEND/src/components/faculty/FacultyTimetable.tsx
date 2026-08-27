@@ -6,6 +6,14 @@ export const FacultyTimetable: React.FC = () => {
   const { timetable, currentUser } = useApp();
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+  const romanDayMap: Record<string, string> = {
+    Monday: 'I',
+    Tuesday: 'II',
+    Wednesday: 'III',
+    Thursday: 'IV',
+    Friday: 'V',
+    Saturday: 'VI'
+  };
   const periods = [
     { num: 1, start: '09:00 AM', end: '09:50 AM' },
     { num: 2, start: '10:00 AM', end: '10:50 AM' },
@@ -46,7 +54,7 @@ export const FacultyTimetable: React.FC = () => {
               {days.map((day) => (
                 <tr key={day}>
                   <td className="p-3 font-bold text-left pl-4 bg-zinc-50/50 dark:bg-zinc-800/40 text-zinc-900 dark:text-zinc-100 border-r border-zinc-200 dark:border-zinc-800">
-                    {day}
+                    {romanDayMap[day]}
                   </td>
                   {periods.map((p) => {
                     const slot = timetable.find((s) => s.day === day && s.periodNumber === p.num && s.facultyId === myFacId);

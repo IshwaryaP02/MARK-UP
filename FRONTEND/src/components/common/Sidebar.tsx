@@ -18,9 +18,9 @@ import {
   Search,
   Eye,
   Bell,
-  Palette,
   PieChart,
-  Send
+  Send,
+  CheckSquare
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -68,7 +68,7 @@ export const Sidebar: React.FC = () => {
             { id: 'dashboard', label: 'Faculty Dashboard', icon: LayoutDashboard },
             { id: 'my_classes', label: 'My Classes', icon: BookOpen },
             { id: 'faculty_timetable', label: 'Today\'s Timetable', icon: Calendar },
-            ...(isTutor ? [{ id: 'tutor_circular', label: 'Tutor Circular', icon: Send }] : [])
+            ...(isTutor ? [{ id: 'tutor_class_students', label: 'Tutor Class Students', icon: Eye }, { id: 'tutor_circular', label: 'Tutor Circular', icon: Send }] : [])
           ]},
           { group: 'Approvals & Tracking', items: [
             { id: 'leave_queue', label: 'Leave Requests', icon: FileText, badgeCount: pendingLeaves },
@@ -83,7 +83,8 @@ export const Sidebar: React.FC = () => {
             { id: 'dashboard', label: 'Student Dashboard', icon: LayoutDashboard },
             { id: 'student_attendance', label: 'My Attendance & Heatmap', icon: PieChart },
             { id: 'student_apply_leave', label: 'Apply Leave', icon: FileText },
-            { id: 'student_timetable', label: 'Timetable', icon: Calendar }
+            { id: 'student_timetable', label: 'Timetable', icon: Calendar },
+            { id: 'student_circulars', label: 'Circulars', icon: FileText }
           ]}
         ];
 
@@ -91,15 +92,16 @@ export const Sidebar: React.FC = () => {
         return [
           { group: 'Department Overview', items: [
             { id: 'dashboard', label: 'HOD Dashboard', icon: LayoutDashboard },
-            { id: 'timetable_builder', label: 'Class Timetable Builder', icon: Calendar },
             { id: 'hod_all_classes', label: 'All Classes View', icon: Eye },
             { id: 'hod_circulars', label: 'Circulars', icon: FileText }
           ]},
           { group: 'Department Approvals', items: [
             { id: 'hod_leaves', label: 'Approve Leaves', icon: FileText, badgeCount: pendingLeaves },
-            { id: 'hod_substitutions', label: 'Approve Substitutions', icon: Repeat, badgeCount: pendingSubs }
+            { id: 'hod_substitutions', label: 'Approve Substitutions', icon: Repeat, badgeCount: pendingSubs },
+            { id: 'hod_corrections', label: 'Approve Corrections', icon: CheckSquare, badgeCount: pendingCorrections }
           ]},
           { group: 'Analytics & Compliance', items: [
+            { id: 'faculty_monitoring', label: 'Faculty Monitoring', icon: Clock },
             { id: 'reports_hub', label: 'Reports Hub (Flagged)', icon: FileSpreadsheet }
           ]}
         ];
@@ -157,18 +159,6 @@ export const Sidebar: React.FC = () => {
 
       {/* Footer preferences */}
       <div className="p-4 border-t border-zinc-200/80 dark:border-zinc-800/80 space-y-1">
-        <button
-          onClick={() => setActiveScreen('settings')}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
-            activeScreen === 'settings'
-              ? 'bg-[#313866] text-white dark:bg-[#8A92D0] dark:text-[#0D1127]'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-          }`}
-        >
-          <Palette className="w-4 h-4" />
-          <span>Themes & Preferences</span>
-        </button>
-
         <button
           onClick={() => setActiveScreen('notifications')}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { BookOpen, Users, Award, ShieldCheck, CheckSquare, Calendar, GraduationCap } from 'lucide-react';
+import { BookOpen, Users, Award, ShieldCheck, CheckSquare, Calendar, GraduationCap, Eye } from 'lucide-react';
 
 export const MyClasses: React.FC = () => {
   const { subjects, students, facultyList, currentUser, timetable, attendanceRecords, setActiveScreen, setAttendanceSubjectId } = useApp();
@@ -91,12 +91,20 @@ export const MyClasses: React.FC = () => {
                 {tutorClassStudents.length} students in this class
               </p>
             </div>
-            <button
-              onClick={() => setActiveScreen('tutor_circular')}
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1"
-            >
-              <BookOpen className="w-3 h-3" /> Send Circular
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setActiveScreen('tutor_class_students')}
+                className="px-3 py-1.5 bg-white dark:bg-[#161B33] hover:bg-zinc-50 dark:hover:bg-zinc-800 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1"
+              >
+                <Eye className="w-3 h-3" /> View Students
+              </button>
+              <button
+                onClick={() => setActiveScreen('tutor_circular')}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1"
+              >
+                <BookOpen className="w-3 h-3" /> Send Circular
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-center text-xs">

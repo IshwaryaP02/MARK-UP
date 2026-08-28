@@ -31,6 +31,7 @@ import { StudentSearch } from './components/faculty/StudentSearch';
 import { LeaveQueue } from './components/faculty/LeaveQueue';
 import { SubstitutionManager } from './components/faculty/SubstitutionManager';
 import { TutorCircular } from './components/faculty/TutorCircular';
+import { TutorClassStudents } from './components/faculty/TutorClassStudents';
 
 // Student Components
 import { StudentDashboard } from './components/student/StudentDashboard';
@@ -39,6 +40,7 @@ import { StudentTimetable } from './components/student/StudentTimetable';
 import { ApplyLeave } from './components/student/ApplyLeave';
 import { StudentReports } from './components/student/StudentReports';
 import { StudentNotifications } from './components/student/StudentNotifications';
+import { StudentCirculars } from './components/student/StudentCirculars';
 import { StudentProfile } from './components/student/StudentProfile';
 
 // HOD Components
@@ -101,6 +103,7 @@ const AppContent: React.FC = () => {
         case 'leave_queue': return <LeaveQueue />;
         case 'substitution': return <SubstitutionManager />;
         case 'tutor_circular': return <TutorCircular />;
+        case 'tutor_class_students': return <TutorClassStudents />;
         default: return <FacultyDashboard />;
       }
     }
@@ -113,6 +116,7 @@ const AppContent: React.FC = () => {
         case 'student_apply_leave': return <ApplyLeave />;
         case 'student_reports': return <StudentReports />;
         case 'student_notifications': return <StudentNotifications />;
+        case 'student_circulars': return <StudentCirculars />;
         case 'student_profile': return <StudentProfile />;
         default: return <StudentDashboard />;
       }
@@ -121,7 +125,6 @@ const AppContent: React.FC = () => {
     if (role === 'hod') {
       switch (activeScreen) {
         case 'dashboard': return <HODDashboard />;
-        case 'timetable_builder': return <TimetableBuilder />;
         case 'hod_all_classes': return <AllClassesView />;
         case 'hod_circulars': return <HODCirculars />;
         case 'faculty_monitoring': return <FacultyMonitoring />;

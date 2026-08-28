@@ -49,16 +49,19 @@ export const HODCirculars: React.FC = () => {
   const deptFaculty = facultyList.filter(
     (f) => f.departmentId === (currentUser.departmentId || 'dept-cs')
   );
-  const deptStudents = students.filter(
-    (s) => s.departmentId === (currentUser.departmentId || 'dept-cs')
+  const permittedDepartments = departments.filter(
+    (d) => d.id === (currentUser.departmentId || 'dept-cs')
   );
 
-  const getRecipientCount = (target: CircularTarget, course?: string, year?: string, shift?: string, facultyIds?: string[]): number => {
+  const getRecipientCount = (target: CircularTarget, department?: string, course?: string, year?: string, shift?: string, facultyIds?: string[]): number => {
     if (target === 'all_faculty') return deptFaculty.length;
     if (target === 'individual_faculty') return facultyIds?.length || 0;
-    if (target === 'all_students') return deptStudents.length;
+    if (target === 'all_students') return students.length;
     if (target === 'specific_students') {
-      let filtered = deptStudents;
+      let filtered = students;
+      if (department) {
+        filtered = filtered.filter((s) => s.departmentId === department);
+      }
       if (course && course !== 'All') {
         if (course === 'UG') {
           filtered = filtered.filter((s) => s.semester <= 6);
@@ -68,8 +71,8 @@ export const HODCirculars: React.FC = () => {
       }
       if (year && year !== 'All') {
         const yearMap: Record<string, number[]> = {
-          'I': [1, 2],
-          'II': [3, 4],
+          'I': course === 'UG' ? [1, 2] : [7, 8],
+          'II': course === 'UG' ? [3, 4] : [9, 10],
           'III': [5, 6]
         };
         const semesters = yearMap[year];
@@ -77,12 +80,8 @@ export const HODCirculars: React.FC = () => {
           filtered = filtered.filter((s) => semesters.includes(s.semester));
         }
       }
-      if (shift && shift !== 'All Shifts') {
-        filtered = filtered.filter((s) => {
-          if (shift === 'First Shift') return true;
-          if (shift === 'Second Shift') return s.semester <= 6;
-          return true;
-        });
+      if (shift && shift !== 'All' && shift !== 'First Shift') {
+        filtered = filtered.filter((s) => s.semester <= 6);
       }
       return filtered.length;
     }
@@ -93,6 +92,7 @@ export const HODCirculars: React.FC = () => {
     title: '',
     description: '',
     target: 'all_faculty' as CircularTarget,
+    department: currentUser.departmentId || 'dept-cs',
     course: 'UG',
     year: 'I',
     shift: 'First Shift',
@@ -118,6 +118,7 @@ export const HODCirculars: React.FC = () => {
       title: '',
       description: '',
       target: 'all_faculty',
+      department: currentUser.departmentId || 'dept-cs',
       course: 'UG',
       year: 'I',
       shift: 'First Shift',
@@ -136,25 +137,28 @@ export const HODCirculars: React.FC = () => {
 
     const recipientCount = getRecipientCount(
       form.target,
+      form.department,
       form.course,
       form.year,
       form.shift,
       form.selectedFacultyIds
     );
 
-    addCircular({
+    const isFacultyTarget = form.target === 'individual_faculty' || form.target === 'all_faculty';
+
+    const created = addCircular({
       title: form.title,
       description: form.description,
       target: form.target,
       departmentId: currentUser.departmentId || 'dept-cs',
       departmentName: currentUser.departmentName || 'Computer Science & Engineering',
-      course: form.target === 'individual_faculty' || form.target === 'all_faculty' ? undefined : form.course,
-      year: form.target === 'individual_faculty' || form.target === 'all_faculty' ? undefined : form.year,
-      shift: form.target === 'individual_faculty' || form.target === 'all_faculty' ? undefined : form.shift,
+      course: isFacultyTarget ? undefined : (form.target === 'all_students' ? undefined : form.course),
+      year: isFacultyTarget ? undefined : (form.target === 'all_students' ? undefined : form.year),
+      shift: isFacultyTarget ? undefined : (form.target === 'all_students' ? undefined : form.shift),
       attachmentUrl: form.attachmentUrl || undefined,
       validFrom: form.validFrom,
       validUntil: form.validUntil,
-      status: 'published',
+      status: 'draft',
       recipientCount,
       selectedFacultyIds: form.target === 'individual_faculty' ? form.selectedFacultyIds : undefined,
       createdBy: currentUser.name
@@ -162,6 +166,8 @@ export const HODCirculars: React.FC = () => {
 
     resetForm();
     setView('list');
+    setSelectedCircular(created);
+    setShowPreview(true);
   };
 
   const handlePreviewAndPublish = (circular: Circular) => {
@@ -288,7 +294,7 @@ export const HODCirculars: React.FC = () => {
                         <span className="text-[10px] font-bold px-2 py-0.5 bg-[#F3F4F9] dark:bg-[#313866]/50 text-[#313866] dark:text-[#8A92D0] rounded-lg">
                           {circ.target === 'all_faculty' && 'All Faculty'}
                           {circ.target === 'individual_faculty' && 'Individual Faculty'}
-                          {circ.target === 'all_students' && 'All Students'}
+                          {circ.target === 'all_students' && 'All Students (All Depts)'}
                           {circ.target === 'specific_students' && `${circ.course || ''} ${circ.year || ''} ${circ.shift || ''}`}
                         </span>
                       </td>
@@ -439,9 +445,38 @@ export const HODCirculars: React.FC = () => {
               </div>
             )}
 
-            {/* Student Targeting: Course, Year, Shift */}
-            {(form.target === 'all_students' || form.target === 'specific_students') && (
+            {/* Student Targeting: All Students (locked) or Specific (Dept/Course/Year/Shift) */}
+            {form.target === 'all_students' && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                  Target Scope
+                </label>
+                <input
+                  type="text"
+                  value="All Students — All Departments, All Courses, All Years, All Shifts"
+                  disabled
+                  className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-500 dark:text-zinc-400"
+                />
+              </div>
+            )}
+
+            {form.target === 'specific_students' && (
               <>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Department</label>
+                  <select
+                    value={form.department}
+                    onChange={(e) => setForm({ ...form, department: e.target.value })}
+                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
+                  >
+                    {permittedDepartments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Course</label>
                   <select
@@ -486,12 +521,11 @@ export const HODCirculars: React.FC = () => {
                   >
                     {form.course === 'UG' ? (
                       <>
-                        <option value="First Shift">First Shift</option>
+                        <option value="First Shift">First Shift (Morning)</option>
                         <option value="Second Shift">Second Shift</option>
-                        <option value="All Shifts">All Shifts</option>
                       </>
                     ) : (
-                      <option value="First Shift">First Shift</option>
+                      <option value="First Shift">First Shift (Morning)</option>
                     )}
                   </select>
                 </div>
@@ -547,7 +581,7 @@ export const HODCirculars: React.FC = () => {
               <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
                 Estimated Recipients:{' '}
                 <span className="text-[#313866] dark:text-[#8A92D0]">
-                  {getRecipientCount(form.target, form.course, form.year, form.shift, form.selectedFacultyIds)}{' '}
+                  {getRecipientCount(form.target, form.department, form.course, form.year, form.shift, form.selectedFacultyIds)}{' '}
                   {form.target.includes('faculty') ? 'faculty member(s)' : 'student(s)'}
                 </span>
               </p>
@@ -566,7 +600,7 @@ export const HODCirculars: React.FC = () => {
               onClick={handleCreate}
               className="px-5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:hover:bg-[#a3a8e0] text-white dark:text-[#0D1127] text-xs font-bold rounded-xl transition-all shadow-md"
             >
-              Send
+              Create & Preview
             </button>
           </div>
         </div>
@@ -597,7 +631,7 @@ export const HODCirculars: React.FC = () => {
                   <p className="font-bold text-zinc-900 dark:text-zinc-100">
                     {selectedCircular.target === 'all_faculty' && 'All Faculty'}
                     {selectedCircular.target === 'individual_faculty' && 'Individual Faculty'}
-                    {selectedCircular.target === 'all_students' && 'All Students'}
+                    {selectedCircular.target === 'all_students' && 'All Students (All Depts)'}
                     {selectedCircular.target === 'specific_students' &&
                       `${selectedCircular.course || ''} ${selectedCircular.year || ''} Year ${selectedCircular.shift || ''}`}
                   </p>
@@ -687,7 +721,7 @@ export const HODCirculars: React.FC = () => {
                   <p className="font-bold text-zinc-900 dark:text-zinc-100">
                     {selectedCircular.target === 'all_faculty' && 'All Faculty'}
                     {selectedCircular.target === 'individual_faculty' && 'Individual Faculty'}
-                    {selectedCircular.target === 'all_students' && 'All Students'}
+                    {selectedCircular.target === 'all_students' && 'All Students (All Depts)'}
                     {selectedCircular.target === 'specific_students' &&
                       `${selectedCircular.course || ''} ${selectedCircular.year || ''} Year ${selectedCircular.shift || ''}`}
                   </p>

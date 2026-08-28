@@ -24,6 +24,28 @@ export const StudentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
 
+  // Admin student directory is scoped to Computer Science only
+  const adminDepartments = departments.filter(
+    (d) => d.id === 'dept-cs' || d.name?.toLowerCase().includes('computer science')
+  );
+
+  // Map a student's semester to its academic category label
+  // UG -> 1st/2nd/3rd Year; PG (MSc) -> 1st/2nd Year; PG (MSc IT) -> 1st/2nd Year
+  const getAcademicCategory = (s: Student): string => {
+    const sem = s.semester;
+    if (sem <= 6) {
+      const year = Math.ceil(sem / 2);
+      const ord = year === 1 ? '1st' : year === 2 ? '2nd' : '3rd';
+      return `UG · ${ord} Year`;
+    }
+    if (sem <= 8) {
+      const ord = sem === 7 ? '1st' : '2nd';
+      return `PG (MSc) · ${ord} Year`;
+    }
+    const ord = sem === 9 ? '1st' : '2nd';
+    return `PG (MSc IT) · ${ord} Year`;
+  };
+
   // Modals state
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -179,7 +201,7 @@ export const StudentManagement: React.FC = () => {
           className="w-full sm:w-56 px-3 py-2 text-xs bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
         >
           <option value="all">All Departments</option>
-          {departments.map((d) => (
+          {adminDepartments.map((d) => (
             <option key={d.id} value={d.id}>
               {d.name}
             </option>
@@ -233,7 +255,7 @@ export const StudentManagement: React.FC = () => {
                       </td>
                       <td className="p-3.5">
                         <span className="block font-semibold text-zinc-800 dark:text-zinc-200">{s.departmentName}</span>
-                        <span className="text-[10px] text-zinc-400">Sem {s.semester} - Sec {s.section}</span>
+                        <span className="text-[10px] text-zinc-400">{getAcademicCategory(s)} · Sec {s.section}</span>
                       </td>
                       <td className="p-3.5">
                         <div className="flex items-center gap-2">
@@ -353,7 +375,7 @@ export const StudentManagement: React.FC = () => {
                 }}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
               >
-                {departments.map((d) => (
+                {adminDepartments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.code}
                   </option>

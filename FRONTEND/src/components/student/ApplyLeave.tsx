@@ -2,14 +2,20 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { LeaveType, LeaveRequest } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
-import { FileText, Send, Paperclip, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import { FileText, Send, Paperclip, Calendar, CheckCircle2, Clock, ArrowLeft, Trash2 } from 'lucide-react';
 
 export const ApplyLeave: React.FC = () => {
-  const { currentUser, leaveRequests, submitLeaveRequest, addToast } = useApp();
+  const { currentUser, leaveRequests, submitLeaveRequest, deleteLeaveRequest, setActiveScreen, addToast } = useApp();
+
+  const today = new Date();
+  const fmtDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
 
   const [leaveType, setLeaveType] = useState<LeaveType>('medical');
-  const [startDate, setStartDate] = useState('2026-08-05');
-  const [endDate, setEndDate] = useState('2026-08-06');
+  const [startDate, setStartDate] = useState(fmtDate(today));
+  const [endDate, setEndDate] = useState(fmtDate(tomorrow));
   const [reason, setReason] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
 
@@ -18,6 +24,9 @@ export const ApplyLeave: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!reason) return;
+
+    const diffMs = new Date(endDate).getTime() - new Date(startDate).getTime();
+    const totalDays = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
 
     const newLeave: LeaveRequest = {
       id: `leave-${Date.now()}`,
@@ -30,7 +39,7 @@ export const ApplyLeave: React.FC = () => {
       leaveType,
       startDate,
       endDate,
-      totalDays: 2,
+      totalDays,
       reason,
       attachmentUrl: attachmentUrl || 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600',
       status: 'pending_faculty',
@@ -44,6 +53,14 @@ export const ApplyLeave: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Back Navigation */}
+      <button
+        onClick={() => setActiveScreen('dashboard')}
+        className="flex items-center gap-2 text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </button>
+
       {/* Header */}
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
@@ -142,9 +159,20 @@ export const ApplyLeave: React.FC = () => {
                 key={l.id}
                 className="p-3.5 bg-zinc-50 dark:bg-[#161B33]/60 border border-zinc-200/60 dark:border-zinc-800 rounded-xl space-y-2 text-xs"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <span className="font-bold text-[#313866] dark:text-[#8A92D0] uppercase">{l.leaveType}</span>
-                  <StatusBadge status={l.status} size="sm" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(l.status === 'pending_faculty' || l.status === 'pending_hod') && (
+                      <button
+                        onClick={() => deleteLeaveRequest(l.id)}
+                        title="Delete Application"
+                        className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <StatusBadge status={l.status} size="sm" />
+                  </div>
                 </div>
                 <div className="font-semibold text-zinc-800 dark:text-zinc-200">
                   {l.startDate} to {l.endDate}

@@ -32,13 +32,21 @@ export const TimetableBuilder: React.FC = () => {
   } = useApp();
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+  // Display day labels as Roman numerals only (I=Monday ... VI=Saturday)
+  const romanDayLabels: Record<string, string> = {
+    Monday: 'I',
+    Tuesday: 'II',
+    Wednesday: 'III',
+    Thursday: 'IV',
+    Friday: 'V',
+    Saturday: 'VI'
+  };
   const periods = [
     { num: 1, start: '09:00 AM', end: '09:50 AM' },
     { num: 2, start: '10:00 AM', end: '10:50 AM' },
     { num: 3, start: '11:00 AM', end: '11:50 AM' },
     { num: 4, start: '01:30 PM', end: '02:20 PM' },
-    { num: 5, start: '02:30 PM', end: '03:20 PM' },
-    { num: 6, start: '03:30 PM', end: '04:20 PM' }
+    { num: 5, start: '02:30 PM', end: '03:20 PM' }
   ];
 
   // Selection states
@@ -159,7 +167,7 @@ export const TimetableBuilder: React.FC = () => {
       ctx.fillRect(startX, y, dayColWidth, rowHeight);
       ctx.fillStyle = '#313866';
       ctx.font = 'bold 14px Inter, sans-serif';
-      ctx.fillText(day, startX + 15, y + 50);
+      ctx.fillText(romanDayLabels[day] || day, startX + 15, y + 50);
       ctx.strokeStyle = '#E5E7EB';
       ctx.strokeRect(startX, y, dayColWidth, rowHeight);
 
@@ -515,7 +523,7 @@ export const TimetableBuilder: React.FC = () => {
               {days.map((day) => (
                 <tr key={day} className="hover:bg-zinc-50/40 dark:hover:bg-zinc-800/20">
                   <td className="p-3 font-bold text-left pl-4 bg-zinc-50/50 dark:bg-[#161B33]/60 text-zinc-900 dark:text-zinc-100 border-r border-zinc-200 dark:border-[#2D376A]">
-                    {day}
+                    {romanDayLabels[day] || day}
                   </td>
                   {periods.map((p) => {
                     const slot = sectionSlots.find((s) => s.day === day && s.periodNumber === p.num);

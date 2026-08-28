@@ -96,7 +96,7 @@ export const TutorCircular: React.FC = () => {
       return;
     }
 
-    addCircular({
+    const created = addCircular({
       title: form.title,
       description: form.description,
       target: 'tutor_class',
@@ -105,9 +105,12 @@ export const TutorCircular: React.FC = () => {
       targetClass: { semester: tutorFor.semester, section: tutorFor.section },
       validFrom: form.validFrom,
       validUntil: form.validUntil,
-      status: 'published',
+      status: 'draft',
       createdBy: currentUser.name
     });
+
+    publishCircular(created.id, currentUser.name);
+    addToast('Tutor Circular Sent', `Published to ${tutorClassStudents.length} students in Sem ${tutorFor.semester} Sec ${tutorFor.section}`, 'success');
 
     resetForm();
     setView('list');

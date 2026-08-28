@@ -32,6 +32,11 @@ import {
 export const DepartmentManagement: React.FC = () => {
   const { departments, facultyList, students, subjects, addDepartment, updateDepartment, addToast } = useApp();
 
+  // Admin department scope is restricted to Computer Science only.
+  const csOnly = (d: Department) =>
+    d.id === 'dept-cs' || d.name?.toLowerCase().includes('computer science');
+  const adminDepartments = departments.filter(csOnly);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDeptForEdit, setSelectedDeptForEdit] = useState<Department | null>(null);
 
@@ -180,7 +185,7 @@ export const DepartmentManagement: React.FC = () => {
 
       {/* Departments Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {departments.map((dept) => {
+        {adminDepartments.map((dept) => {
           const deptStudents = getDeptStudents(dept);
           const deptFac = getDeptFaculty(dept);
           const flagged = getDeptFlaggedStudents(dept);
@@ -498,7 +503,7 @@ export const DepartmentManagement: React.FC = () => {
               className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0]"
             >
               <option value="">-- Select Faculty for HOD --</option>
-              {facultyList.map((f) => (
+              {facultyList.filter((f) => f.departmentId === 'dept-cs' || f.departmentName?.toLowerCase().includes('computer')).map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name} ({f.employeeId})
                 </option>

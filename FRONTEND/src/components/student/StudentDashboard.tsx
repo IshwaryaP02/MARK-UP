@@ -14,18 +14,35 @@ import {
 } from 'lucide-react';
 
 export const StudentDashboard: React.FC = () => {
-  const { currentUser, subjects, attendanceRecords, leaveRequests, setActiveScreen } = useApp();
+  const { currentUser, subjects, attendanceRecords, leaveRequests, timetable, setActiveScreen } = useApp();
 
-  // Compute student stats
-  const totalClasses = 120;
-  const attendedClasses = 106;
-  const overallPct = Math.round((attendedClasses / totalClasses) * 100); // 88%
+  // Compute student stats from real attendance records
+  const myRecords = attendanceRecords.filter((r) => r.entries.some((e) => e.studentId === currentUser.id));
+  const isPresent = (status: string) => status === 'present' || status === 'late' || status === 'od';
+  const attendedClasses = myRecords.filter((r) => {
+    const e = r.entries.find((x) => x.studentId === currentUser.id);
+    return e ? isPresent(e.status) : false;
+  }).length;
+  const totalClasses = myRecords.length;
+  const overallPct = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
 
   // Safe miss calculator logic
   // Required: attended / (total + x) >= 0.75 => attended >= 0.75 * total + 0.75 * x => x <= (attended - 0.75*total)/0.75
-  const maxSafeMisses = Math.max(0, Math.floor((attendedClasses - 0.75 * totalClasses) / 0.75));
+  const maxSafeMisses =
+    totalClasses > 0 ? Math.max(0, Math.floor((attendedClasses - 0.75 * totalClasses) / 0.75)) : 0;
+
+  const enrolledSubjects = subjects.filter(
+    (s) => s.departmentId === currentUser.departmentId && s.semester === currentUser.semester
+  );
 
   const myLeaves = leaveRequests.filter((l) => l.studentId === currentUser.id || l.studentName === currentUser.name);
+  const leaveApproved = myLeaves.filter((l) => l.status === 'approved').length;
+  const leavePending = myLeaves.filter((l) => l.status === 'pending_faculty' || l.status === 'pending_hod').length;
+
+  const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const todaySlots = timetable.filter(
+    (t) => t.day === dayName && t.semester === currentUser.semester && t.section === currentUser.section
+  );
 
   return (
     <div className="space-y-6">
@@ -51,7 +68,13 @@ export const StudentDashboard: React.FC = () => {
           title="Overall Attendance Rate"
           value={`${overallPct}%`}
           icon={ShieldCheck}
-          subtitle={overallPct >= 75 ? 'Eligible for End-Sem Exams' : 'DANGER: Below 75% Threshold'}
+          subtitle={
+            totalClasses === 0
+              ? 'No attendance recorded yet'
+              : overallPct >= 75
+              ? 'Eligible for End-Sem Exams'
+              : 'DANGER: Below 75% Threshold'
+          }
           color="periwinkle"
         />
 
@@ -71,8 +94,8 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        <StatCard title="Total Lectures Attended" value={`${attendedClasses} / ${totalClasses}`} icon={BookOpen} subtitle="Semester 4 Total" color="periwinkle" />
-        <StatCard title="Active Leave Applications" value={myLeaves.length} icon={Clock} subtitle="1 Approved · 1 Pending" color="periwinkle" />
+        <StatCard title="Total Lectures Attended" value={`${attendedClasses} / ${totalClasses}`} icon={BookOpen} subtitle="Across All Subjects" color="periwinkle" />
+        <StatCard title="Active Leave Applications" value={myLeaves.length} icon={Clock} subtitle={`${leaveApproved} Approved · ${leavePending} Pending`} color="periwinkle" />
       </div>
 
       {/* Subject-Wise Progress Snapshot */}
@@ -92,8 +115,14 @@ export const StudentDashboard: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {subjects.map((sub) => {
-              const pct = sub.code === 'CS401' ? 92 : sub.code === 'CS402' ? 88 : sub.code === 'CS403' ? 70 : 85;
+            {enrolledSubjects.map((sub) => {
+              const subRecords = myRecords.filter((r) => r.subjectId === sub.id);
+              const attended = subRecords.filter((r) => {
+                const e = r.entries.find((x) => x.studentId === currentUser.id);
+                return e ? isPresent(e.status) : false;
+              }).length;
+              const pct = subRecords.length > 0 ? Math.round((attended / subRecords.length) * 100) : 0;
+              const noRecords = subRecords.length === 0;
               const isLow = pct < 75;
 
               return (
@@ -109,19 +138,23 @@ export const StudentDashboard: React.FC = () => {
                     </span>
                     <span
                       className={`font-mono font-bold ${
-                        isLow ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'
+                        noRecords
+                          ? 'text-zinc-400 dark:text-zinc-500'
+                          : isLow
+                          ? 'text-rose-600 dark:text-rose-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
                       }`}
                     >
-                      {pct}% {isLow && '(Below 75%)'}
+                      {noRecords ? '—' : `${pct}%`} {!noRecords && isLow && '(Below 75%)'}
                     </span>
                   </div>
 
                   <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        isLow ? 'bg-rose-500' : 'bg-[#313866] dark:bg-[#8A92D0]'
+                        noRecords ? 'bg-zinc-300 dark:bg-zinc-600' : isLow ? 'bg-rose-500' : 'bg-[#313866] dark:bg-[#8A92D0]'
                       }`}
-                      style={{ width: `${pct}%` }}
+                      style={{ width: `${noRecords ? 0 : pct}%` }}
                     />
                   </div>
                 </div>
@@ -134,7 +167,7 @@ export const StudentDashboard: React.FC = () => {
         <div className="lg:col-span-4 bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm flex flex-col items-center justify-between">
           <div className="w-full flex justify-between items-center mb-2">
             <h3 className="font-bold text-zinc-800 dark:text-zinc-100 text-sm">Attendance Overview</h3>
-            <span className="text-xs text-zinc-400 font-semibold">Semester 4</span>
+            <span className="text-xs text-zinc-400 font-semibold">Semester {currentUser.semester}</span>
           </div>
 
           <div className="relative w-40 h-40 flex items-center justify-center my-2">
@@ -161,11 +194,11 @@ export const StudentDashboard: React.FC = () => {
           <div className="w-full grid grid-cols-2 gap-3 mt-2">
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl">
               <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Regular</div>
-              <div className="text-lg font-bold text-zinc-800 dark:text-zinc-100">106</div>
+              <div className="text-lg font-bold text-zinc-800 dark:text-zinc-100">{attendedClasses}</div>
             </div>
             <div className="p-3 bg-rose-50 dark:bg-rose-950/40 rounded-2xl">
               <div className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Absent</div>
-              <div className="text-lg font-bold text-zinc-800 dark:text-zinc-100">14</div>
+              <div className="text-lg font-bold text-zinc-800 dark:text-zinc-100">{totalClasses - attendedClasses}</div>
             </div>
           </div>
         </div>
@@ -174,28 +207,29 @@ export const StudentDashboard: React.FC = () => {
       {/* Today's Schedule Card */}
       <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-3">
         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Today's Scheduled Lectures (Monday)
+          <Calendar className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Today's Scheduled Lectures ({dayName})
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3 bg-[#313866]/10 dark:bg-[#313866]/40 border border-[#313866]/30 dark:border-[#8A92D0]/40 rounded-xl text-xs space-y-1">
-            <span className="font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">Period 1 (09:00 AM)</span>
-            <span className="font-bold text-zinc-900 dark:text-zinc-100 block">CS401 - Data Structures</span>
-            <span className="text-[10px] text-zinc-500">Hall: Lab-302 · Prof. Sarah Jenkins</span>
+        {todaySlots.length === 0 ? (
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">No classes scheduled for today.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {todaySlots.map((slot) => (
+              <div
+                key={slot.id}
+                className="p-3 bg-[#313866]/10 dark:bg-[#313866]/40 border border-[#313866]/30 dark:border-[#8A92D0]/40 rounded-xl text-xs space-y-1"
+              >
+                <span className="font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">
+                  Period {slot.periodNumber} ({slot.startTime})
+                </span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100 block">
+                  {slot.subjectCode} - {slot.subjectName}
+                </span>
+                <span className="text-[10px] text-zinc-500">Hall: {slot.roomNo} · {slot.facultyName}</span>
+              </div>
+            ))}
           </div>
-
-          <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs space-y-1">
-            <span className="font-mono font-bold text-zinc-500 block">Period 2 (10:00 AM)</span>
-            <span className="font-bold text-zinc-900 dark:text-zinc-100 block">CS402 - Database Systems</span>
-            <span className="text-[10px] text-zinc-500">Hall: LH-101 · Dr. Robert Chen</span>
-          </div>
-
-          <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs space-y-1">
-            <span className="font-mono font-bold text-zinc-500 block">Period 3 (11:00 AM)</span>
-            <span className="font-bold text-zinc-900 dark:text-zinc-100 block">CS403 - Computer Networks</span>
-            <span className="text-[10px] text-zinc-500">Hall: LH-102 · Dr. Amanda Miller</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

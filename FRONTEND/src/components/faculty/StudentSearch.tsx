@@ -23,7 +23,7 @@ export const StudentSearch: React.FC = () => {
           Student Directory & Attendance Inspector
         </h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Lookup student profile, attendance percentage, and guardian contact details
+          Lookup student profile, attendance percentage, and parent contact details
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export const StudentSearch: React.FC = () => {
 
             <div className="text-xs text-zinc-500 space-y-1 pt-1 border-t border-zinc-100 dark:border-zinc-800">
               <div>Email: <strong className="text-zinc-800 dark:text-zinc-200">{s.email}</strong></div>
-              <div>Guardian: <strong className="text-zinc-800 dark:text-zinc-200">{s.guardianName} ({s.guardianPhone})</strong></div>
+              <div>Parents Number: <strong className="text-zinc-800 dark:text-zinc-200">{s.guardianPhone || 'N/A'}</strong></div>
             </div>
           </div>
         ))}

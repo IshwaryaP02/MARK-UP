@@ -105,9 +105,10 @@ interface AppContextType {
 
   submitLeaveRequest: (leave: Omit<LeaveRequest, 'id' | 'createdAt' | 'status'>) => void;
   reviewLeaveRequest: (id: string, stage: 'faculty' | 'hod', status: 'approved' | 'rejected', reviewerId: string, reviewerName: string, comment?: string) => void;
+  deleteLeaveRequest: (id: string) => void;
 
   submitSubstitutionRequest: (sub: Omit<SubstitutionRequest, 'id' | 'createdAt' | 'status'>) => void;
-  reviewSubstitutionRequest: (id: string, action: 'accept' | 'reject' | 'approve') => void;
+  reviewSubstitutionRequest: (id: string, action: 'accept' | 'reject' | 'approve', substituteFaculty?: { id: string; name: string }) => void;
 
   addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => void;
   deleteCalendarEvent: (id: string) => void;
@@ -116,7 +117,7 @@ interface AppContextType {
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
 
-  addCircular: (circular: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>) => void;
+  addCircular: (circular: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>) => Circular;
   updateCircular: (circular: Circular) => void;
   signCircular: (id: string, signerName: string) => void;
   publishCircular: (id: string, publisherName: string) => void;
@@ -132,53 +133,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const [users] = useState<User[]>(mockUsers);
-  const [students, setStudents] = useState<Student[]>(() => {
-    const saved = localStorage.getItem('smart_att_students');
-    return saved ? JSON.parse(saved) : mockStudents;
-  });
-  const [facultyList, setFacultyList] = useState<Faculty[]>(() => {
-    const saved = localStorage.getItem('smart_att_faculty');
-    return saved ? JSON.parse(saved) : mockFaculty;
-  });
-  const [departments, setDepartments] = useState<Department[]>(() => {
-    const saved = localStorage.getItem('smart_att_depts');
-    return saved ? JSON.parse(saved) : mockDepartments;
-  });
-  const [subjects, setSubjects] = useState<Subject[]>(() => {
-    const saved = localStorage.getItem('smart_att_subjects');
-    return saved ? JSON.parse(saved) : mockSubjects;
-  });
-  const [timetable, setTimetable] = useState<TimetableSlot[]>(() => {
-    const saved = localStorage.getItem('smart_att_timetable');
-    return saved ? JSON.parse(saved) : mockTimetableSlots;
-  });
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => {
-    const saved = localStorage.getItem('smart_att_records');
-    return saved ? JSON.parse(saved) : mockAttendanceRecords;
-  });
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
-    const saved = localStorage.getItem('smart_att_leaves');
-    return saved ? JSON.parse(saved) : mockLeaveRequests;
-  });
-  const [correctionRequests, setCorrectionRequests] = useState<CorrectionRequest[]>(() => {
-    const saved = localStorage.getItem('smart_att_corrections');
-    return saved ? JSON.parse(saved) : mockCorrectionRequests;
-  });
+  const [students, setStudents] = useState<Student[]>(mockStudents);
+  const [facultyList, setFacultyList] = useState<Faculty[]>(mockFaculty);
+  const [departments, setDepartments] = useState<Department[]>(mockDepartments);
+  const [subjects, setSubjects] = useState<Subject[]>(mockSubjects);
+  const [timetable, setTimetable] = useState<TimetableSlot[]>(mockTimetableSlots);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(mockAttendanceRecords);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(mockLeaveRequests);
+  const [correctionRequests, setCorrectionRequests] = useState<CorrectionRequest[]>(mockCorrectionRequests);
   const [substitutionRequests, setSubstitutionRequests] = useState<SubstitutionRequest[]>(() => {
-    const saved = localStorage.getItem('smart_att_subs');
-    return saved ? JSON.parse(saved) : mockSubstitutionRequests;
+    try {
+      const saved = localStorage.getItem('smart_att_substitutions');
+      return saved ? JSON.parse(saved) : mockSubstitutionRequests;
+    } catch {
+      return mockSubstitutionRequests;
+    }
   });
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(() => {
-    const saved = localStorage.getItem('smart_att_calendar');
-    return saved ? JSON.parse(saved) : mockCalendarEvents;
-  });
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>(mockCalendarEvents);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(mockAuditLogs);
   const [backups, setBackups] = useState<BackupSnapshot[]>(mockBackupSnapshots);
-  const [notifications, setNotifications] = useState<AppNotification[]>(mockNotifications);
-  const [circulars, setCirculars] = useState<Circular[]>(() => {
-    const saved = localStorage.getItem('smart_att_circulars');
-    return saved ? JSON.parse(saved) : mockCirculars;
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    try {
+      const saved = localStorage.getItem('smart_att_notifications');
+      return saved ? JSON.parse(saved) : mockNotifications;
+    } catch {
+      return mockNotifications;
+    }
   });
+  const [circulars, setCirculars] = useState<Circular[]>(mockCirculars);
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('smart_att_theme');
@@ -263,6 +245,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('smart_att_corrections', JSON.stringify(correctionRequests));
   }, [correctionRequests]);
 
+  useEffect(() => {
+    localStorage.setItem('smart_att_substitutions', JSON.stringify(substitutionRequests));
+  }, [substitutionRequests]);
+
+  useEffect(() => {
+    localStorage.setItem('smart_att_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
   const addToast = (title: string, message?: string, type: 'success' | 'danger' | 'warning' | 'info' = 'info') => {
     const id = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
     setToasts((prev) => [...prev, { id, title, message, type }]);
@@ -279,6 +269,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsDarkMode((prev) => !prev);
   };
 
+  const enrichUser = (target: User): User => {
+    if (target.role !== 'student') return target;
+    const studentRecord = students.find((s) => s.id === target.id);
+    if (!studentRecord) return target;
+    return {
+      ...target,
+      regNo: studentRecord.regNo,
+      rollNo: studentRecord.rollNo,
+      semester: studentRecord.semester,
+      section: studentRecord.section,
+      batch: studentRecord.batch,
+      departmentId: studentRecord.departmentId,
+      departmentName: studentRecord.departmentName,
+      guardianName: studentRecord.guardianName,
+      guardianPhone: studentRecord.guardianPhone,
+      phone: studentRecord.phone || target.phone,
+      avatar: studentRecord.avatar || target.avatar,
+      address: studentRecord.address || target.address,
+      dob: studentRecord.dob || target.dob,
+      gender: studentRecord.gender || target.gender
+    };
+  };
+
   const login = (role?: UserRole) => {
     if (role) {
       const target = mockUsers.find((u) => u.role === role) || {
@@ -289,7 +302,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         active: true,
         lastLogin: new Date().toLocaleTimeString()
       };
-      setCurrentUser(target);
+      setCurrentUser(enrichUser({ ...target, lastLogin: new Date().toLocaleTimeString() }));
     }
     setIsAuthenticated(true);
     localStorage.setItem('smart_att_authed', 'true');
@@ -313,7 +326,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       active: true,
       lastLogin: new Date().toLocaleTimeString()
     };
-    setCurrentUser(target);
+    setCurrentUser(enrichUser({ ...target, lastLogin: new Date().toLocaleTimeString() }));
     setIsAuthenticated(true);
     localStorage.setItem('smart_att_authed', 'true');
     setActiveScreen('dashboard');
@@ -333,6 +346,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ipAddress: '127.0.0.1'
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+  };
+
+  const pushNotification = (
+    title: string,
+    message: string,
+    targetRole?: UserRole,
+    targetClass?: { semester: number; section: string },
+    type: AppNotification['type'] = 'info',
+    link?: string
+  ) => {
+    const newNotif: AppNotification = {
+      id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+      title,
+      message,
+      timestamp: 'Just now',
+      read: false,
+      type,
+      link,
+      targetRole,
+      targetClass
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
   };
 
   // Student CRUD
@@ -472,13 +507,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setCorrectionRequests((prev) => [newReq, ...prev]);
     logAudit('REQUEST_CORRECTION', 'Attendance History', `Correction requested for ${newReq.studentName} (${newReq.subjectCode})`);
+    pushNotification(
+      'Attendance Correction Request',
+      `${newReq.studentName} (${newReq.studentRegNo}) requested a correction for ${newReq.subjectCode} on ${newReq.date} (${newReq.originalStatus} → ${newReq.proposedStatus}).`,
+      'hod',
+      undefined,
+      'info',
+      'hod_corrections'
+    );
     addToast('Correction Requested', 'Submitted to HOD for review', 'info');
   };
 
   const reviewCorrectionRequest = (id: string, status: 'approved' | 'rejected', reviewerName: string, comment?: string) => {
+    let targetCorr: CorrectionRequest | undefined;
     setCorrectionRequests((prev) =>
       prev.map((c) => {
         if (c.id === id) {
+          targetCorr = c;
           return {
             ...c,
             status,
@@ -489,6 +534,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return c;
       })
     );
+    if (targetCorr && status === 'approved') {
+      pushNotification(
+        'Correction Request Approved',
+        `HOD approved your attendance correction for ${targetCorr.subjectCode} on ${targetCorr.date} (${targetCorr.proposedStatus}).`,
+        'student',
+        undefined,
+        'success',
+        'student_attendance'
+      );
+    }
     logAudit('REVIEW_CORRECTION', 'HOD Approvals', `Correction ${id} marked as ${status.toUpperCase()} by ${reviewerName}`);
     addToast('Correction Reviewed', `Request marked as ${status}`, status === 'approved' ? 'success' : 'warning');
   };
@@ -503,6 +558,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setLeaveRequests((prev) => [newLeave, ...prev]);
     logAudit('SUBMIT_LEAVE', 'Student Leave', `Leave submitted by ${newLeave.studentName} for ${newLeave.totalDays} day(s)`);
+    pushNotification(
+      'Leave Request Pending Review',
+      `${newLeave.studentName} (${newLeave.studentRegNo}) submitted a ${newLeave.leaveType} request for ${newLeave.startDate} to ${newLeave.endDate}.`,
+      'faculty',
+      { semester: newLeave.semester, section: newLeave.section },
+      'info',
+      'leave_queue'
+    );
     addToast('Leave Applied', 'Application sent to faculty advisor for review', 'success');
   };
 
@@ -514,9 +577,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     reviewerName: string,
     comment?: string
   ) => {
+    let targetLeave: LeaveRequest | undefined;
     setLeaveRequests((prev) =>
       prev.map((l) => {
         if (l.id === id) {
+          targetLeave = l;
           if (stage === 'faculty') {
             if (status === 'rejected') {
               return {
@@ -541,8 +606,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return l;
       })
     );
+    if (targetLeave) {
+      pushNotification(
+        status === 'approved'
+          ? stage === 'hod'
+            ? 'Leave Approved'
+            : 'Leave Recommended'
+          : 'Leave Rejected',
+        `${stage === 'faculty' ? 'Faculty advisor' : 'HOD'} marked your ${targetLeave.leaveType} leave (${targetLeave.startDate} to ${targetLeave.endDate}) as ${status}.`,
+        'student',
+        { semester: targetLeave.semester, section: targetLeave.section },
+        status === 'approved' ? 'success' : 'danger',
+        'student_apply_leave'
+      );
+    }
     logAudit('REVIEW_LEAVE', 'Leave Module', `Leave ${id} ${status} by ${stage.toUpperCase()} (${reviewerName})`);
     addToast('Leave Request Updated', `Marked as ${status}`, status === 'approved' ? 'success' : 'warning');
+  };
+
+  const deleteLeaveRequest = (id: string) => {
+    const target = leaveRequests.find((l) => l.id === id);
+    setLeaveRequests((prev) => prev.filter((l) => l.id !== id));
+    logAudit('DELETE_LEAVE', 'Student Leave', `Leave application ${id} deleted by ${target?.studentName || 'student'}`);
+    addToast('Leave Deleted', 'Your leave application has been removed', 'warning');
   };
 
   // Substitutions
@@ -555,21 +641,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setSubstitutionRequests((prev) => [newSub, ...prev]);
     logAudit('SUBMIT_SUBSTITUTION', 'Faculty Substitution', `Substitution requested with ${newSub.substituteFacultyName}`);
+    pushNotification(
+      'New Substitution Request',
+      `${newSub.requestingFacultyName} requested coverage for ${newSub.subjectCode} (Period ${newSub.periodNumber}) on ${newSub.date}.`,
+      'hod',
+      undefined,
+      'info',
+      'hod_substitutions'
+    );
+    if (newSub.substituteFacultyId !== 'open') {
+      pushNotification(
+        'Substitution Coverage Request',
+        `${newSub.requestingFacultyName} asked you to cover ${newSub.subjectCode} (Period ${newSub.periodNumber}) on ${newSub.date}.`,
+        'faculty',
+        undefined,
+        'info',
+        'substitution'
+      );
+    }
     addToast('Substitution Sent', `Request sent to ${newSub.substituteFacultyName}`, 'info');
   };
 
-  const reviewSubstitutionRequest = (id: string, action: 'accept' | 'reject' | 'approve') => {
+  const reviewSubstitutionRequest = (
+    id: string,
+    action: 'accept' | 'reject' | 'approve',
+    substituteFaculty?: { id: string; name: string }
+  ) => {
+    let targetSub: SubstitutionRequest | undefined;
     setSubstitutionRequests((prev) =>
       prev.map((s) => {
         if (s.id === id) {
-          if (action === 'accept') return { ...s, status: 'accepted' };
+          targetSub = s;
+          if (action === 'accept')
+            return {
+              ...s,
+              status: 'accepted',
+              substituteFacultyId: substituteFaculty?.id ?? s.substituteFacultyId,
+              substituteFacultyName: substituteFaculty?.name ?? s.substituteFacultyName
+            };
           if (action === 'reject') return { ...s, status: 'rejected_by_sub' };
-          if (action === 'approve') return { ...s, status: 'approved_by_hod' };
+          if (action === 'approve')
+            return {
+              ...s,
+              status: 'approved_by_hod' as const,
+              substituteFacultyId: substituteFaculty?.id ?? s.substituteFacultyId,
+              substituteFacultyName: substituteFaculty?.name ?? s.substituteFacultyName
+            };
         }
         return s;
       })
     );
-    addToast('Substitution Updated', `Status updated to ${action}`, 'success');
+    if (targetSub) {
+      if (action === 'approve') {
+        pushNotification(
+          'Substitution Approved by HOD',
+          `HOD approved your substitution request — ${targetSub.substituteFacultyName} will cover ${targetSub.subjectCode} (Period ${targetSub.periodNumber}) on ${targetSub.date}.`,
+          'faculty',
+          undefined,
+          'success',
+          'substitution'
+        );
+      } else if (action === 'accept') {
+        pushNotification(
+          'Substitution Accepted',
+          `${targetSub.substituteFacultyName} accepted your request to cover ${targetSub.subjectCode} (Period ${targetSub.periodNumber}) on ${targetSub.date}.`,
+          'faculty',
+          undefined,
+          'success',
+          'substitution'
+        );
+        pushNotification(
+          'Substitution Awaiting Approval',
+          `${targetSub.substituteFacultyName} accepted a substitution for ${targetSub.requestingFacultyName} (${targetSub.subjectCode}, Period ${targetSub.periodNumber} on ${targetSub.date}).`,
+          'hod',
+          undefined,
+          'info',
+          'hod_substitutions'
+        );
+      } else if (action === 'reject') {
+        pushNotification(
+          'Substitution Declined',
+          `${targetSub.substituteFacultyName} declined your request to cover ${targetSub.subjectCode} (Period ${targetSub.periodNumber}) on ${targetSub.date}.`,
+          'faculty',
+          undefined,
+          'warning',
+          'substitution'
+        );
+      }
+    }
   };
 
   // Calendar Events
@@ -613,16 +772,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('smart_att_circulars', JSON.stringify(circulars));
   }, [circulars]);
 
-  const addCircular = (circularData: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>) => {
+  const addCircular = (circularData: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>): Circular => {
+    const recipientCount =
+      circularData.target === 'all_faculty'
+        ? facultyList.length
+        : circularData.target === 'individual_faculty'
+        ? circularData.selectedFacultyIds?.length || 0
+        : circularData.target === 'all_students'
+        ? students.length
+        : circularData.target === 'tutor_class'
+        ? students.filter(
+            (s) =>
+              s.semester === circularData.targetClass?.semester &&
+              s.section === circularData.targetClass?.section
+          ).length
+        : 0;
     const newCircular: Circular = {
       ...circularData,
       id: 'circ-' + Date.now(),
-      recipientCount: 0,
+      recipientCount,
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
     setCirculars((prev) => [newCircular, ...prev]);
     logAudit('CREATE_CIRCULAR', 'Circulars', `Created circular: ${newCircular.title}`);
     addToast('Circular Created', `"${newCircular.title}" saved as draft`, 'success');
+    return newCircular;
   };
 
   const updateCircular = (updated: Circular) => {
@@ -770,6 +944,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         submitLeaveRequest,
         reviewLeaveRequest,
+        deleteLeaveRequest,
 
         submitSubstitutionRequest,
         reviewSubstitutionRequest,

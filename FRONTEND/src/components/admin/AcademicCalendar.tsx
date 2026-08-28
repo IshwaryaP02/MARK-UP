@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CalendarEvent } from '../../types';
 import { Modal } from '../common/Modal';
-import { Calendar as CalendarIcon, Plus, Trash2, CheckCircle2, AlertCircle, Bookmark } from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const AcademicCalendar: React.FC = () => {
   const { calendarEvents, addCalendarEvent, deleteCalendarEvent } = useApp();
+
+  // Month navigation state
+  const [viewMonth, setViewMonth] = useState<number>(7); // 0-indexed month (7 = August)
+  const [viewYear, setViewYear] = useState<number>(2026);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState<Omit<CalendarEvent, 'id'>>({
@@ -15,12 +19,43 @@ export const AcademicCalendar: React.FC = () => {
     description: ''
   });
 
-  const daysInMonth = Array.from({ length: 31 }, (_, i) => {
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // Build date string YYYY-MM-DD for a given day of the viewed month
+  const dateStrFor = (day: number) =>
+    `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  const daysInMonth = Array.from({ length: new Date(viewYear, viewMonth + 1, 0).getDate() }, (_, i) => {
     const day = i + 1;
-    const dateStr = `2026-08-${String(day).padStart(2, '0')}`;
+    const dateStr = dateStrFor(day);
     const events = calendarEvents.filter((e) => e.date === dateStr);
     return { day, dateStr, events };
   });
+
+  const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay(); // 0 = Sunday
+
+  const goPrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+    setFormData((f) => ({ ...f, date: dateStrFor(1) }));
+  };
+
+  const goNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+    setFormData((f) => ({ ...f, date: dateStrFor(1) }));
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +73,7 @@ export const AcademicCalendar: React.FC = () => {
             Academic Calendar & Holiday Planner
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Bulk mark working days, exam periods, national holidays, and institutional events
+            Navigate any month to view dates; mark working days, exam periods, holidays, and institutional events
           </p>
         </div>
 
@@ -47,7 +82,7 @@ export const AcademicCalendar: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          Mark Calendar Day
+          Add
         </button>
       </div>
 
@@ -69,12 +104,36 @@ export const AcademicCalendar: React.FC = () => {
 
       {/* Month Grid */}
       <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl p-4 shadow-sm">
-        <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-4">August 2026</h3>
+        {/* Month navigation header */}
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={goPrevMonth}
+            className="p-2 text-zinc-500 hover:text-[#313866] dark:hover:text-[#8A92D0] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+            {monthNames[viewMonth]} {viewYear}
+          </h3>
+          <button
+            onClick={goNextMonth}
+            className="p-2 text-zinc-500 hover:text-[#313866] dark:hover:text-[#8A92D0] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+            aria-label="Next month"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
         <div className="grid grid-cols-7 gap-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
             <div key={d} className="text-center text-[10px] font-bold uppercase text-zinc-400 p-2">
               {d}
             </div>
+          ))}
+
+          {Array.from({ length: firstDayIndex }).map((_, idx) => (
+            <div key={`blank-${idx}`} className="min-h-20 p-2" />
           ))}
 
           {daysInMonth.map(({ day, dateStr, events }) => (
@@ -94,6 +153,7 @@ export const AcademicCalendar: React.FC = () => {
                     <div
                       key={e.id}
                       className={`p-1 rounded text-[9px] font-bold flex items-center justify-between ${badgeColor}`}
+                      title={`${e.title}${e.description ? ` — ${e.description}` : ''}`}
                     >
                       <span className="truncate">{e.title}</span>
                       <button
@@ -156,11 +216,22 @@ export const AcademicCalendar: React.FC = () => {
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Description (Optional)</label>
+            <textarea
+              rows={2}
+              value={formData.description || ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Short note about this date"
+              className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+            />
+          </div>
+
           <button
             type="submit"
             className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
           >
-            Save Calendar Tag
+            Save Calendar Event
           </button>
         </form>
       </Modal>

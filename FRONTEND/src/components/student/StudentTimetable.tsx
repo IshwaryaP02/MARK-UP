@@ -1,22 +1,29 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { MapPin } from 'lucide-react';
+import { MapPin, ArrowLeft } from 'lucide-react';
 
 export const StudentTimetable: React.FC = () => {
-  const { timetable } = useApp();
+  const { timetable, setActiveScreen } = useApp();
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
-  const periods = [
-    { num: 1, start: '09:00 AM' },
-    { num: 2, start: '10:00 AM' },
-    { num: 3, start: '11:00 AM' },
-    { num: 4, start: '01:30 PM' },
-    { num: 5, start: '02:30 PM' },
-    { num: 6, start: '03:30 PM' }
+  const rowLabels: { label: string; day: string }[] = [
+    { label: 'I', day: 'Monday' },
+    { label: 'II', day: 'Tuesday' },
+    { label: 'III', day: 'Wednesday' },
+    { label: 'IV', day: 'Thursday' },
+    { label: 'V', day: 'Friday' },
+    { label: 'VI', day: 'Saturday' }
   ];
+  const periods = [1, 2, 3, 4, 5];
 
   return (
     <div className="space-y-6">
+      <button
+        onClick={() => setActiveScreen('dashboard')}
+        className="flex items-center gap-2 text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </button>
+
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           Weekly Class Lecture Timetable
@@ -29,24 +36,24 @@ export const StudentTimetable: React.FC = () => {
           <table className="w-full text-center text-xs border-collapse">
             <thead>
               <tr className="bg-zinc-50 dark:bg-[#161B33] border-b border-zinc-200 dark:border-[#2D376A] text-zinc-500 font-semibold uppercase tracking-wider">
-                <th className="p-3 w-24 text-left pl-4">Day</th>
+                <th className="p-3 w-24 text-left pl-4">Slot</th>
                 {periods.map((p) => (
-                  <th key={p.num} className="p-3 border-l border-zinc-200 dark:border-[#2D376A]">
-                    P{p.num} ({p.start})
+                  <th key={p} className="p-3 border-l border-zinc-200 dark:border-[#2D376A]">
+                    {p}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-[#2D376A]">
-              {days.map((day) => (
-                <tr key={day}>
+              {rowLabels.map(({ label, day }) => (
+                <tr key={label}>
                   <td className="p-3 font-bold text-left pl-4 bg-zinc-50/50 dark:bg-[#161B33]/60 text-zinc-900 dark:text-zinc-100 border-r border-zinc-200 dark:border-[#2D376A]">
-                    {day}
+                    {label}
                   </td>
                   {periods.map((p) => {
-                    const slot = timetable.find((s) => s.day === day && s.periodNumber === p.num);
+                    const slot = timetable.find((s) => s.day === day && s.periodNumber === p);
                     return (
-                      <td key={p.num} className="p-2 border-l border-zinc-200 dark:border-[#2D376A] h-16 align-top">
+                      <td key={p} className="p-2 border-l border-zinc-200 dark:border-[#2D376A] h-16 align-top">
                         {slot ? (
                           <div className="p-2 bg-[#313866]/10 dark:bg-[#313866]/50 border border-[#313866]/30 dark:border-[#8A92D0]/40 rounded-xl text-left h-full flex flex-col justify-between">
                             <span className="font-bold text-[#313866] dark:text-[#8A92D0] text-xs block truncate">

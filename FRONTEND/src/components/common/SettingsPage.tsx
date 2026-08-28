@@ -5,7 +5,6 @@ import { Settings, Moon, Sun, Bell, Shield } from 'lucide-react';
 export const SettingsPage: React.FC = () => {
   const { isDarkMode, toggleDarkMode, addToast } = useApp();
   const [emailAlerts, setEmailAlerts] = useState(true);
-  const [smsAlerts, setSmsAlerts] = useState(false);
 
   const handleSave = () => {
     addToast('Settings Preferences Saved', 'System preferences and theme palette saved', 'success');
@@ -41,9 +40,9 @@ export const SettingsPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Notification Preferences */}
+        {/* Email Alert Preferences */}
         <div className="space-y-3 pb-5 border-b border-zinc-100 dark:border-zinc-800">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Notification Channels</h3>
+          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Email Alerts</h3>
 
           <label className="flex items-center justify-between text-xs cursor-pointer">
             <span className="text-zinc-700 dark:text-zinc-300 font-semibold">Email Alerts for Low Attendance (&lt;75%)</span>
@@ -51,16 +50,6 @@ export const SettingsPage: React.FC = () => {
               type="checkbox"
               checked={emailAlerts}
               onChange={(e) => setEmailAlerts(e.target.checked)}
-              className="w-4 h-4 text-[#313866] rounded"
-            />
-          </label>
-
-          <label className="flex items-center justify-between text-xs cursor-pointer">
-            <span className="text-zinc-700 dark:text-zinc-300 font-semibold">SMS Alerts to Parents on Absence</span>
-            <input
-              type="checkbox"
-              checked={smsAlerts}
-              onChange={(e) => setSmsAlerts(e.target.checked)}
               className="w-4 h-4 text-[#313866] rounded"
             />
           </label>

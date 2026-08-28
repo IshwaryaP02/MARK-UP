@@ -43,6 +43,7 @@ export const BottomNav: React.FC = () => {
         { id: 'student_attendance', label: 'Attendance', icon: CheckSquare },
         { id: 'student_apply_leave', label: 'Apply Leave', icon: FileText },
         { id: 'student_timetable', label: 'Timetable', icon: Calendar },
+        { id: 'student_circulars', label: 'Circulars', icon: FileText },
         { id: 'settings', label: 'Themes', icon: Palette }
       ];
     }
@@ -51,8 +52,7 @@ export const BottomNav: React.FC = () => {
       { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
       { id: 'hod_all_classes', label: 'All Classes', icon: Eye },
       { id: 'hod_circulars', label: 'Circulars', icon: FileText },
-      { id: 'hod_leaves', label: 'Leaves', icon: FileText },
-      { id: 'settings', label: 'Themes', icon: Palette }
+      { id: 'hod_leaves', label: 'Leaves', icon: FileText }
     ];
   };
 

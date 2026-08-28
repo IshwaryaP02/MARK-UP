@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { EditProfileModal } from '../profile/EditProfileModal';
-import { User, Edit3 } from 'lucide-react';
+import { User, Edit3, ArrowLeft } from 'lucide-react';
 
 export const StudentProfile: React.FC = () => {
-  const { currentUser } = useApp();
+  const { currentUser, setActiveScreen } = useApp();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   return (
     <div className="space-y-6">
+      <button
+        onClick={() => setActiveScreen('dashboard')}
+        className="flex items-center gap-2 text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </button>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">

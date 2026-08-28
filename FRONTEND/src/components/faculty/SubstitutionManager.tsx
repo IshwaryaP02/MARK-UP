@@ -2,22 +2,51 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
-import { Repeat, Plus, CheckCircle2, XCircle, UserCheck, Clock, Send, ShieldCheck } from 'lucide-react';
+import { Repeat, Plus, CheckCircle2, XCircle, Send } from 'lucide-react';
+
+type SubjectOption = { subjectCode: string; subjectName: string };
 
 export const SubstitutionManager: React.FC = () => {
-  const { substitutionRequests, facultyList, currentUser, submitSubstitutionRequest, reviewSubstitutionRequest, addToast } = useApp();
+  const { substitutionRequests, facultyList, timetable, currentUser, submitSubstitutionRequest, reviewSubstitutionRequest, addToast } = useApp();
+
+  const myFacId = currentUser.id;
+  const mySlots = timetable.filter((t) => t.facultyId === myFacId);
+  const mySubjects: SubjectOption[] = Array.from(
+    new Map<string, SubjectOption>(
+      mySlots.map((s) => [s.subjectCode, { subjectCode: s.subjectCode, subjectName: s.subjectName }])
+    ).values()
+  );
+  const defaultSlot = mySlots[0];
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+    today.getDate()
+  ).padStart(2, '0')}`;
 
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    date: '2026-08-04',
-    periodNumber: 2,
-    subjectCode: 'CS401',
-    subjectName: 'Data Structures & Algorithms',
+    date: todayStr,
+    periodNumber: defaultSlot?.periodNumber ?? 2,
+    subjectCode: defaultSlot?.subjectCode ?? 'CS401',
+    subjectName: defaultSlot?.subjectName ?? 'Data Structures & Algorithms',
     substituteFacultyId: facultyList.find((f) => f.id !== currentUser.id)?.id || '',
+    roomNo: defaultSlot?.roomNo ?? 'Lab-302',
+    section: defaultSlot?.section ?? 'A',
     reason: ''
   });
 
-  const myFacId = currentUser.id;
+  const handleSubjectChange = (subjectCode: string) => {
+    const slot = mySlots.find((s) => s.subjectCode === subjectCode);
+    if (!slot) return;
+    setFormData((prev) => ({
+      ...prev,
+      subjectCode: slot.subjectCode,
+      subjectName: slot.subjectName,
+      periodNumber: slot.periodNumber,
+      roomNo: slot.roomNo,
+      section: slot.section
+    }));
+  };
 
   // Incoming requests specifically targeting this faculty member OR unassigned open requests
   const incomingRequests = substitutionRequests.filter(
@@ -40,8 +69,8 @@ export const SubstitutionManager: React.FC = () => {
       requestingFacultyName: currentUser.name,
       substituteFacultyId: subColleague?.id || 'open',
       substituteFacultyName: subColleague?.name || 'Any Available Faculty',
-      roomNo: 'Lab-302',
-      section: 'A',
+      roomNo: formData.roomNo,
+      section: formData.section,
       reason: formData.reason
     });
     setModalOpen(false);
@@ -49,7 +78,7 @@ export const SubstitutionManager: React.FC = () => {
   };
 
   const handleAcceptRequest = (reqId: string, requesterName: string, period: number) => {
-    reviewSubstitutionRequest(reqId, 'accept');
+    reviewSubstitutionRequest(reqId, 'accept', { id: myFacId, name: currentUser.name });
     addToast('Substitution Accepted', `You have accepted to substitute for ${requesterName} (Period ${period})`, 'success');
   };
 
@@ -178,14 +207,18 @@ export const SubstitutionManager: React.FC = () => {
         <form onSubmit={handleRequestSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Target Date</label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold"
-              />
+              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Subject Session</label>
+              <select
+                value={formData.subjectCode}
+                onChange={(e) => handleSubjectChange(e.target.value)}
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0]"
+              >
+                {mySubjects.map((s) => (
+                  <option key={s.subjectCode} value={s.subjectCode}>
+                    {s.subjectCode} - {s.subjectName}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Period Number</label>
@@ -199,6 +232,28 @@ export const SubstitutionManager: React.FC = () => {
                 <option value={3}>Period 3 (11:00 AM)</option>
                 <option value={4}>Period 4 (01:30 PM)</option>
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Target Date</label>
+              <input
+                type="date"
+                required
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold"
+              />
+            </div>
+            <div>
+              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Room</label>
+              <input
+                type="text"
+                value={formData.roomNo}
+                onChange={(e) => setFormData({ ...formData, roomNo: e.target.value })}
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold"
+              />
             </div>
           </div>
 

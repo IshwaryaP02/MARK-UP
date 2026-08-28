@@ -73,18 +73,14 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, 
           </div>
         </div>
 
-        {/* Contact & Guardian Details */}
+        {/* Contact & Parent Details */}
         <div className="p-4 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
           <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-xs pb-1 border-b border-zinc-100 dark:border-zinc-800">
-            Contact & Parent / Guardian Information
+            Contact & Parent Information
           </h4>
           <div className="grid grid-cols-2 gap-2 text-zinc-600 dark:text-zinc-300">
             <div>
-              <span className="text-[10px] text-zinc-400 block font-semibold">Guardian Name</span>
-              <span className="font-bold">{student.guardianName || 'N/A'}</span>
-            </div>
-            <div>
-              <span className="text-[10px] text-zinc-400 block font-semibold">Guardian Phone</span>
+              <span className="text-[10px] text-zinc-400 block font-semibold">Parents Number</span>
               <span className="font-bold font-mono">{student.guardianPhone || 'N/A'}</span>
             </div>
             <div>

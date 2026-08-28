@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { StatCard } from '../common/StatCard';
 import {
@@ -8,7 +8,6 @@ import {
   Repeat,
   ShieldCheck,
   Eye,
-  Clock,
   UserCheck,
   AlertTriangle,
   LogIn,
@@ -21,11 +20,16 @@ export const HODDashboard: React.FC = () => {
   const pendingLeaves = leaveRequests.filter((l) => l.status === 'pending_hod');
   const pendingSubs = substitutionRequests.filter((s) => s.status === 'pending');
 
-  const [substituteSelections, setSubstituteSelections] = useState<Record<string, string>>({});
-
   const deptFaculty = facultyList.filter(
     (f) => f.departmentId === (currentUser.departmentId || 'dept-cs')
   );
+
+  const isSubstituteAssigned = (facId: string) =>
+    substitutionRequests.some(
+      (s) =>
+        s.requestingFacultyId === facId &&
+        (s.status === 'accepted' || s.status === 'approved_by_hod')
+    );
 
   const getFacultyAttendance = () => {
     return deptFaculty.map((fac, idx) => {
@@ -158,27 +162,17 @@ export const HODDashboard: React.FC = () => {
                   </td>
                   <td className="p-3.5 text-right pr-4">
                     {fac.isPresent ? (
-                      <span className="text-xs text-zinc-400 italic">N/A (Present)</span>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F3F4F9] dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl text-[11px] font-bold text-[#313866] dark:text-[#8A92D0]">
+                        <CheckCircle2 className="w-3 h-3" /> Assigned · {fac.name}
+                      </span>
+                    ) : isSubstituteAssigned(fac.id) ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 className="w-3 h-3" /> Assigned
+                      </span>
                     ) : (
-                      <select
-                        value={substituteSelections[fac.id] || ''}
-                        onChange={(e) =>
-                          setSubstituteSelections((prev) => ({
-                            ...prev,
-                            [fac.id]: e.target.value
-                          }))
-                        }
-                        className="px-2.5 py-1.5 bg-white dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl text-[11px] font-bold text-[#313866] dark:text-[#8A92D0] max-w-[200px] overflow-y-auto focus:outline-none focus:ring-2 focus:ring-[#313866]"
-                      >
-                        <option value="">Select Substitute...</option>
-                        {facultyAttendance
-                          .filter((f) => f.id !== fac.id && f.isPresent)
-                          .map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.name}
-                            </option>
-                          ))}
-                      </select>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
+                        <AlertTriangle className="w-3 h-3" /> Not Assigned
+                      </span>
                     )}
                   </td>
                 </tr>

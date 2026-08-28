@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SubstitutionRequest } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
-import { Repeat, CheckCircle2, UserCheck, Edit2, XCircle, Check } from 'lucide-react';
+import { Repeat, CheckCircle2, XCircle, Check } from 'lucide-react';
 
 export const ApproveSubstitutions: React.FC = () => {
-  const { substitutionRequests, facultyList, addToast } = useApp();
+  const { substitutionRequests, facultyList, reviewSubstitutionRequest, addToast } = useApp();
 
-  const [requests, setRequests] = useState(substitutionRequests);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedSubstitutes, setSelectedSubstitutes] = useState<Record<string, { id: string; name: string }>>({});
 
   const handleSelectSubstitute = (reqId: string, facultyId: string) => {
@@ -21,30 +18,17 @@ export const ApproveSubstitutions: React.FC = () => {
   };
 
   const handleApprove = (reqId: string) => {
-    setRequests((prev) =>
-      prev.map((r) => {
-        if (r.id === reqId) {
-          const chosenSub = selectedSubstitutes[reqId];
-          return {
-            ...r,
-            substituteFacultyId: chosenSub ? chosenSub.id : r.substituteFacultyId,
-            substituteFacultyName: chosenSub ? chosenSub.name : r.substituteFacultyName,
-            status: 'approved_by_hod' as const
-          };
-        }
-        return r;
-      })
-    );
-    setEditingId(null);
+    const chosenSub = selectedSubstitutes[reqId];
+    reviewSubstitutionRequest(reqId, 'approve', chosenSub);
     addToast('Substitution Approved', 'HOD successfully approved class substitution', 'success');
   };
 
   const handleReject = (reqId: string) => {
-    setRequests((prev) =>
-      prev.map((r) => (r.id === reqId ? { ...r, status: 'rejected_by_sub' as const } : r))
-    );
+    reviewSubstitutionRequest(reqId, 'reject');
     addToast('Substitution Rejected', 'Class substitution request rejected', 'info');
   };
+
+  const actionable = (status: string) => status === 'pending' || status === 'accepted';
 
   return (
     <div className="space-y-6">
@@ -70,7 +54,14 @@ export const ApproveSubstitutions: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-            {requests.map((s) => {
+            {substitutionRequests.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-zinc-400">
+                  No substitution requests have been submitted yet.
+                </td>
+              </tr>
+            )}
+            {substitutionRequests.map((s) => {
               const chosenSubId = selectedSubstitutes[s.id]?.id || s.substituteFacultyId;
 
               return (
@@ -93,20 +84,24 @@ export const ApproveSubstitutions: React.FC = () => {
                       <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg">
                         {s.substituteFacultyName}
                       </span>
-                    ) : (
+                    ) : actionable(s.status) ? (
                       <div className="flex items-center gap-2">
                         <select
                           value={chosenSubId}
                           onChange={(e) => handleSelectSubstitute(s.id, e.target.value)}
                           className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-[#313866] dark:text-[#8A92D0] focus:ring-2 focus:ring-[#313866]"
                         >
-                          {facultyList.map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.name} ({f.departmentName})
-                            </option>
-                          ))}
+                          {facultyList
+                            .filter((f) => f.id !== s.requestingFacultyId)
+                            .map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.name} ({f.departmentName})
+                              </option>
+                            ))}
                         </select>
                       </div>
+                    ) : (
+                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">{s.substituteFacultyName}</span>
                     )}
                   </td>
                   <td className="p-3.5">
@@ -117,7 +112,7 @@ export const ApproveSubstitutions: React.FC = () => {
                       <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px] flex items-center justify-end gap-1">
                         <CheckCircle2 className="w-4 h-4" /> Approved
                       </span>
-                    ) : (
+                    ) : actionable(s.status) ? (
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleApprove(s.id)}
@@ -132,6 +127,8 @@ export const ApproveSubstitutions: React.FC = () => {
                           <XCircle className="w-3.5 h-3.5" /> Reject
                         </button>
                       </div>
+                    ) : (
+                      <span className="text-zinc-400 text-[11px] font-semibold">No action</span>
                     )}
                   </td>
                 </tr>

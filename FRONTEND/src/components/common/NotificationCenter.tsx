@@ -1,16 +1,27 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { AppNotification } from '../../types';
 import { Bell, CheckCircle2, Clock, FileText } from 'lucide-react';
 
 export const NotificationCenter: React.FC = () => {
-  const { notifications, markNotificationRead, currentUser } = useApp();
+  const { notifications, markNotificationRead, currentUser, setActiveScreen } = useApp();
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
-      if (!n.targetRole) return true;
-      return n.targetRole === currentUser.role;
+      if (n.targetRole && n.targetRole !== currentUser.role) return false;
+      if (n.targetClass) {
+        if (currentUser.semester !== n.targetClass.semester || currentUser.section !== n.targetClass.section) {
+          return false;
+        }
+      }
+      return true;
     });
-  }, [notifications, currentUser.role]);
+  }, [notifications, currentUser]);
+
+  const handleOpen = (n: AppNotification) => {
+    markNotificationRead(n.id);
+    if (n.link) setActiveScreen(n.link);
+  };
 
   return (
     <div className="space-y-6">
@@ -32,7 +43,7 @@ export const NotificationCenter: React.FC = () => {
           filteredNotifications.map((n) => (
             <div
               key={n.id}
-              onClick={() => markNotificationRead(n.id)}
+              onClick={() => handleOpen(n)}
               className={`p-4 rounded-2xl border transition-colors cursor-pointer ${
                 !n.read
                   ? 'bg-[#313866]/20 dark:bg-[#313866]/50 border-[#313866]/40 dark:border-[#8A92D0]/50'

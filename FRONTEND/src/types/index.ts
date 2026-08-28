@@ -16,6 +16,12 @@ export interface User {
   departmentName?: string;
   regNo?: string;
   employeeId?: string;
+  semester?: number;
+  section?: string;
+  rollNo?: string;
+  batch?: string;
+  guardianName?: string;
+  guardianPhone?: string;
   phone?: string;
   address?: string;
   gender?: string;

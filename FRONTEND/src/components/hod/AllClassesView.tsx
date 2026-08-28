@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const AllClassesView: React.FC = () => {
-  const { students, subjects, departments, addToast, currentUser, timetable } = useApp();
+  const { students, subjects, departments, attendanceRecords, addToast, currentUser, timetable } = useApp();
 
   const [selectedDeptId, setSelectedDeptId] = useState<string>(
     currentUser.departmentId || departments[0]?.id || 'dept-cs'
@@ -25,32 +25,53 @@ export const AllClassesView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStudentForModal, setSelectedStudentForModal] = useState<Student | null>(null);
 
-  const availableSections = ['Section A', 'Section B', 'Section C', 'Section D'];
+  const deptStudents = students.filter(
+    (s) => s.departmentId === selectedDeptId && s.semester === selectedSemester
+  );
+  const existingSections = Array.from(new Set(deptStudents.map((s) => s.section).filter(Boolean))).sort() as string[];
+  const availableSections =
+    existingSections.length > 0
+      ? existingSections.map((x) => `Section ${x}`)
+      : ['Section A', 'Section B', 'Section C', 'Section D'];
 
   const getClassStudents = (sec: string) => {
     const secLetter = sec.replace('Section ', '').trim();
-    return students.filter(
-      (s) =>
-        s.departmentId === selectedDeptId &&
-        s.semester === selectedSemester &&
-        (s.section === secLetter || (!s.section && secLetter === 'A'))
-    );
+    return deptStudents.filter((s) => s.section === secLetter);
   };
 
+  const todayRef = new Date();
+  const withinDays = (dateStr: string, days: number) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const diff = (todayRef.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= days;
+  };
+
+  const isPresentStatus = (status: string) => status === 'present' || status === 'late' || status === 'od';
+
   const getEnrichedStudentStats = (studentList: typeof students) => {
-    return studentList.map((st, idx) => {
-      const basePct = st.overallAttendancePct || 88;
-      const presentDays = Math.round((basePct / 100) * 20);
-      const absentDays = 20 - presentDays;
-      const weeklyPct = Math.min(100, Math.max(50, basePct + (idx % 2 === 0 ? 5 : -5)));
-      const monthlyPct = Math.min(100, Math.max(45, basePct + (idx % 3 === 0 ? 3 : -8)));
+    return studentList.map((st) => {
+      const classRecords = attendanceRecords.filter(
+        (r) => r.departmentId === st.departmentId && r.semester === st.semester
+      );
+      const countFor = (recs: typeof classRecords) =>
+        recs.filter((r) => {
+          const e = r.entries.find((x) => x.studentId === st.id);
+          return e ? isPresentStatus(e.status) : false;
+        }).length;
+
+      const weeklyRecs = classRecords.filter((r) => withinDays(r.date, 7));
+      const monthlyRecs = classRecords.filter((r) => withinDays(r.date, 30));
+      const weeklyTotal = weeklyRecs.length;
+      const monthlyTotal = monthlyRecs.length;
 
       return {
         ...st,
-        presentDays,
-        absentDays,
-        weeklyPct,
-        monthlyPct
+        presentDays: countFor(classRecords),
+        absentDays: classRecords.length - countFor(classRecords),
+        weeklyPct: weeklyTotal > 0 ? Math.round((countFor(weeklyRecs) / weeklyTotal) * 100) : 0,
+        monthlyPct: monthlyTotal > 0 ? Math.round((countFor(monthlyRecs) / monthlyTotal) * 100) : 0,
+        overallPct:
+          classRecords.length > 0 ? Math.round((countFor(classRecords) / classRecords.length) * 100) : 0
       };
     });
   };
@@ -94,13 +115,23 @@ export const AllClassesView: React.FC = () => {
   };
 
   const getClassSchedule = (secLetter: string) => {
-    return [
-      { period: 1, time: '09:00 AM - 10:00 AM', subject: 'Data Structures & Algorithms', faculty: 'Dr. Alan Turing', room: 'LH-101' },
-      { period: 2, time: '10:00 AM - 11:00 AM', subject: 'Operating Systems', faculty: 'Prof. Sarah Jenkins', room: 'LH-101' },
-      { period: 3, time: '11:15 AM - 12:15 PM', subject: 'Database Management Systems', faculty: 'Dr. Robert Vance', room: 'LH-101' },
-      { period: 4, time: '01:15 PM - 02:15 PM', subject: 'Computer Networks', faculty: 'Prof. Michael Scott', room: 'LH-101' },
-      { period: 5, time: '02:15 PM - 03:15 PM', subject: 'Software Engineering', faculty: 'Dr. Emily Watson', room: 'LH-101' }
-    ];
+    const dayName = todayRef.toLocaleDateString('en-US', { weekday: 'long' });
+    return timetable
+      .filter(
+        (t) =>
+          t.day === dayName &&
+          t.departmentId === selectedDeptId &&
+          t.semester === selectedSemester &&
+          t.section === secLetter
+      )
+      .map((t, i) => ({
+        id: t.id || `t-${i}`,
+        period: t.periodNumber,
+        time: `${t.startTime} - ${t.endTime}`,
+        subject: `${t.subjectCode} - ${t.subjectName}`,
+        faculty: t.facultyName,
+        room: t.roomNo
+      }));
   };
 
   return (
@@ -138,9 +169,10 @@ export const AllClassesView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {availableSections.map((sec) => {
           const secStudents = getClassStudents(sec);
-          const avgPct = secStudents.length
-            ? Math.round(secStudents.reduce((acc, s) => acc + s.overallAttendancePct, 0) / secStudents.length)
-            : 88;
+          const secStats = getEnrichedStudentStats(secStudents);
+          const avgPct = secStats.length
+            ? Math.round(secStats.reduce((acc, s) => acc + s.overallPct, 0) / secStats.length)
+            : 0;
 
           return (
             <div
@@ -193,11 +225,14 @@ export const AllClassesView: React.FC = () => {
             {/* Daily Period Schedule */}
             <div className="p-3.5 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
               <h4 className="text-xs font-extrabold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Daily Period Schedule (Rotating Faculty)
+                <Clock className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Today's Period Schedule ({todayRef.toLocaleDateString('en-US', { weekday: 'long' })})
               </h4>
+              {getClassSchedule(selectedClassSection.replace('Section ', '')).length === 0 ? (
+                <p className="text-xs text-zinc-400">No classes scheduled for this section today.</p>
+              ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 {getClassSchedule(selectedClassSection.replace('Section ', '')).map((p) => (
-                  <div key={p.period} className="p-2 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-xl">
+                  <div key={p.id} className="p-2 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-xl">
                     <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400">
                       <span>Period {p.period} ({p.time})</span>
                       <span>Room {p.room}</span>
@@ -207,6 +242,7 @@ export const AllClassesView: React.FC = () => {
                   </div>
                 ))}
               </div>
+              )}
             </div>
 
             {/* Search + Timeframe + Export */}
@@ -289,14 +325,14 @@ export const AllClassesView: React.FC = () => {
                               {st.name}
                             </button>
                             <span className="text-[10px] font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">{st.regNo}</span>
-                            <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 block">{'📱 '}{st.phone || '+91 98765 43210'}</span>
+                            <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 block">{'📱 '}{st.phone || st.guardianPhone || '—'}</span>
                           </td>
                           <td className="p-2.5 font-mono text-zinc-500">{st.rollNo}</td>
                           <td className="p-2.5 text-emerald-600 font-bold">{st.presentDays} Days</td>
                           <td className="p-2.5 text-rose-600 font-bold">{st.absentDays} Days</td>
                           <td className="p-2.5 font-mono">{st.weeklyPct}%</td>
                           <td className="p-2.5 text-right pr-3 font-mono font-extrabold text-[#313866] dark:text-[#8A92D0]">
-                            {st.overallAttendancePct}%
+                            {st.overallPct}%
                           </td>
                         </tr>
                       ))

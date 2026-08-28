@@ -2,12 +2,37 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { User, UserRole } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
-import { Search, Shield, UserCheck, KeyRound, Power, Clock } from 'lucide-react';
+import { Search, Shield, UserCheck, KeyRound, Power, Clock, Users, GraduationCap } from 'lucide-react';
 
 export const UserAccounts: React.FC = () => {
-  const { users, addToast } = useApp();
+  const { users, students, addToast } = useApp();
   const [userList, setUserList] = useState<User[]>(users);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Student Search (quick lookup of a student account)
+  const [studentQuery, setStudentQuery] = useState('');
+  const filteredStudents = students.filter(
+    (s) => {
+      const q = studentQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        s.name.toLowerCase().includes(q) ||
+        s.regNo.toLowerCase().includes(q) ||
+        s.rollNo.toLowerCase().includes(q) ||
+        (s.email || '').toLowerCase().includes(q)
+      );
+    }
+  );
+
+  const lookupStudentAccount = (regNo: string) => {
+    const account = userList.find((u) => u.role === 'student' && (u.regNo === regNo || u.email?.includes(regNo)));
+    if (account) {
+      setSearchTerm(account.name);
+      addToast('Student Account Found', `${account.name} (${regNo}) located in the accounts table below`, 'success');
+    } else {
+      addToast('No Linked Login Found', `${regNo} has a student record but no separate login account issue detected`, 'info');
+    }
+  };
 
   const toggleUserActive = (id: string) => {
     setUserList((prev) =>
@@ -44,6 +69,100 @@ export const UserAccounts: React.FC = () => {
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Activate, deactivate, reset passwords, and inspect authentication logs across all roles
           </p>
+        </div>
+      </div>
+
+      {/* Student Search */}
+      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" />
+          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Student Search</h3>
+          <span className="text-[10px] text-zinc-400 font-semibold">
+            Quickly find a student account to identify & resolve account-related issues
+          </span>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <GraduationCap className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={studentQuery}
+              onChange={(e) => setStudentQuery(e.target.value)}
+              placeholder="Search student by name, Reg No, Roll No, or email..."
+              className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+            />
+          </div>
+          <button
+            onClick={() => setStudentQuery('')}
+            className="px-3.5 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl border border-zinc-200 dark:border-[#2D376A]"
+          >
+            Clear
+          </button>
+        </div>
+
+        <div className="overflow-x-auto border border-zinc-200 dark:border-[#2D376A] rounded-xl max-h-64 overflow-y-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-zinc-50 dark:bg-[#161B33]/80 border-b border-zinc-200 dark:border-[#2D376A] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[10px] sticky top-0 z-10">
+              <tr>
+                <th className="p-2.5 pl-3">Student</th>
+                <th className="p-2.5">Reg No / Roll</th>
+                <th className="p-2.5">Class</th>
+                <th className="p-2.5">Attendance</th>
+                <th className="p-2.5 text-right pr-3">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-5 text-center text-zinc-400">
+                    No students match the search.
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((s) => {
+                  const account = userList.find((u) => u.role === 'student' && (u.regNo === s.regNo || u.email === s.email));
+                  return (
+                    <tr key={s.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors">
+                      <td className="p-2.5 pl-3">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={s.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
+                            alt={s.name}
+                            className="w-7 h-7 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
+                          />
+                          <div>
+                            <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{s.name}</span>
+                            <span className="text-[10px] text-zinc-400">{s.email}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-2.5">
+                        <span className="font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">{s.regNo}</span>
+                        <span className="text-[10px] text-zinc-400 font-mono">Roll: {s.rollNo}</span>
+                      </td>
+                      <td className="p-2.5 text-zinc-600 dark:text-zinc-300">
+                        Sem {s.semester} · Sec {s.section}
+                      </td>
+                      <td className="p-2.5">
+                        <span className={`font-bold ${s.overallAttendancePct < 75 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                          {s.overallAttendancePct}%
+                        </span>
+                      </td>
+                      <td className="p-2.5 text-right pr-3">
+                        <button
+                          onClick={() => lookupStudentAccount(s.regNo)}
+                          className="px-2.5 py-1 text-xs font-semibold text-[#313866] dark:text-[#8A92D0] hover:bg-[#313866]/10 rounded-lg border border-[#313866]/20 dark:border-[#8A92D0]/30 transition-colors flex items-center gap-1 ml-auto"
+                        >
+                          <UserCheck className="w-3.5 h-3.5" /> Check Account
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

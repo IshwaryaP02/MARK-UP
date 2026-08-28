@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Bell, CheckCircle2, AlertCircle, Calendar, FileText } from 'lucide-react';
+import { AppNotification } from '../../types';
+import { Bell, CheckCircle2, AlertCircle, Calendar, FileText, ArrowLeft } from 'lucide-react';
 
 export const StudentNotifications: React.FC = () => {
-  const { notifications, markNotificationRead, currentUser } = useApp();
+  const { notifications, markNotificationRead, currentUser, setActiveScreen } = useApp();
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
@@ -21,8 +22,20 @@ export const StudentNotifications: React.FC = () => {
     });
   }, [notifications, currentUser]);
 
+  const handleOpen = (n: AppNotification) => {
+    markNotificationRead(n.id);
+    if (n.link) setActiveScreen(n.link);
+  };
+
   return (
     <div className="space-y-6">
+      <button
+        onClick={() => setActiveScreen('dashboard')}
+        className="flex items-center gap-2 text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline"
+      >
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </button>
+
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           System Alerts & Notification Center
@@ -41,7 +54,7 @@ export const StudentNotifications: React.FC = () => {
           filteredNotifications.map((n) => (
             <div
               key={n.id}
-              onClick={() => markNotificationRead(n.id)}
+              onClick={() => handleOpen(n)}
               className={`p-4 rounded-2xl border transition-colors cursor-pointer ${
                 !n.read
                   ? 'bg-[#313866]/20 dark:bg-[#313866]/50 border-[#313866]/40 dark:border-[#8A92D0]/50'

@@ -28,9 +28,11 @@ export const FacultyManagement: React.FC = () => {
 
   const filtered = facultyList.filter(
     (f) =>
-      f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.email.toLowerCase().includes(searchTerm.toLowerCase())
+      // Admin faculty directory is scoped to Computer Science only
+      (f.departmentId === 'dept-cs' || f.departmentName?.toLowerCase().includes('computer')) &&
+      (f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        f.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        f.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleOpenModal = (fac?: Faculty) => {

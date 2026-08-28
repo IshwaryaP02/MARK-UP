@@ -50,14 +50,40 @@ export const CommandPalette: React.FC = () => {
 
   if (!commandPaletteOpen) return null;
 
-  const navActions = [
+  const navActions: {
+    label: string;
+    screen: string;
+    screens?: Partial<Record<UserRole, string>>;
+    icon: typeof LayoutDashboard;
+    category: string;
+    roles?: UserRole[];
+  }[] = [
     { label: 'Dashboard', screen: 'dashboard', icon: LayoutDashboard, category: 'Navigation' },
     { label: 'Mark Attendance', screen: 'mark_attendance', icon: CheckSquare, category: 'Quick Action', roles: ['faculty'] },
-    { label: 'Students Roster', screen: 'students', icon: GraduationCap, category: 'Management', roles: ['admin', 'hod'] },
-    { label: 'Faculty Directory', screen: 'faculty', icon: Users, category: 'Management', roles: ['admin', 'hod'] },
-    { label: 'Timetable Builder / Schedule', screen: 'timetable', icon: Calendar, category: 'Navigation' },
-    { label: 'Attendance Reports & Analytics', screen: 'reports', icon: FileSpreadsheet, category: 'Reports' },
-    { label: 'Leave Applications', screen: 'leaves', icon: FileText, category: 'Navigation' },
+    { label: 'Students Roster', screen: 'students', icon: GraduationCap, category: 'Management', roles: ['admin'] },
+    { label: 'Faculty Directory', screen: 'faculty', icon: Users, category: 'Management', roles: ['admin'] },
+    {
+      label: 'Timetable Builder / Schedule',
+      screen: 'timetable_builder',
+      screens: { admin: 'timetable_builder', faculty: 'faculty_timetable', hod: 'faculty_timetable', student: 'student_timetable' },
+      icon: Calendar,
+      category: 'Navigation'
+    },
+    {
+      label: 'Attendance Reports & Analytics',
+      screen: 'reports_hub',
+      screens: { admin: 'reports_hub', faculty: 'faculty_reports', hod: 'reports_hub', student: 'student_reports' },
+      icon: FileSpreadsheet,
+      category: 'Reports'
+    },
+    {
+      label: 'Leave Applications',
+      screen: 'leave_queue',
+      screens: { faculty: 'leave_queue', hod: 'hod_leaves', student: 'student_apply_leave' },
+      icon: FileText,
+      category: 'Navigation',
+      roles: ['faculty', 'hod', 'student']
+    },
     { label: 'Audit Logs Viewer', screen: 'audit_logs', icon: ShieldAlert, category: 'Admin', roles: ['admin'] },
     { label: 'Database Backup & Restore', screen: 'db_backup', icon: Database, category: 'Admin', roles: ['admin'] }
   ];
@@ -77,7 +103,9 @@ export const CommandPalette: React.FC = () => {
   const filteredRoles = roleActions.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
 
   const handleSelectNav = (screen: string) => {
-    setActiveScreen(screen);
+    const item = navActions.find((n) => n.screen === screen || (n.screens && n.screens[currentUser.role] === screen));
+    const target = item?.screens?.[currentUser.role] || screen;
+    setActiveScreen(target);
     setCommandPaletteOpen(false);
     setQuery('');
   };

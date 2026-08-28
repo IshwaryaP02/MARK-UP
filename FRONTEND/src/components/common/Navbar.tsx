@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { EditProfileModal } from '../profile/EditProfileModal';
 import {
@@ -13,9 +13,7 @@ import {
   LogOut,
   ChevronDown,
   UserCheck,
-  Settings,
-  ArrowRight,
-  Palette
+  ArrowRight
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -35,7 +33,21 @@ export const Navbar: React.FC = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const myNotifications = useMemo(
+    () =>
+      notifications.filter((n) => {
+        if (n.targetRole && n.targetRole !== currentUser.role) return false;
+        if (n.targetClass) {
+          if (currentUser.semester !== n.targetClass.semester || currentUser.section !== n.targetClass.section) {
+            return false;
+          }
+        }
+        return true;
+      }),
+    [notifications, currentUser]
+  );
+
+  const unreadCount = myNotifications.filter((n) => !n.read).length;
 
   return (
     <>
@@ -65,15 +77,6 @@ export const Navbar: React.FC = () => {
             <span className="w-2 h-2 rounded-full bg-[#313866] dark:bg-[#8A92D0] animate-pulse" />
             <span>{currentUser.role} Portal</span>
           </div>
-
-          {/* Themes quick switch */}
-          <button
-            onClick={() => setActiveScreen('settings')}
-            className="p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
-            title="Themes & Color Palettes"
-          >
-            <Palette className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" />
-          </button>
 
           {/* Dark Mode Toggle */}
           <button
@@ -116,13 +119,19 @@ export const Navbar: React.FC = () => {
                 </div>
 
                 <div className="max-h-64 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                  {notifications.length === 0 ? (
+                  {myNotifications.length === 0 ? (
                     <p className="p-4 text-xs text-center text-zinc-400">No notifications</p>
                   ) : (
-                    notifications.map((notif) => (
+                    myNotifications.map((notif) => (
                       <div
                         key={notif.id}
-                        onClick={() => markNotificationRead(notif.id)}
+                        onClick={() => {
+                          markNotificationRead(notif.id);
+                          if (notif.link) {
+                            setNotificationsOpen(false);
+                            setActiveScreen(notif.link);
+                          }
+                        }}
                         className={`p-3 text-xs cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors ${
                           !notif.read ? 'bg-[#F3F4F9]/60 dark:bg-[#0D1127]/60' : ''
                         }`}
@@ -187,16 +196,6 @@ export const Navbar: React.FC = () => {
                   >
                     <User className="w-4 h-4 text-white dark:text-[#0D1127]" />
                     <span className="text-white dark:text-[#0D1127]">Edit Profile Details</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setProfileOpen(false);
-                      setActiveScreen('settings');
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
-                  >
-                    <Settings className="w-4 h-4 text-zinc-500" />
-                    System Settings & Themes
                   </button>
                 </div>
 

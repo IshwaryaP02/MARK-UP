@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { FileSpreadsheet, Download, FileText, Filter, CheckCircle2, AlertTriangle, ShieldCheck, Users, Phone } from 'lucide-react';
+import { FileSpreadsheet, Download, FileText, Filter, CheckCircle2, AlertTriangle, ShieldCheck, Users, Phone, Search, Building2, GraduationCap, Layers } from 'lucide-react';
 
 export const ReportsHub: React.FC = () => {
   const { currentUser, students, departments, subjects, addToast } = useApp();
@@ -10,8 +10,50 @@ export const ReportsHub: React.FC = () => {
   const hodPhoneNumber = currentUser.phone || '+91 98765 11223';
 
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'subject' | 'low_att' | 'faculty'>('low_att');
-  const [selectedDept, setSelectedDept] = useState<string>(isHod ? 'hod_dept' : 'all');
+  const [selectedDept, setSelectedDept] = useState<string>(isHod ? 'hod_dept' : 'dept-cs');
   const [dateRange, setDateRange] = useState('2026-08-01');
+
+  // Student Class Search (scoped to single selected department: Computer Science)
+  const permittedDepts = departments.filter((d) => d.id === 'dept-cs' || d.name?.toLowerCase().includes('computer science'));
+  const classSearchDeptId = permittedDepts[0]?.id || 'dept-cs';
+
+  // Academic structure: UG -> 1st/2nd/3rd Year; PG (MSc) -> 1st/2nd Year; PG (MSc IT) -> 1st/2nd Year
+  const classYearSemesters: Array<{ label: string; sems: number[] }> = [
+    { label: 'UG · 1st Year', sems: [1, 2] },
+    { label: 'UG · 2nd Year', sems: [3, 4] },
+    { label: 'UG · 3rd Year', sems: [5, 6] },
+    { label: 'PG (MSc) · 1st Year', sems: [7, 8] },
+    { label: 'PG (MSc) · 2nd Year', sems: [9, 10] },
+    { label: 'PG (MSc IT) · 1st Year', sems: [11, 12] },
+    { label: 'PG (MSc IT) · 2nd Year', sems: [13, 14] }
+  ];
+
+  const [classQuery, setClassQuery] = useState('');
+  const [classYear, setClassYear] = useState('All');
+  const [classSection, setClassSection] = useState('All');
+
+  const classSearchSections = Array.from(
+    new Set(
+      students
+        .filter((s) => s.departmentId === classSearchDeptId)
+        .map((s) => s.section)
+        .filter(Boolean)
+    )
+  ).sort();
+
+  const classSearchResults = students.filter((s) => {
+    if (s.departmentId !== classSearchDeptId) return false;
+    if (classYear !== 'All') {
+      const cat = classYearSemesters.find((c) => c.label === classYear);
+      if (cat && !cat.sems.includes(s.semester)) return false;
+    }
+    if (classSection !== 'All' && s.section !== classSection) return false;
+    if (classQuery) {
+      const q = classQuery.toLowerCase();
+      if (!s.name.toLowerCase().includes(q) && !s.regNo.toLowerCase().includes(q) && !s.rollNo.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
 
   const handleExportPDF = () => {
     addToast('PDF Report Exported', `Generated PDF report with full student roster for ${isHod ? hodDeptName : 'Institution'}`, 'success');
@@ -160,12 +202,15 @@ export const ReportsHub: React.FC = () => {
               onChange={(e) => setSelectedDept(e.target.value)}
               className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-medium"
             >
-              <option value="all">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
+              {permittedDepts.length > 0 ? (
+                permittedDepts.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))
+              ) : (
+                <option value="all">All Departments</option>
+              )}
             </select>
           )}
         </div>
@@ -182,6 +227,123 @@ export const ReportsHub: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Student Class Search (single selected department: Computer Science) */}
+      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Search className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Student Class Search
+              </h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Search students class-wise within the selected department (Computer Science only)
+              </p>
+            </div>
+            <span className="px-2.5 py-1 bg-[#F3F4F9] dark:bg-[#0D1127] text-[#313866] dark:text-[#8A92D0] text-[10px] font-bold rounded-full border border-zinc-200 dark:border-zinc-800">
+              {classSearchResults.length} Result(s)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">
+                Search Name / Reg No
+              </label>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
+                <input
+                  type="text"
+                  value={classQuery}
+                  onChange={(e) => setClassQuery(e.target.value)}
+                  placeholder="Search student..."
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-medium"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
+                <Building2 className="w-3 h-3" /> Department
+              </label>
+              <div className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0]">
+                {permittedDepts[0]?.name || 'Computer Science'}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
+                <GraduationCap className="w-3 h-3" /> Year / Class
+              </label>
+              <select
+                value={classYear}
+                onChange={(e) => setClassYear(e.target.value)}
+                className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0]"
+              >
+                <option value="All">All Years</option>
+                {classYearSemesters.map((c) => (
+                  <option key={c.label} value={c.label}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
+                <Layers className="w-3 h-3" /> Section
+              </label>
+              <select
+                value={classSection}
+                onChange={(e) => setClassSection(e.target.value)}
+                className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0]"
+              >
+                <option value="All">All Sections</option>
+                {classSearchSections.map((sec) => (
+                  <option key={sec} value={sec}>Section {sec}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-2xl max-h-72 overflow-y-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-zinc-50 dark:bg-[#0D1127] text-zinc-500 font-semibold uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-800 text-[10px] sticky top-0 z-10">
+                <tr>
+                  <th className="p-3">S.No</th>
+                  <th className="p-3">Reg No</th>
+                  <th className="p-3">Student Name</th>
+                  <th className="p-3">Department</th>
+                  <th className="p-3">Semester</th>
+                  <th className="p-3">Section</th>
+                  <th className="p-3">Attendance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/80 font-semibold">
+                {classSearchResults.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-6 text-center text-zinc-400">
+                      No students found for the selected class filters.
+                    </td>
+                  </tr>
+                ) : (
+                  classSearchResults.map((s, idx) => (
+                    <tr key={s.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+                      <td className="p-3 text-zinc-400 font-mono">{idx + 1}</td>
+                      <td className="p-3 font-mono font-bold text-[#313866] dark:text-[#8A92D0]">{s.regNo}</td>
+                      <td className="p-3 font-bold text-zinc-900 dark:text-zinc-100">{s.name}</td>
+                      <td className="p-3 text-zinc-600 dark:text-zinc-300">{s.departmentName || hodDeptName}</td>
+                      <td className="p-3 text-zinc-700 dark:text-zinc-300">Sem {s.semester}</td>
+                      <td className="p-3 text-zinc-700 dark:text-zinc-300">Section {s.section}</td>
+                      <td className="p-3 font-extrabold">
+                        <span className={s.overallAttendancePct >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                          {s.overallAttendancePct}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
       {/* Preview Sheet */}
       <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-6">

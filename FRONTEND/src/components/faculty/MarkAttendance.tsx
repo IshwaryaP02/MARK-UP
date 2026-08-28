@@ -74,6 +74,7 @@ export const MarkAttendance: React.FC = () => {
     subjects,
     facultyList,
     attendanceRecords,
+    timetable,
     leaveRequests,
     markAttendance,
     currentUser,
@@ -109,6 +110,17 @@ export const MarkAttendance: React.FC = () => {
       (r) => r.date === todayStr && r.periodNumber === currentPeriod && r.subjectId === selectedSubject.id
     );
   }, [attendanceRecords, todayStr, currentPeriod, selectedSubject]);
+
+  const subjectSlot = useMemo(() => {
+    if (!selectedSubject) return undefined;
+    return (
+      timetable.find((t) => t.subjectId === selectedSubject.id && t.periodNumber === currentPeriod) ||
+      timetable.find((t) => t.subjectId === selectedSubject.id)
+    );
+  }, [timetable, selectedSubject, currentPeriod]);
+
+  const classSection = subjectSlot?.section || 'A';
+  const classRoom = subjectSlot?.roomNo || 'Lab-302';
 
   const odStudentIds = useMemo(() => {
     if (!selectedSubject) return new Set<string>();
@@ -198,8 +210,8 @@ export const MarkAttendance: React.FC = () => {
       facultyName: currentUser.name,
       departmentId: selectedSubject.departmentId,
       semester: selectedSubject.semester,
-      section: 'A',
-      roomNo: 'Lab-302',
+      section: classSection,
+      roomNo: classRoom,
       entries,
       totalStudents: entries.length,
       presentCount: counts.present,

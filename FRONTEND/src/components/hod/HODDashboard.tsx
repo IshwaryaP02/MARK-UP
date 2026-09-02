@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { StatCard } from '../common/StatCard';
+import { DepartmentDailyAttendanceTrend } from './DepartmentDailyAttendanceTrend';
 import {
   Users,
   CheckCircle2,
@@ -54,30 +55,30 @@ export const HODDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-[#161B33] dark:bg-[#0D1127] border border-[#313866] rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#1E40AF] rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <span className="px-3 py-1 bg-[#313866] text-white text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block">
+          <span className="px-3 py-1 bg-[#1E40AF] text-white text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block">
             Department Leadership Portal (HOD)
           </span>
-          <h2 className="text-xl font-bold tracking-tight">Welcome, {currentUser.name}</h2>
+          <h2 className="text-xl font-bold tracking-tight">HOD Dashboard</h2>
           <p className="text-xs opacity-90 mt-1">
-            Head of Department · {currentUser.departmentName || 'Computer Science & Engineering'}
+            Head of Department · {currentUser.departmentName || 'Computer Science'}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveScreen('hod_all_classes')}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#8A92D0] text-[#0D1127] hover:bg-white text-xs font-bold rounded-2xl transition-all shadow-lg"
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#1E40AF] text-[#111827] hover:bg-white text-xs font-bold rounded-2xl transition-all shadow-lg"
           >
-            <Eye className="w-4 h-4 text-[#0D1127]" />
+            <Eye className="w-4 h-4 text-[#111827]" />
             Inspect All Classes
           </button>
           <button
             onClick={() => setActiveScreen('hod_substitutions')}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#313866] text-white hover:bg-[#161B33] text-xs font-bold rounded-2xl transition-all shadow-lg"
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#1E40AF] text-white hover:bg-[#FFFFFF] text-xs font-bold rounded-2xl transition-all shadow-lg"
           >
-            <Repeat className="w-4 h-4 text-[#8A92D0]" />
+            <Repeat className="w-4 h-4 text-[#1E40AF]" />
             {pendingSubs.length} Substitutions Pending
           </button>
         </div>
@@ -91,18 +92,21 @@ export const HODDashboard: React.FC = () => {
         <StatCard title="Pending Leave Approvals" value={pendingLeaves.length} icon={FileText} subtitle="Final Approval Queue" color="periwinkle" />
       </div>
 
+      {/* Department Daily Attendance Trend (weekly) */}
+      <DepartmentDailyAttendanceTrend />
+
       {/* Faculty Attendance Table */}
-      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm space-y-0">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm space-y-0">
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              <UserCheck className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Faculty Attendance
+              <UserCheck className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Faculty Attendance
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">Today's login status and substitution assignment</p>
           </div>
           <button
             onClick={() => setActiveScreen('hod_substitutions')}
-            className="text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline"
+            className="text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline"
           >
             View All Substitutions
           </button>
@@ -131,7 +135,7 @@ export const HODDashboard: React.FC = () => {
                       />
                       <div>
                         <span>{fac.name}</span>
-                        <span className="block text-[10px] font-mono text-[#313866] dark:text-[#8A92D0]">{fac.employeeId}</span>
+                        <span className="block text-[10px] font-mono text-[#1E40AF] dark:text-[#3B82F6]">{fac.employeeId}</span>
                       </div>
                     </div>
                   </td>
@@ -162,7 +166,7 @@ export const HODDashboard: React.FC = () => {
                   </td>
                   <td className="p-3.5 text-right pr-4">
                     {fac.isPresent ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F3F4F9] dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl text-[11px] font-bold text-[#313866] dark:text-[#8A92D0]">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl text-[11px] font-bold text-[#1E40AF] dark:text-[#3B82F6]">
                         <CheckCircle2 className="w-3 h-3" /> Assigned · {fac.name}
                       </span>
                     ) : isSubstituteAssigned(fac.id) ? (

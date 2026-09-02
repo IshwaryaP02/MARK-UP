@@ -58,13 +58,13 @@ export const ForgotPasswordModal: React.FC<{ isOpen: boolean; onClose: () => voi
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="user@university.edu"
-                className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
               />
             </div>
           </div>
           <button
             type="submit"
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#313866] hover:bg-[#161B33] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             Send OTP Code
             <ArrowRight className="w-4 h-4" />
@@ -90,13 +90,13 @@ export const ForgotPasswordModal: React.FC<{ isOpen: boolean; onClose: () => voi
                   newOtp[idx] = val;
                   setOtp(newOtp);
                 }}
-                className="w-12 h-12 text-center font-mono font-bold text-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                className="w-12 h-12 text-center font-mono font-bold text-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
               />
             ))}
           </div>
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             Verify Code
           </button>
@@ -117,8 +117,8 @@ export const ForgotPasswordModal: React.FC<{ isOpen: boolean; onClose: () => voi
                 minLength={6}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                placeholder="ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
               />
             </div>
           </div>

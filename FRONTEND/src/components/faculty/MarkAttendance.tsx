@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { AttendanceStatus, AttendanceRecord, AttendanceEntry, Student } from '../../types';
+import { AttendanceStatus, AttendanceRecord, AttendanceEntry, Student, PeriodTiming } from '../../types';
 import { Modal } from '../common/Modal';
 import { StudentDetailModal } from '../common/StudentDetailModal';
 import {
@@ -21,27 +21,29 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-const PERIOD_TIMES = [
-  { period: 1, start: '09:00', end: '09:55' },
-  { period: 2, start: '09:55', end: '10:40' },
-  { period: 3, start: '10:40', end: '11:30' },
-  { period: 4, start: '11:45', end: '12:45' },
-  { period: 5, start: '12:45', end: '13:20' },
-];
+function parseTime12(time: string): number | null {
+  const m = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const ap = m[3].toUpperCase();
+  if (h < 1 || h > 12 || min < 0 || min > 59) return null;
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
 
-function getCurrentPeriod(): number {
+function getCurrentPeriod(periodTimes: PeriodTiming[]): number {
   const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes();
-  const mins = h * 60 + m;
+  const mins = now.getHours() * 60 + now.getMinutes();
 
-  for (const p of PERIOD_TIMES) {
-    const [sh, sm] = p.start.split(':').map(Number);
-    const [eh, em] = p.end.split(':').map(Number);
-    const startMins = sh * 60 + sm;
-    const endMins = eh * 60 + em;
+  for (const t of periodTimes) {
+    if (t.periodNumber === null) continue;
+    const startMins = parseTime12(t.start);
+    const endMins = parseTime12(t.end);
+    if (startMins === null || endMins === null) continue;
     if (mins >= startMins && mins <= endMins) {
-      return p.period;
+      return t.periodNumber;
     }
   }
 
@@ -56,16 +58,10 @@ function getTodayDateStr(): string {
   return `${y}-${mo}-${day}`;
 }
 
-function getPeriodTimeLabel(p: number): string {
-  const slot = PERIOD_TIMES.find((t) => t.period === p);
+function getPeriodTimeLabel(p: number, periodTimes: PeriodTiming[]): string {
+  const slot = periodTimes.find((t) => t.periodNumber === p);
   if (!slot) return '';
-  const fmt = (t: string) => {
-    const [hh, mm] = t.split(':').map(Number);
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    const h12 = hh % 12 || 12;
-    return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`;
-  };
-  return `${fmt(slot.start)} - ${fmt(slot.end)}`;
+  return `${slot.start} - ${slot.end}`;
 }
 
 export const MarkAttendance: React.FC = () => {
@@ -80,11 +76,12 @@ export const MarkAttendance: React.FC = () => {
     currentUser,
     attendanceSubjectId,
     setActiveScreen,
-    addToast
+    addToast,
+    periodTimes
   } = useApp();
 
   const todayStr = getTodayDateStr();
-  const currentPeriod = getCurrentPeriod();
+  const currentPeriod = getCurrentPeriod(periodTimes);
 
   const myFaculty = useMemo(
     () => facultyList.find((f) => f.id === currentUser.id),
@@ -120,7 +117,6 @@ export const MarkAttendance: React.FC = () => {
   }, [timetable, selectedSubject, currentPeriod]);
 
   const classSection = subjectSlot?.section || 'A';
-  const classRoom = subjectSlot?.roomNo || 'Lab-302';
 
   const odStudentIds = useMemo(() => {
     if (!selectedSubject) return new Set<string>();
@@ -211,7 +207,6 @@ export const MarkAttendance: React.FC = () => {
       departmentId: selectedSubject.departmentId,
       semester: selectedSubject.semester,
       section: classSection,
-      roomNo: classRoom,
       entries,
       totalStudents: entries.length,
       presentCount: counts.present,
@@ -232,21 +227,32 @@ export const MarkAttendance: React.FC = () => {
     );
   };
 
-  const filteredEntries = entries.filter(
-    (e) =>
-      e.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.studentRegNo.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEntries = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return entries;
+
+    const relevance = (entry: AttendanceEntry): number => {
+      const firstName = (entry.studentName.split(' ')[0] || '').toLowerCase();
+      const fullName = entry.studentName.toLowerCase();
+      const regNo = entry.studentRegNo.toLowerCase();
+      if (fullName === q) return 0;
+      if (firstName === q || firstName.startsWith(q)) return 1;
+      if (fullName.startsWith(q) || fullName.includes(q) || regNo.includes(q)) return 2;
+      return 3;
+    };
+
+    return [...entries].sort((a, b) => relevance(a) - relevance(b));
+  }, [entries, searchQuery]);
 
   if (!attendanceSubjectId || !selectedSubject) {
     return (
       <div className="space-y-6">
         <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-[#313866] dark:text-[#8A92D0]" /> Mark Attendance
+            <CheckSquare className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Mark Attendance
           </h2>
         </div>
-        <div className="p-8 bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center space-y-4">
+        <div className="p-8 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center space-y-4">
           <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto" />
           <div>
             <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">No class selected</p>
@@ -256,7 +262,7 @@ export const MarkAttendance: React.FC = () => {
           </div>
           <button
             onClick={() => setActiveScreen('my_classes')}
-            className="px-5 py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 mx-auto"
+            className="px-5 py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 mx-auto"
           >
             <ArrowLeft className="w-4 h-4" /> Go to My Classes
           </button>
@@ -271,11 +277,8 @@ export const MarkAttendance: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-[#313866] dark:text-[#8A92D0]" /> Mark Attendance
+            <CheckSquare className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Mark Attendance
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Marking attendance for <strong>{selectedSubject.code}</strong> — Period {currentPeriod} ({getPeriodTimeLabel(currentPeriod)})
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -316,7 +319,7 @@ export const MarkAttendance: React.FC = () => {
           </div>
           <button
             onClick={() => setIsEditMode(true)}
-            className="px-4 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+            className="px-4 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0"
           >
             <Edit3 className="w-3.5 h-3.5" /> Edit Attendance
           </button>
@@ -324,12 +327,12 @@ export const MarkAttendance: React.FC = () => {
       )}
 
       {/* Read-only Info Controls */}
-      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
             <Lock className="w-3 h-3 text-zinc-400" /> Today's Date
           </label>
-          <div className="p-2.5 bg-zinc-100 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-zinc-700 dark:text-zinc-300 text-xs">
+          <div className="p-2.5 bg-zinc-100 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-zinc-700 dark:text-zinc-300 text-xs">
             {todayStr}
           </div>
         </div>
@@ -338,8 +341,8 @@ export const MarkAttendance: React.FC = () => {
           <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
             <Clock className="w-3 h-3 text-zinc-400" /> Active Period
           </label>
-          <div className="p-2.5 bg-[#F3F4F9] dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0] text-xs">
-            Period {currentPeriod} ({getPeriodTimeLabel(currentPeriod)})
+          <div className="p-2.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6] text-xs">
+            Period {currentPeriod} ({getPeriodTimeLabel(currentPeriod, periodTimes)})
           </div>
         </div>
 
@@ -347,7 +350,7 @@ export const MarkAttendance: React.FC = () => {
           <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
             <BookOpen className="w-3 h-3 text-zinc-400" /> Assigned Subject
           </label>
-          <div className="p-2.5 bg-[#F3F4F9] dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0] text-xs">
+          <div className="p-2.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6] text-xs">
             {selectedSubject.code} — {selectedSubject.name}
           </div>
         </div>
@@ -367,19 +370,32 @@ export const MarkAttendance: React.FC = () => {
       </div>
 
       {/* Search Input */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-        <input
-          type="text"
-          placeholder="Filter students by name or registration number..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-xl"
-        />
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              placeholder="Search students by name or registration number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') setSearchQuery((e.target as HTMLInputElement).value);
+              }}
+              className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-xl"
+            />
+          </div>
+          <button
+            onClick={() => setSearchQuery(searchQuery)}
+            className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+          >
+            Enter
+          </button>
+        </div>
       </div>
 
       {/* Roster Cards List */}
-      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
             Class Roster ({filteredEntries.length} Students)
@@ -410,7 +426,7 @@ export const MarkAttendance: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => studentObj && setSelectedStudentForModal(studentObj)}
-                      className="font-bold text-zinc-900 dark:text-zinc-100 text-xs block hover:text-[#313866] dark:hover:text-[#8A92D0] hover:underline text-left"
+                      className="font-bold text-zinc-900 dark:text-zinc-100 text-xs block hover:text-[#1E40AF] dark:hover:text-[#3B82F6] hover:underline text-left"
                     >
                       {entry.studentName}
                     </button>
@@ -472,7 +488,7 @@ export const MarkAttendance: React.FC = () => {
       </div>
 
       {/* Submit / Resubmit Bar */}
-      <div className="sticky bottom-4 z-20 bg-white/95 dark:bg-[#161B33]/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-xl flex items-center justify-between">
+      <div className="sticky bottom-4 z-20 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-xl flex items-center justify-between">
         <div>
           <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block">
             {isEditMode ? 'Resubmit Attendance Record' : 'Submit Class Attendance Record'}
@@ -484,7 +500,7 @@ export const MarkAttendance: React.FC = () => {
 
         <button
           onClick={() => setSummaryModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:hover:bg-[#a3a8e0] text-white dark:text-[#0D1127] text-xs font-bold rounded-xl transition-all shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-bold rounded-xl transition-all shadow-md"
         >
           {isEditMode ? <RefreshCw className="w-4 h-4" /> : <Send className="w-4 h-4" />}
           {isEditMode ? 'Resubmit Attendance' : 'Submit Attendance'}
@@ -499,7 +515,7 @@ export const MarkAttendance: React.FC = () => {
         subtitle={`${selectedSubject.code} · Period ${currentPeriod} · ${todayStr}`}
       >
         <div className="space-y-4 text-xs">
-          <div className="p-4 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
+          <div className="p-4 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
             <div className="flex justify-between font-bold text-sm">
               <span>Present Students:</span>
               <span className="text-emerald-600 dark:text-emerald-400">{counts.present}</span>
@@ -520,7 +536,7 @@ export const MarkAttendance: React.FC = () => {
 
           <button
             onClick={handleConfirmSubmit}
-            className="w-full py-3 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] text-white font-bold rounded-xl transition-all shadow-md"
+            className="w-full py-3 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white font-bold rounded-xl transition-all shadow-md"
           >
             {isEditMode ? 'Resubmit Attendance' : 'Finalize & Save Record'}
           </button>

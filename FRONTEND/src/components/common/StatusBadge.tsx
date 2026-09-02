@@ -34,7 +34,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
     case 'leave':
     case 'casual':
     case 'medical':
-      style = 'bg-[#F3F4F9] text-[#313866] dark:bg-[#313866]/40 dark:text-[#8A92D0] border-[#313866]/30 dark:border-[#8A92D0]/40';
+      style = 'bg-[#1E40AF]/10 text-[#1E40AF] dark:bg-[#2563EB]/40 dark:text-[#3B82F6] border-[#1E40AF]/30 dark:border-[#3B82F6]/40';
       label = 'On Leave';
       break;
     case 'pending':

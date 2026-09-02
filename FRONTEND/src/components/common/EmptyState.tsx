@@ -17,8 +17,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-zinc-50/50 dark:bg-[#21284C]/60 border border-dashed border-zinc-300 dark:border-[#2D376A] rounded-2xl my-4">
-      <div className="p-3 bg-[#313866]/10 dark:bg-[#313866]/40 text-[#313866] dark:text-[#8A92D0] rounded-2xl mb-3">
+    <div className="flex flex-col items-center justify-center p-8 text-center bg-zinc-50/50 dark:bg-[#0A0A0A]/60 border border-dashed border-zinc-300 dark:border-[#232326] rounded-2xl my-4">
+      <div className="p-3 bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 text-[#1E40AF] dark:text-[#3B82F6] rounded-2xl mb-3">
         <Icon className="w-8 h-8" />
       </div>
       <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
@@ -26,7 +26,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-4 px-4 py-2 bg-[#313866] hover:bg-[#161B33] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+          className="mt-4 px-4 py-2 bg-[#1E40AF] hover:bg-[#161B33] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
         >
           {actionLabel}
         </button>

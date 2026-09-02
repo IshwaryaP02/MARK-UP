@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Settings, Moon, Sun, Bell, Shield } from 'lucide-react';
+import { BackButton } from './BackButton';
 
 export const SettingsPage: React.FC = () => {
   const { isDarkMode, toggleDarkMode, addToast } = useApp();
@@ -12,28 +13,26 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-          <Settings className="w-5 h-5 text-[#313866] dark:text-[#8A92D0]" /> System Settings & Themes
+          <Settings className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> System Settings & Themes
         </h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Customize interface themes, dark/light appearance, and system alerts.
-        </p>
       </div>
 
-      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-6 max-w-3xl">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-6 max-w-3xl">
         {/* Dark Mode Toggle */}
         <div className="flex items-center justify-between pb-5 border-b border-zinc-100 dark:border-zinc-800">
           <div>
             <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              {isDarkMode ? <Moon className="w-4 h-4 text-[#8A92D0]" /> : <Sun className="w-4 h-4 text-[#313866]" />}
+              {isDarkMode ? <Moon className="w-4 h-4 text-[#1E40AF]" /> : <Sun className="w-4 h-4 text-[#1E40AF]" />}
               Interface Appearance
             </h3>
             <p className="text-xs text-zinc-500">Toggle between Dark Mode and Light Mode</p>
           </div>
           <button
             onClick={toggleDarkMode}
-            className="px-4 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:hover:bg-[#a3a8e0] text-white dark:text-[#0D1127] rounded-xl font-bold text-xs transition-all shadow-md flex items-center gap-2"
+            className="px-4 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] rounded-xl font-bold text-xs transition-all shadow-md flex items-center gap-2"
           >
             {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             {isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -50,14 +49,14 @@ export const SettingsPage: React.FC = () => {
               type="checkbox"
               checked={emailAlerts}
               onChange={(e) => setEmailAlerts(e.target.checked)}
-              className="w-4 h-4 text-[#313866] rounded"
+              className="w-4 h-4 text-[#1E40AF] rounded"
             />
           </label>
         </div>
 
         <button
           onClick={handleSave}
-          className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
+          className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white font-bold text-xs rounded-xl transition-colors shadow-sm"
         >
           Save Preferences
         </button>

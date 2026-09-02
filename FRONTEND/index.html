@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>attendance management</title>
+    <script>
+      (function () {
+        // Only apply the saved theme AFTER the user is authenticated.
+        // The Login Page must always render in its ORIGINAL design.
+        if (localStorage.getItem('smart_att_authed') !== 'true') return;
+        var t = localStorage.getItem('theme') || localStorage.getItem('smart_att_theme') || 'light';
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.add('dark');
+          document.body.classList.add('dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

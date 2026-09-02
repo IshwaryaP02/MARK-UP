@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { User, UserRole } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
+import { BackButton } from '../common/BackButton';
 import { Search, Shield, UserCheck, KeyRound, Power, Clock, Users, GraduationCap } from 'lucide-react';
+import { academicYearLabel } from '../../services/academicStructure';
 
 export const UserAccounts: React.FC = () => {
   const { users, students, addToast } = useApp();
@@ -60,22 +62,21 @@ export const UserAccounts: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             User Accounts & Authentication Governance
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Activate, deactivate, reset passwords, and inspect authentication logs across all roles
-          </p>
+
         </div>
       </div>
 
       {/* Student Search */}
-      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl p-4 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-3">
         <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" />
+          <Users className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Student Search</h3>
           <span className="text-[10px] text-zinc-400 font-semibold">
             Quickly find a student account to identify & resolve account-related issues
@@ -89,21 +90,30 @@ export const UserAccounts: React.FC = () => {
               type="text"
               value={studentQuery}
               onChange={(e) => setStudentQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') setStudentQuery((e.target as HTMLInputElement).value);
+              }}
               placeholder="Search student by name, Reg No, Roll No, or email..."
-              className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+              className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
             />
           </div>
           <button
+            onClick={() => setStudentQuery(studentQuery)}
+            className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+          >
+            Enter
+          </button>
+          <button
             onClick={() => setStudentQuery('')}
-            className="px-3.5 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl border border-zinc-200 dark:border-[#2D376A]"
+            className="px-3.5 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl border border-zinc-200 dark:border-[#232326]"
           >
             Clear
           </button>
         </div>
 
-        <div className="overflow-x-auto border border-zinc-200 dark:border-[#2D376A] rounded-xl max-h-64 overflow-y-auto">
+        <div className="overflow-x-auto border border-zinc-200 dark:border-[#232326] rounded-xl max-h-64 overflow-y-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 dark:bg-[#161B33]/80 border-b border-zinc-200 dark:border-[#2D376A] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[10px] sticky top-0 z-10">
+            <thead className="bg-zinc-50 dark:bg-[#0A0A0A]/80 border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[10px] sticky top-0 z-10">
               <tr>
                 <th className="p-2.5 pl-3">Student</th>
                 <th className="p-2.5">Reg No / Roll</th>
@@ -138,11 +148,11 @@ export const UserAccounts: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-2.5">
-                        <span className="font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">{s.regNo}</span>
+                        <span className="font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">{s.regNo}</span>
                         <span className="text-[10px] text-zinc-400 font-mono">Roll: {s.rollNo}</span>
                       </td>
                       <td className="p-2.5 text-zinc-600 dark:text-zinc-300">
-                        Sem {s.semester} · Sec {s.section}
+                        {academicYearLabel(s.semester)}
                       </td>
                       <td className="p-2.5">
                         <span className={`font-bold ${s.overallAttendancePct < 75 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
@@ -152,7 +162,7 @@ export const UserAccounts: React.FC = () => {
                       <td className="p-2.5 text-right pr-3">
                         <button
                           onClick={() => lookupStudentAccount(s.regNo)}
-                          className="px-2.5 py-1 text-xs font-semibold text-[#313866] dark:text-[#8A92D0] hover:bg-[#313866]/10 rounded-lg border border-[#313866]/20 dark:border-[#8A92D0]/30 transition-colors flex items-center gap-1 ml-auto"
+                          className="px-2.5 py-1 text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] hover:bg-[#1E40AF]/10 rounded-lg border border-[#1E40AF]/20 dark:border-[#3B82F6]/30 transition-colors flex items-center gap-1 ml-auto"
                         >
                           <UserCheck className="w-3.5 h-3.5" /> Check Account
                         </button>
@@ -166,20 +176,32 @@ export const UserAccounts: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Filter accounts by name, email, or role..."
-          className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
-        />
+      <div className="flex flex-col sm:flex-row items-center gap-2">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') setSearchTerm((e.target as HTMLInputElement).value);
+            }}
+            placeholder="Filter accounts by name, email, or role..."
+            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+          />
+        </div>
+        <button
+          onClick={() => setSearchTerm(searchTerm)}
+          className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+        >
+          Enter
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-zinc-50 dark:bg-[#161B33]/80 border-b border-zinc-200 dark:border-[#2D376A] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+          <thead className="bg-zinc-50 dark:bg-[#0A0A0A]/80 border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
             <tr>
               <th className="p-3.5 pl-4">Account User</th>
               <th className="p-3.5">Assigned Role</th>
@@ -205,7 +227,7 @@ export const UserAccounts: React.FC = () => {
                   </div>
                 </td>
                 <td className="p-3.5">
-                  <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#313866]/10 text-[#313866] dark:bg-[#313866]/50 dark:text-[#8A92D0] rounded-md">
+                  <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-[#1E40AF]/10 text-[#1E40AF] dark:bg-[#2563EB]/50 dark:text-[#3B82F6] rounded-md">
                     {u.role}
                   </span>
                 </td>
@@ -222,7 +244,7 @@ export const UserAccounts: React.FC = () => {
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => resetUserPassword(u.name)}
-                      className="p-1.5 text-zinc-500 hover:text-[#313866] dark:hover:text-[#8A92D0] hover:bg-[#313866]/10 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
+                      className="p-1.5 text-zinc-500 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] hover:bg-[#1E40AF]/10 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
                       title="Reset Password"
                     >
                       <KeyRound className="w-3.5 h-3.5" /> Reset Pass
@@ -243,6 +265,7 @@ export const UserAccounts: React.FC = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

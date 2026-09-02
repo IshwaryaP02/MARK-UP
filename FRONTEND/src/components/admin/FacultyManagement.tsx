@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Faculty } from '../../types';
 import { Modal } from '../common/Modal';
+import { BackButton } from '../common/BackButton';
 import { Search, Plus, Edit2, Trash2, BookOpen, Mail, Phone, Building2 } from 'lucide-react';
 
 export const FacultyManagement: React.FC = () => {
@@ -17,8 +18,7 @@ export const FacultyManagement: React.FC = () => {
     employeeId: '',
     email: '',
     departmentId: departments[0]?.id || 'dept-cs',
-    departmentName: departments[0]?.name || 'Computer Science & Engineering',
-    designation: 'Assistant Professor',
+    departmentName: departments[0]?.name || 'Computer Science',
     phone: '',
     assignedSubjectIds: [],
     active: true
@@ -46,8 +46,7 @@ export const FacultyManagement: React.FC = () => {
         employeeId: `FAC-${100 + facultyList.length + 1}`,
         email: '',
         departmentId: departments[0]?.id || 'dept-cs',
-        departmentName: departments[0]?.name || 'Computer Science & Engineering',
-        designation: 'Assistant Professor',
+        departmentName: departments[0]?.name || 'Computer Science',
         phone: '',
         assignedSubjectIds: [],
         active: true
@@ -87,20 +86,19 @@ export const FacultyManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Faculty Roster & Course Assignments
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Manage teaching staff, designations, and assign academic courses
-          </p>
+
         </div>
 
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Register Faculty
@@ -108,15 +106,26 @@ export const FacultyManagement: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search faculty by name, Employee ID, or email..."
-          className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
-        />
+      <div className="flex flex-col sm:flex-row items-center gap-2">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') setSearchTerm((e.target as HTMLInputElement).value);
+            }}
+            placeholder="Search faculty by name, Employee ID, or email..."
+            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+          />
+        </div>
+        <button
+          onClick={() => setSearchTerm(searchTerm)}
+          className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+        >
+          Enter
+        </button>
       </div>
 
       {/* Grid of Faculty Cards */}
@@ -126,19 +135,19 @@ export const FacultyManagement: React.FC = () => {
           return (
             <div
               key={fac.id}
-              className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl p-4 shadow-sm flex flex-col justify-between"
+              className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <img
                     src={fac.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'}
                     alt={fac.name}
-                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#313866]/30"
+                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#1E40AF]/30"
                   />
                   <div>
                     <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{fac.name}</h3>
-                    <span className="text-[10px] font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">
-                      {fac.employeeId} · {fac.designation}
+                    <span className="text-[10px] font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">
+                      {fac.employeeId}
                     </span>
                     <span className="text-[11px] text-zinc-400">{fac.departmentName}</span>
                   </div>
@@ -155,13 +164,13 @@ export const FacultyManagement: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-3 p-2.5 bg-[#313866]/10 dark:bg-[#313866]/40 rounded-xl flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[#313866] dark:text-[#8A92D0]">
+                <div className="mt-3 p-2.5 bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 rounded-xl flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-[#1E40AF] dark:text-[#3B82F6]">
                     {assignedCount} Assigned Subject(s)
                   </span>
                   <button
                     onClick={() => handleOpenAssign(fac)}
-                    className="text-[10px] font-bold text-[#313866] dark:text-[#8A92D0] hover:underline flex items-center gap-1"
+                    className="text-[10px] font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
                   >
                     <BookOpen className="w-3 h-3" /> Assign Courses
                   </button>
@@ -192,7 +201,7 @@ export const FacultyManagement: React.FC = () => {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={selectedFaculty ? 'Edit Faculty Record' : 'Register New Faculty Member'}
-        subtitle="Specify designation and department info"
+        subtitle="Manage faculty records"
       >
         <form onSubmit={handleSaveFaculty} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -240,8 +249,7 @@ export const FacultyManagement: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
+          <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Department</label>
               <select
                 value={formData.departmentId || ''}
@@ -258,24 +266,10 @@ export const FacultyManagement: React.FC = () => {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Designation</label>
-              <select
-                value={formData.designation || 'Assistant Professor'}
-                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-              >
-                <option value="Assistant Professor">Assistant Professor</option>
-                <option value="Associate Professor">Associate Professor</option>
-                <option value="Professor">Professor</option>
-                <option value="Professor & HOD">Professor & HOD</option>
-              </select>
-            </div>
-          </div>
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
+            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
           >
             {selectedFaculty ? 'Save Changes' : 'Register Faculty'}
           </button>
@@ -298,7 +292,7 @@ export const FacultyManagement: React.FC = () => {
                   key={sub.id}
                   className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors ${
                     isChecked
-                      ? 'bg-[#313866]/10 dark:bg-[#313866]/50 border-[#313866]/30 dark:border-[#8A92D0]/40 text-[#313866] dark:text-[#8A92D0] font-semibold'
+                      ? 'bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 border-[#1E40AF]/30 dark:border-[#3B82F6]/40 text-[#1E40AF] dark:text-[#3B82F6] font-semibold'
                       : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300'
                   }`}
                 >
@@ -316,7 +310,7 @@ export const FacultyManagement: React.FC = () => {
                         setSelectedSubjects(selectedSubjects.filter((id) => id !== sub.id));
                       }
                     }}
-                    className="w-4 h-4 text-[#313866] rounded focus:ring-[#313866]"
+                    className="w-4 h-4 text-[#1E40AF] rounded focus:ring-[#1E40AF]"
                   />
                 </label>
               );
@@ -325,7 +319,7 @@ export const FacultyManagement: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
+            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
           >
             Save Course Assignments
           </button>

@@ -2,18 +2,18 @@
    Login page styles — scoped under .login-page
    ========================================================= */
 .login-page {
-  --bg-image: url("/assets/campus-bg.jpg");
+  --bg-image: url("/assets/college-bg.png");
   --bg-overlay: rgba(9, 16, 40, 0.18);
 
-  --ink: #131f4a;
-  --ink-soft: #2c3a6b;
-  --muted: #5b6790;
+  --ink: #1e3a8a;
+  --ink-soft: #1d4ed8;
+  --muted: #3b82f6;
   --field-bg: #f2f5fb;
-  --field-border: rgba(19, 31, 74, 0.08);
+  --field-border: rgba(37, 99, 235, 0.18);
   --card-bg: rgba(255, 255, 255, 0.22);
   --card-border: rgba(255, 255, 255, 0.45);
   --btn-bg: #ffffff;
-  --btn-ink: #131f4a;
+  --btn-ink: #1e3a8a;
   --btn-bg-hover: #eef2fb;
   --danger: #b42318;
 
@@ -70,10 +70,11 @@
 }
 
 .login-page .logo {
-  width: 68px;
-  height: 68px;
+  width: min(96px, 26vw);
+  height: min(96px, 26vw);
   object-fit: contain;
-  margin: 0 auto 0.6rem;
+  mix-blend-mode: multiply;
+  margin: 0 auto 0.9rem;
   display: block;
 }
 
@@ -134,7 +135,7 @@
 
 .login-page .control:focus-visible {
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(19, 31, 74, 0.18);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
 }
 
 .login-page .input-wrap,
@@ -179,7 +180,7 @@
 }
 
 .login-page .toggle:hover {
-  background: rgba(19, 31, 74, 0.07);
+  background: rgba(37, 99, 235, 0.12);
 }
 
 .login-page .row {

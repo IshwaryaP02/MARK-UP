@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Department } from '../../types';
 import { Modal } from '../common/Modal';
+import { BackButton } from '../common/BackButton';
 import {
   Building2,
   Plus,
@@ -132,9 +133,9 @@ export const DepartmentManagement: React.FC = () => {
     });
 
     csvContent += `\nFACULTY STAFF ASSIGNMENTS\n`;
-    csvContent += `Employee ID,Faculty Name,Designation,Email\n`;
+    csvContent += `Employee ID,Faculty Name,Email\n`;
     deptFac.forEach((f) => {
-      csvContent += `${f.employeeId},"${f.name}",${f.designation},${f.email}\n`;
+      csvContent += `${f.employeeId},"${f.name}",${f.email}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -163,20 +164,19 @@ export const DepartmentManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Academic Departments Directory & Analysis
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Click any department card to inspect deep attendance analytics, faculty roster, and export compliance reports.
-          </p>
+
         </div>
 
         <button
           onClick={() => handleOpenEditModal()}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:hover:bg-[#a3a8e0] text-white dark:text-[#0D1127] text-xs font-semibold rounded-xl transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-semibold rounded-xl transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           New Department
@@ -194,18 +194,18 @@ export const DepartmentManagement: React.FC = () => {
             <div
               key={dept.id}
               onClick={() => setInspectedDept(dept)}
-              className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#313866] dark:hover:border-[#8A92D0] transition-all cursor-pointer group space-y-4"
+              className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-[#1E40AF] dark:hover:border-[#3B82F6] transition-all cursor-pointer group space-y-4"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#F3F4F9] dark:bg-[#0D1127] text-[#313866] dark:text-[#8A92D0] flex items-center justify-center font-bold text-lg shadow-inner">
+                  <div className="w-12 h-12 rounded-2xl bg-[#FFFFFF] dark:bg-[#0A0A0A] text-[#1E40AF] dark:text-[#3B82F6] flex items-center justify-center font-bold text-lg shadow-inner">
                     {dept.code}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-[#313866] dark:group-hover:text-[#8A92D0] transition-colors">
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-[#1E40AF] dark:group-hover:text-[#3B82F6] transition-colors">
                       {dept.name}
                     </h3>
-                    <p className="text-xs text-[#313866] dark:text-[#8A92D0] font-semibold mt-0.5">
+                    <p className="text-xs text-[#1E40AF] dark:text-[#3B82F6] font-semibold mt-0.5">
                       HOD: {dept.hodName || 'Unassigned'}
                     </p>
                   </div>
@@ -214,7 +214,7 @@ export const DepartmentManagement: React.FC = () => {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={(e) => handleOpenEditModal(dept, e)}
-                    className="p-1.5 text-zinc-400 hover:text-[#313866] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    className="p-1.5 text-zinc-400 hover:text-[#1E40AF] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                     title="Edit Department Details"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -224,22 +224,22 @@ export const DepartmentManagement: React.FC = () => {
 
               {/* Metrics */}
               <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
-                <div className="p-2 bg-zinc-50 dark:bg-[#0D1127] rounded-xl">
+                <div className="p-2 bg-zinc-50 dark:bg-[#0A0A0A] rounded-xl">
                   <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block">{deptStudents.length || dept.studentCount}</span>
                   <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                     <GraduationCap className="w-3 h-3" /> Students
                   </span>
                 </div>
 
-                <div className="p-2 bg-zinc-50 dark:bg-[#0D1127] rounded-xl">
+                <div className="p-2 bg-zinc-50 dark:bg-[#0A0A0A] rounded-xl">
                   <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block">{deptFac.length || dept.facultyCount}</span>
                   <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                     <Users className="w-3 h-3" /> Faculty
                   </span>
                 </div>
 
-                <div className="p-2 bg-zinc-50 dark:bg-[#0D1127] rounded-xl">
-                  <span className="text-xs font-bold text-[#313866] dark:text-[#8A92D0] block">{dept.avgAttendancePct}%</span>
+                <div className="p-2 bg-zinc-50 dark:bg-[#0A0A0A] rounded-xl">
+                  <span className="text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6] block">{dept.avgAttendancePct}%</span>
                   <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                     <ShieldCheck className="w-3 h-3" /> Attendance
                   </span>
@@ -247,7 +247,7 @@ export const DepartmentManagement: React.FC = () => {
               </div>
 
               {/* Footer action */}
-              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs font-bold text-[#313866] dark:text-[#8A92D0]">
+              <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]">
                 <span className="text-[11px] text-zinc-400 font-normal">
                   {flagged.length > 0 ? `${flagged.length} At-Risk (<75%)` : '100% Compliant'}
                 </span>
@@ -271,13 +271,13 @@ export const DepartmentManagement: React.FC = () => {
         >
           <div className="space-y-5 text-xs">
             {/* Top Analysis Action Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
               <div>
                 <h4 className="text-xs font-extrabold text-zinc-900 dark:text-zinc-100">
                   {inspectedDept.name} Performance & Compliance Overview
                 </h4>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Assigned HOD Phone: <span className="font-mono font-bold text-[#313866] dark:text-[#8A92D0]">+91 98765 11223</span>
+                  Assigned HOD Phone: <span className="font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6]">+91 98765 11223</span>
                 </p>
               </div>
 
@@ -292,9 +292,9 @@ export const DepartmentManagement: React.FC = () => {
             </div>
 
             {/* Semester Attendance Distribution Chart */}
-            <div className="p-4 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
+            <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
               <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Semester Attendance Average (%)
+                <BarChart2 className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Semester Attendance Average (%)
               </h4>
               <div className="h-44 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -303,9 +303,9 @@ export const DepartmentManagement: React.FC = () => {
                     <XAxis dataKey="sem" stroke="#9CA3AF" fontSize={10} />
                     <YAxis domain={[60, 100]} stroke="#9CA3AF" fontSize={10} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0D1127', borderColor: '#313866', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                      contentStyle={{ backgroundColor: '#080C14', borderColor: '#2563EB', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
                     />
-                    <Bar dataKey="pct" fill="#313866" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="pct" fill="#2563EB" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -313,7 +313,7 @@ export const DepartmentManagement: React.FC = () => {
 
             {/* Flagged Students List in this Department */}
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden">
-              <div className="p-3 bg-zinc-50 dark:bg-[#0D1127] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between font-bold">
+              <div className="p-3 bg-zinc-50 dark:bg-[#0A0A0A] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between font-bold">
                 <span className="text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
                   <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> At-Risk Flagged Students (&lt;75% Limit)
                 </span>
@@ -323,8 +323,9 @@ export const DepartmentManagement: React.FC = () => {
               </div>
 
               <div className="max-h-48 overflow-y-auto">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-zinc-100 dark:bg-[#161B33] text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
+                  <thead className="bg-zinc-100 dark:bg-[#0A0A0A] text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="p-2.5 pl-3">Reg No & Student Phone</th>
                       <th className="p-2.5">Student Name</th>
@@ -345,7 +346,7 @@ export const DepartmentManagement: React.FC = () => {
                       getDeptFlaggedStudents(inspectedDept).map((s) => (
                         <tr key={s.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
                           <td className="p-2.5 pl-3">
-                            <span className="text-[11px] font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">{s.regNo}</span>
+                            <span className="text-[11px] font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">{s.regNo}</span>
                             <span className="text-[10px] font-mono text-zinc-500 block">Ph: {s.phone || '+91 98765 43210'}</span>
                           </td>
                           <td className="p-2.5 font-bold text-zinc-900 dark:text-zinc-100">{s.name}</td>
@@ -362,22 +363,24 @@ export const DepartmentManagement: React.FC = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
 
             {/* ALL ENROLLED DEPARTMENT STUDENTS LIST AT END */}
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden space-y-0">
-              <div className="p-3 bg-zinc-50 dark:bg-[#0D1127] border-b border-zinc-200 dark:border-zinc-800 font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-between">
+              <div className="p-3 bg-zinc-50 dark:bg-[#0A0A0A] border-b border-zinc-200 dark:border-zinc-800 font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" />
+                  <Users className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" />
                   All Enrolled Department Students Roster ({getDeptStudents(inspectedDept).length})
                 </span>
                 <span className="text-[10px] text-zinc-400 font-mono">Complete List for Export</span>
               </div>
 
               <div className="max-h-52 overflow-y-auto">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-zinc-100 dark:bg-[#161B33] text-zinc-400 font-semibold uppercase tracking-wider text-[10px] sticky top-0 z-10">
+                  <thead className="bg-zinc-100 dark:bg-[#0A0A0A] text-zinc-400 font-semibold uppercase tracking-wider text-[10px] sticky top-0 z-10">
                     <tr>
                       <th className="p-2.5 pl-3">S.No</th>
                       <th className="p-2.5">Reg No & Student Phone</th>
@@ -392,7 +395,7 @@ export const DepartmentManagement: React.FC = () => {
                       <tr key={s.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
                         <td className="p-2.5 pl-3 text-zinc-400 font-mono">{idx + 1}</td>
                         <td className="p-2.5">
-                          <span className="font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">{s.regNo}</span>
+                          <span className="font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">{s.regNo}</span>
                           <span className="text-[10px] font-mono text-zinc-500 block">Ph: {s.phone || '+91 98765 43210'}</span>
                         </td>
                         <td className="p-2.5 font-bold text-zinc-900 dark:text-zinc-100">{s.name}</td>
@@ -417,22 +420,23 @@ export const DepartmentManagement: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
 
             {/* Department Faculty Staff Roster */}
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden">
-              <div className="p-3 bg-zinc-50 dark:bg-[#0D1127] border-b border-zinc-200 dark:border-zinc-800 font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-between">
+              <div className="p-3 bg-zinc-50 dark:bg-[#0A0A0A] border-b border-zinc-200 dark:border-zinc-800 font-bold text-zinc-800 dark:text-zinc-200 flex items-center justify-between">
                 <span>Assigned Department Faculty ({getDeptFaculty(inspectedDept).length})</span>
-                <span className="text-[#313866] dark:text-[#8A92D0]">Staff Compliance: 100%</span>
+                <span className="text-[#1E40AF] dark:text-[#3B82F6]">Staff Compliance: 100%</span>
               </div>
 
               <div className="max-h-40 overflow-y-auto">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-zinc-100 dark:bg-[#161B33] text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
+                  <thead className="bg-zinc-100 dark:bg-[#0A0A0A] text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="p-2.5 pl-3">Emp ID & Name</th>
-                      <th className="p-2.5">Designation</th>
                       <th className="p-2.5">Email</th>
                     </tr>
                   </thead>
@@ -443,12 +447,12 @@ export const DepartmentManagement: React.FC = () => {
                           <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{f.name}</span>
                           <span className="text-[10px] font-mono text-zinc-400">{f.employeeId}</span>
                         </td>
-                        <td className="p-2.5 font-medium text-zinc-600 dark:text-zinc-300">{f.designation}</td>
                         <td className="p-2.5 font-mono text-zinc-500">{f.email}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           </div>
@@ -480,7 +484,7 @@ export const DepartmentManagement: React.FC = () => {
               <input
                 type="text"
                 required
-                placeholder="Computer Science & Engineering"
+                placeholder="Computer Science"
                 value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
@@ -500,7 +504,7 @@ export const DepartmentManagement: React.FC = () => {
                   hodName: fac?.name || ''
                 });
               }}
-              className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#313866] dark:text-[#8A92D0]"
+              className="w-full p-2.5 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6]"
             >
               <option value="">-- Select Faculty for HOD --</option>
               {facultyList.filter((f) => f.departmentId === 'dept-cs' || f.departmentName?.toLowerCase().includes('computer')).map((f) => (
@@ -513,7 +517,7 @@ export const DepartmentManagement: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] text-white text-xs font-bold rounded-xl transition-colors shadow-md mt-2"
+            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-colors shadow-md mt-2"
           >
             {selectedDeptForEdit ? 'Save Department Changes' : 'Create Department'}
           </button>

@@ -76,7 +76,7 @@ export const LoginPage: React.FC = () => {
     <div className="login-page">
       <section className="card" aria-labelledby="login-title">
         <header className="card__head">
-          <img className="logo" src="/assets/logo.svg" alt="College logo" />
+          <img className="logo" src="/assets/tn-emblem.png" alt="Tamil Nadu Government emblem" />
           <p className="college-name">Government Arts &amp; Science College</p>
           <p className="college-sub">Affiliated to the University · Estd. 1965</p>
           <h1 className="card__title" id="login-title">Login to your account</h1>

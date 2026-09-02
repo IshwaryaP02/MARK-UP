@@ -10,8 +10,8 @@ export const ToastContainer: React.FC = () => {
     <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => {
-          let bg = 'bg-white dark:bg-[#21284C] border-zinc-200 dark:border-[#2D376A] text-zinc-900 dark:text-zinc-100';
-          let icon = <Info className="w-5 h-5 text-[#313866] dark:text-[#8A92D0] shrink-0" />;
+          let bg = 'bg-white dark:bg-[#0A0A0A] border-zinc-200 dark:border-[#232326] text-zinc-900 dark:text-zinc-100';
+          let icon = <Info className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6] shrink-0" />;
 
           if (toast.type === 'success') {
             bg = 'bg-emerald-50 dark:bg-emerald-950/90 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100';

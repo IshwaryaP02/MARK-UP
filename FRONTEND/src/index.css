@@ -1,30 +1,71 @@
 @import "tailwindcss";
 
+/* Make Tailwind dark: variants follow the .dark class used by the theme toggle */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   * {
     font-family: "Lucida Grande", "Lucida Sans Unicode", Geneva, Verdana, sans-serif !important;
   }
 
-  :root {
-    --bg-primary: #F3F4F9;
+  /* Navy Blue Light theme (default / Sun) */
+  :root,
+  :root[data-theme='light'] {
+    /* Subtle cool-tinted page canvas so cards read as elevated panels
+       instead of blending into a pure-white background. This is a slight
+       variation of the existing slate-50 (#F8FAFC) surface already used.
+       Card surfaces stay pure white (#FFFFFF) to keep the layered look. */
+    --bg-main: #F1F5F9;
     --bg-card: #FFFFFF;
-    --text-primary: #0D1127;
-    --text-muted: #52587A;
-    --accent-main: #313866;
-    --accent-hover: #161B33;
-    --accent-soft: #8A92D0;
-    --border-color: #DDE1F0;
+    --bg-secondary: #F8FAFC;
+    --bg-sidebar: #F8FAFC;
+    --border: #E2E8F0;
+    --accent: #1E40AF;
+    --accent-light: #2563EB;
+    --badge-bg: #DBEAFE;
+    --text-primary: #111827;
+    --text-secondary: #64748B;
+
+    /* Back-compat aliases */
+    --bg-primary: #F1F5F9;
+    --text-muted: #64748B;
+    --accent-main: #1E40AF;
+    --accent-hover: #2563EB;
+    --accent-soft: #DBEAFE;
+    --border-color: #E2E8F0;
+  }
+
+  /* Dark Blue on Pure Black theme (Moon) */
+  :root[data-theme='dark'] {
+    --bg-main: #000000 !important;
+    --bg-secondary: #080C14;
+    --bg-card: #0A0A0A;
+    --bg-sidebar: #0A0F1E;
+    --border: #232326;
+    --accent: #2563EB;
+    --accent-light: #3B82F6;
+    --text-primary: #FFFFFF;
+    --text-secondary: #A1A1AA;
   }
 
   html.dark, body.dark, .dark {
-    --bg-primary: #161B33 !important;
-    --bg-card: #21284C !important;
-    --text-primary: #F3F4F9 !important;
-    --text-muted: #8A92D0 !important;
-    --accent-main: #8A92D0 !important;
-    --accent-hover: #A3A8E0 !important;
-    --accent-soft: #313866 !important;
-    --border-color: #2D376A !important;
+    --bg-main: #000000 !important;
+    --bg-secondary: #080C14 !important;
+    --bg-card: #0A0A0A !important;
+    --bg-sidebar: #0A0F1E !important;
+    --border: #232326 !important;
+    --accent: #2563EB !important;
+    --accent-light: #3B82F6 !important;
+    --text-primary: #FFFFFF !important;
+    --text-secondary: #A1A1AA !important;
+
+    /* Back-compat aliases */
+    --bg-primary: #000000 !important;
+    --text-muted: #A1A1AA !important;
+    --accent-main: #2563EB !important;
+    --accent-hover: #3B82F6 !important;
+    --accent-soft: #1E3A8A !important;
+    --border-color: #232326 !important;
   }
 
   /* Theme Overrides */
@@ -58,29 +99,138 @@
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    background-color: var(--bg-primary);
+    background-color: var(--bg-main);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
   }
+
+  body {
+    background-color: var(--bg-main) !important;
+    color: var(--text-primary);
+  }
+
+  /* Dark mode MAIN background must be pure black */
+  [data-theme='dark'] body,
+  [data-theme='dark'] main,
+  [data-theme='dark'] .main-content {
+    background: #000000 !important;
+  }
+
+  /* Smooth theme transition */
+  [data-theme] *,
+  [data-theme] *::before,
+  [data-theme] *::after {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+  }
 }
 
-/* Palette utility helper classes */
+/* Palette utility helper classes (Navy Blue Light) */
 .bg-palette-dark {
-  background-color: #0D1127;
+  background-color: #111827;
 }
 
 .bg-palette-navy {
-  background-color: #161B33;
+  background-color: #1E40AF;
 }
 
 .bg-palette-slate {
-  background-color: #313866;
+  background-color: #64748B;
 }
 
 .bg-palette-lavender {
-  background-color: #8A92D0;
+  background-color: #2563EB;
 }
 
 .bg-palette-light {
-  background-color: #F3F4F9;
+  background-color: #FFFFFF;
+}
+
+/* =========================================================
+   LIGHT MODE REFINEMENT
+   Uses ONLY the existing light palette: slate-50 (#F8FAFC),
+   slate-200 border (#E2E8F0), navy accent (#1E40AF / #2563EB).
+   Scoped to light mode (:root:not(.dark)); Dark Mode is untouched.
+   ========================================================= */
+:root:not(.dark) {
+  /* Page canvas behind the (<main>) content area */
+  background-color: #F1F5F9;
+}
+
+/* Refined scrollbar to match the light theme (subtle slate) */
+:root:not(.dark) *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+:root:not(.dark) *::-webkit-scrollbar-track {
+  background: transparent;
+}
+:root:not(.dark) *::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+:root:not(.dark) *::-webkit-scrollbar-thumb:hover {
+  background-color: #94A3B8;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Consistent Light-Mode focus ring using the existing primary accent,
+   applied only to controls that opt in via :focus-visible. */
+:root:not(.dark) button:focus-visible,
+:root:not(.dark) a:focus-visible,
+:root:not(.dark) input:focus-visible,
+:root:not(.dark) select:focus-visible,
+:root:not(.dark) textarea:focus-visible {
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+}
+
+
+/* Deep charcoal table headings (Light Mode only). This gives the
+   standard data tables across all portals a structural charcoal header
+   that matches the deep-navy Navbar/Sidebar frame.
+   Scoped to thead THAT CARRIES A bg-zinc-* class: the standard data
+   tables all put bg-zinc-50/bg-zinc-100 directly on the <thead>, while
+   the timetable matrices use a plain <thead> (bg lives on the <tr>) and
+   keep important accent headers (red Interval column, per-cell labels).
+   Restricting to those theads leaves the timetables' curated headers and
+   any blue/red important cells fully intact. Scoped to :root:not(.dark)
+   so Dark Mode is unchanged. Specificity beats the existing bg-zinc-50 /
+   text-zinc-500 header utilities. */
+:root:not(.dark) thead[class*="bg-zinc"] {
+  background-color: #1E293B;
+}
+:root:not(.dark) thead[class*="bg-zinc"] tr {
+  background-color: #1E293B;
+}
+:root:not(.dark) thead[class*="bg-zinc"] th {
+  background-color: #1E293B;
+  color: #E2E8F0;
+  font-weight: 700;
+}
+
+/* =========================================================
+   LOGIN PAGE EXCLUSION
+   The Login Page keeps its ORIGINAL design, colors, background,
+   and styling. The Sun/Moon theme (data-theme / .dark / theme CSS
+   variables) must ONLY affect authenticated portal pages, never the
+   login page. AppContext gates the theme attributes to authenticated
+   sessions; this rule is a hard safety net for the body/#root behind
+   the login page regardless of any leftover theme state.
+   ========================================================= */
+body:has(.login-page),
+body:has(.login-page) #root {
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+/* Hide scrollbar for horizontal bottom-nav strip (mobile) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

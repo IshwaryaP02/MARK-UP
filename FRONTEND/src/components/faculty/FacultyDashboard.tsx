@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { academicYearLabel } from '../../services/academicStructure';
+import { filteredSlotsForDayOrder } from '../../services/timetableDayOrder';
 import { StatCard } from '../common/StatCard';
 import { Modal } from '../common/Modal';
 import { StudentDetailModal } from '../common/StudentDetailModal';
@@ -30,14 +32,19 @@ function getTodayDayName(): string {
 }
 
 export const FacultyDashboard: React.FC = () => {
-  const { currentUser, timetable, leaveRequests, substitutionRequests, students, subjects, facultyList, setActiveScreen } = useApp();
+  const { currentUser, timetable, leaveRequests, substitutionRequests, students, subjects, facultyList, setActiveScreen, getPeriodTime, getCurrentDayOrder } = useApp();
 
   const todayDayName = getTodayDayName();
   const isWeekday = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].includes(todayDayName);
+  const todayDayOrder = getCurrentDayOrder();
 
   const todaySlots = useMemo(
-    () => timetable.filter((s) => s.day === todayDayName && s.facultyId === currentUser.id),
-    [timetable, todayDayName, currentUser.id]
+    () =>
+      filteredSlotsForDayOrder(
+        timetable.filter((s) => s.day === todayDayName && s.facultyId === currentUser.id),
+        todayDayOrder
+      ),
+    [timetable, todayDayName, currentUser.id, todayDayOrder]
   );
 
   const myFaculty = useMemo(
@@ -51,6 +58,10 @@ export const FacultyDashboard: React.FC = () => {
   const [viewStudentsSlot, setViewStudentsSlot] = useState<{ subjectId: string; subjectCode: string; section: string } | null>(null);
   const [selectedStudentForModal, setSelectedStudentForModal] = useState<Student | null>(null);
 
+  const viewSlotSubject = viewStudentsSlot
+    ? subjects.find((s) => s.id === viewStudentsSlot.subjectId)
+    : undefined;
+
   const getEnrolledStudents = (subjectId: string, section?: string) => {
     const subject = subjects.find((s) => s.id === subjectId);
     if (!subject) return [];
@@ -62,22 +73,22 @@ export const FacultyDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-[#313866] dark:bg-[#161B33] border border-zinc-200/20 dark:border-zinc-800 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-[#1E40AF] dark:bg-[#0A0A0A] border border-zinc-200/20 dark:border-zinc-800 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-[#8A92D0] dark:text-zinc-200 text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block border border-white/10">
+          <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-[#1E40AF] dark:text-zinc-200 text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block border border-white/10">
             Faculty Portal
           </span>
-          <h2 className="text-xl font-bold tracking-tight">Welcome, {currentUser.name}</h2>
+          <h2 className="text-xl font-bold tracking-tight">Faculty Dashboard</h2>
           <p className="text-xs text-zinc-300 dark:text-zinc-400 mt-1 max-w-md">
-            {currentUser.departmentName} · {myFaculty?.designation || 'Faculty'}
+            {currentUser.departmentName}
           </p>
         </div>
 
         <button
           onClick={() => setActiveScreen('my_classes')}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white text-[#313866] hover:bg-zinc-100 text-xs font-bold rounded-2xl transition-all shadow-lg shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 bg-white text-[#1E40AF] hover:bg-zinc-100 text-xs font-bold rounded-2xl transition-all shadow-lg shrink-0"
         >
-          <BookOpen className="w-4 h-4 text-[#313866]" />
+          <BookOpen className="w-4 h-4 text-[#1E40AF]" />
           Go to My Classes
         </button>
       </div>
@@ -103,7 +114,7 @@ export const FacultyDashboard: React.FC = () => {
       </div>
 
       {/* Today's Schedule */}
-      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
@@ -113,7 +124,7 @@ export const FacultyDashboard: React.FC = () => {
           </div>
           <button
             onClick={() => setActiveScreen('faculty_timetable')}
-            className="text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline"
+            className="text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline"
           >
             Full Timetable →
           </button>
@@ -128,18 +139,19 @@ export const FacultyDashboard: React.FC = () => {
             {todaySlots.map((slot, idx) => {
               const isActive = idx === 0;
               const enrolledStudents = getEnrolledStudents(slot.subjectId, slot.section);
+              const pt = getPeriodTime(slot.periodNumber);
               return (
                 <div
                   key={slot.id}
                   className={`p-5 rounded-[24px] border transition-all ${
                     isActive
-                      ? 'bg-[#F3F4F9] dark:bg-[#0D1127] border-[#313866] dark:border-[#8A92D0] shadow-md'
+                      ? 'bg-[#FFFFFF] dark:bg-[#0A0A0A] border-[#1E40AF] dark:border-[#3B82F6] shadow-md'
                       : 'bg-zinc-50/80 dark:bg-zinc-800/40 border-zinc-200/80 dark:border-zinc-800'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#313866] dark:text-[#8A92D0]">
-                      Period {slot.periodNumber} ({slot.startTime} - {slot.endTime})
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#1E40AF] dark:text-[#3B82F6]">
+                      Period {slot.periodNumber} ({pt ? `${pt.start} - ${pt.end}` : `${slot.startTime} - ${slot.endTime}`})
                     </span>
                     {isActive ? (
                       <span className="px-2.5 py-0.5 bg-emerald-600 text-white text-[9px] font-bold uppercase rounded-full animate-pulse">
@@ -152,7 +164,7 @@ export const FacultyDashboard: React.FC = () => {
 
                   <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{slot.subjectCode} - {slot.subjectName}</h4>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                    Room: <strong className="text-zinc-800 dark:text-zinc-200">{slot.roomNo}</strong> · Sec: {slot.section}
+                    {academicYearLabel(slot.semester)}
                   </p>
 
                   <div className="mt-4 pt-3 border-t border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
@@ -161,7 +173,7 @@ export const FacultyDashboard: React.FC = () => {
                     </span>
                     <button
                       onClick={() => setViewStudentsSlot({ subjectId: slot.subjectId, subjectCode: slot.subjectCode, section: slot.section })}
-                      className="text-[10px] font-bold text-[#313866] dark:text-[#8A92D0] hover:underline flex items-center gap-1"
+                      className="text-[10px] font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
                     >
                       <Eye className="w-3 h-3" /> View
                     </button>
@@ -177,35 +189,35 @@ export const FacultyDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
           onClick={() => setActiveScreen('leave_queue')}
-          className="p-4 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:border-[#313866] dark:hover:border-[#8A92D0] transition-all text-left flex items-center justify-between group"
+          className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:border-[#1E40AF] dark:hover:border-[#3B82F6] transition-all text-left flex items-center justify-between group"
         >
           <div>
             <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Leave Approvals Queue</h4>
             <p className="text-[10px] text-zinc-400 mt-0.5">{pendingLeaves} Pending student applications</p>
           </div>
-          <ArrowRight className="w-4 h-4 text-[#313866] dark:text-[#8A92D0] group-hover:translate-x-1 transition-transform" />
+          <ArrowRight className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6] group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => setActiveScreen('substitution')}
-          className="p-4 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:border-[#313866] dark:hover:border-[#8A92D0] transition-all text-left flex items-center justify-between group"
+          className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:border-[#1E40AF] dark:hover:border-[#3B82F6] transition-all text-left flex items-center justify-between group"
         >
           <div>
             <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Substitution Requests</h4>
             <p className="text-[10px] text-zinc-400 mt-0.5">{pendingSubs} Pending colleague requests</p>
           </div>
-          <ArrowRight className="w-4 h-4 text-[#313866] dark:text-[#8A92D0] group-hover:translate-x-1 transition-transform" />
+          <ArrowRight className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6] group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => setActiveScreen('student_search')}
-          className="p-4 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:border-[#313866] dark:hover:border-[#8A92D0] transition-all text-left flex items-center justify-between group"
+          className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl hover:border-[#1E40AF] dark:hover:border-[#3B82F6] transition-all text-left flex items-center justify-between group"
         >
           <div>
             <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Student Attendance Search</h4>
             <p className="text-[10px] text-zinc-400 mt-0.5">Quick search by Reg No or Roll No</p>
           </div>
-          <ArrowRight className="w-4 h-4 text-[#313866] dark:text-[#8A92D0] group-hover:translate-x-1 transition-transform" />
+          <ArrowRight className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6] group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
 
@@ -214,7 +226,7 @@ export const FacultyDashboard: React.FC = () => {
         isOpen={!!viewStudentsSlot}
         onClose={() => setViewStudentsSlot(null)}
         title={`Enrolled Students: ${viewStudentsSlot?.subjectCode || ''}`}
-        subtitle={`Section ${viewStudentsSlot?.section || ''}`}
+        subtitle={viewSlotSubject ? academicYearLabel(viewSlotSubject.semester) : ''}
         maxWidth="xl"
       >
         <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -235,7 +247,7 @@ export const FacultyDashboard: React.FC = () => {
                   />
                   <div>
                     <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{s.name}</span>
-                    <span className="text-[10px] font-mono text-[#313866] dark:text-[#8A92D0] font-bold">{s.regNo}</span>
+                    <span className="text-[10px] font-mono text-[#1E40AF] dark:text-[#3B82F6] font-bold">{s.regNo}</span>
                   </div>
                 </div>
                 <span className="text-[10px] font-semibold text-zinc-500">Roll: {s.rollNo}</span>

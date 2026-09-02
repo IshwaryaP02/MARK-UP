@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../common/Modal';
+import { BackButton } from '../common/BackButton';
 import { Circular, CircularTarget, CircularStatus } from '../../types';
+import { studentsForCircular, circularRecipientLabel, circularStudentSummary } from '../../services/circularTargeting';
 import {
   FileText,
   Plus,
@@ -56,36 +58,17 @@ export const HODCirculars: React.FC = () => {
   const getRecipientCount = (target: CircularTarget, department?: string, course?: string, year?: string, shift?: string, facultyIds?: string[]): number => {
     if (target === 'all_faculty') return deptFaculty.length;
     if (target === 'individual_faculty') return facultyIds?.length || 0;
-    if (target === 'all_students') return students.length;
-    if (target === 'specific_students') {
-      let filtered = students;
-      if (department) {
-        filtered = filtered.filter((s) => s.departmentId === department);
-      }
-      if (course && course !== 'All') {
-        if (course === 'UG') {
-          filtered = filtered.filter((s) => s.semester <= 6);
-        } else {
-          filtered = filtered.filter((s) => s.semester > 6);
-        }
-      }
-      if (year && year !== 'All') {
-        const yearMap: Record<string, number[]> = {
-          'I': course === 'UG' ? [1, 2] : [7, 8],
-          'II': course === 'UG' ? [3, 4] : [9, 10],
-          'III': [5, 6]
-        };
-        const semesters = yearMap[year];
-        if (semesters) {
-          filtered = filtered.filter((s) => semesters.includes(s.semester));
-        }
-      }
-      if (shift && shift !== 'All' && shift !== 'First Shift') {
-        filtered = filtered.filter((s) => s.semester <= 6);
-      }
-      return filtered.length;
-    }
-    return 0;
+    return studentsForCircular(
+      {
+        target,
+        departmentId: department,
+        course,
+        year,
+        shift,
+        targetClass: undefined
+      },
+      students
+    ).length;
   };
 
   const [form, setForm] = useState({
@@ -94,8 +77,8 @@ export const HODCirculars: React.FC = () => {
     target: 'all_faculty' as CircularTarget,
     department: currentUser.departmentId || 'dept-cs',
     course: 'UG',
-    year: 'I',
-    shift: 'First Shift',
+    year: 'First Year',
+    shift: 'All Shifts',
     selectedFacultyIds: [] as string[],
     validFrom: '',
     validUntil: '',
@@ -104,6 +87,8 @@ export const HODCirculars: React.FC = () => {
 
   const filteredCirculars = useMemo(() => {
     return circulars.filter((c) => {
+      // Faculty-created circulars are ONLY visible to students (Student Portal).
+      if (c.createdByRole === 'faculty') return false;
       const matchStatus = filterStatus === 'all' || c.status === filterStatus;
       const matchSearch =
         !searchQuery ||
@@ -120,8 +105,8 @@ export const HODCirculars: React.FC = () => {
       target: 'all_faculty',
       department: currentUser.departmentId || 'dept-cs',
       course: 'UG',
-      year: 'I',
-      shift: 'First Shift',
+      year: 'First Year',
+      shift: 'All Shifts',
       selectedFacultyIds: [],
       validFrom: '',
       validUntil: '',
@@ -151,17 +136,19 @@ export const HODCirculars: React.FC = () => {
       description: form.description,
       target: form.target,
       departmentId: currentUser.departmentId || 'dept-cs',
-      departmentName: currentUser.departmentName || 'Computer Science & Engineering',
+      departmentName: currentUser.departmentName || 'Computer Science',
       course: isFacultyTarget ? undefined : (form.target === 'all_students' ? undefined : form.course),
       year: isFacultyTarget ? undefined : (form.target === 'all_students' ? undefined : form.year),
-      shift: isFacultyTarget ? undefined : (form.target === 'all_students' ? undefined : form.shift),
+      shift: isFacultyTarget || form.shift === 'All Shifts' ? undefined : (form.target === 'all_students' ? undefined : form.shift),
       attachmentUrl: form.attachmentUrl || undefined,
       validFrom: form.validFrom,
       validUntil: form.validUntil,
       status: 'draft',
       recipientCount,
       selectedFacultyIds: form.target === 'individual_faculty' ? form.selectedFacultyIds : undefined,
-      createdBy: currentUser.name
+      createdBy: currentUser.name,
+      createdByRole: 'hod',
+      createdByName: currentUser.name
     });
 
     resetForm();
@@ -181,7 +168,7 @@ export const HODCirculars: React.FC = () => {
   };
 
   const handlePublish = (circular: Circular) => {
-    publishCircular(circular.id, currentUser.name);
+    publishCircular(circular.id, currentUser.name, circular);
     setShowPreview(false);
   };
 
@@ -213,20 +200,19 @@ export const HODCirculars: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#313866] dark:text-[#8A92D0]" /> Department Circulars
+            <FileText className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Department Circulars
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Create, preview, sign, and publish circulars to faculty and students
-          </p>
+
         </div>
         {view === 'list' && (
           <button
             onClick={() => { resetForm(); setView('create'); }}
-            className="px-4 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:hover:bg-[#a3a8e0] text-white dark:text-[#0D1127] text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0"
+            className="px-4 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 shrink-0"
           >
             <Plus className="w-4 h-4" /> Create New Circular
           </button>
@@ -245,16 +231,25 @@ export const HODCirculars: React.FC = () => {
                 placeholder="Search circulars..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setSearchQuery((e.target as HTMLInputElement).value);
+                }}
+                className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
               />
             </div>
-            <div className="flex items-center gap-1 bg-white dark:bg-[#161B33] p-1 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[10px] font-bold">
+            <button
+              onClick={() => setSearchQuery(searchQuery)}
+              className="px-3 py-1.5 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+            >
+              Enter
+            </button>
+            <div className="flex items-center gap-1 bg-white dark:bg-[#0A0A0A] p-1 border border-zinc-200 dark:border-zinc-700 rounded-xl text-[10px] font-bold">
               {(['all', 'draft', 'signed', 'published', 'archived'] as const).map((s) => (
                 <button
                   key={s}
                   onClick={() => setFilterStatus(s)}
                   className={`px-2.5 py-1 rounded-lg transition-all capitalize ${
-                    filterStatus === s ? 'bg-[#313866] text-white' : 'text-zinc-600 dark:text-zinc-300'
+                    filterStatus === s ? 'bg-[#1E40AF] text-white' : 'text-zinc-600 dark:text-zinc-300'
                   }`}
                 >
                   {s}
@@ -264,7 +259,8 @@ export const HODCirculars: React.FC = () => {
           </div>
 
           {/* Circulars Table */}
-          <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-semibold uppercase tracking-wider">
                 <tr>
@@ -291,14 +287,11 @@ export const HODCirculars: React.FC = () => {
                         <div className="text-[10px] text-zinc-400 mt-0.5">by {circ.createdBy}</div>
                       </td>
                       <td className="p-3.5">
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-[#F3F4F9] dark:bg-[#313866]/50 text-[#313866] dark:text-[#8A92D0] rounded-lg">
-                          {circ.target === 'all_faculty' && 'All Faculty'}
-                          {circ.target === 'individual_faculty' && 'Individual Faculty'}
-                          {circ.target === 'all_students' && 'All Students (All Depts)'}
-                          {circ.target === 'specific_students' && `${circ.course || ''} ${circ.year || ''} ${circ.shift || ''}`}
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-[#FFFFFF] dark:bg-[#2563EB]/50 text-[#1E40AF] dark:text-[#3B82F6] rounded-lg">
+                          {circularRecipientLabel(circ)}
                         </span>
                       </td>
-                      <td className="p-3.5 font-bold text-[#313866] dark:text-[#8A92D0]">
+                      <td className="p-3.5 font-bold text-[#1E40AF] dark:text-[#3B82F6]">
                         {circ.recipientCount} Recipient(s)
                       </td>
                       <td className="p-3.5 text-zinc-500 text-[11px]">
@@ -340,13 +333,14 @@ export const HODCirculars: React.FC = () => {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
 
       {/* Create View */}
       {view === 'create' && (
-        <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Create New Circular</h3>
             <button
@@ -366,7 +360,7 @@ export const HODCirculars: React.FC = () => {
                 placeholder="Circular title..."
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
               />
             </div>
 
@@ -378,7 +372,7 @@ export const HODCirculars: React.FC = () => {
                 placeholder="Circular content..."
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#313866] resize-none"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF] resize-none"
               />
             </div>
 
@@ -388,7 +382,7 @@ export const HODCirculars: React.FC = () => {
               <select
                 value={form.target}
                 onChange={(e) => setForm({ ...form, target: e.target.value as CircularTarget, selectedFacultyIds: [] })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]"
               >
                 <option value="all_faculty">All Faculty</option>
                 <option value="individual_faculty">Individual Faculty</option>
@@ -402,7 +396,7 @@ export const HODCirculars: React.FC = () => {
               <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Department</label>
               <input
                 type="text"
-                value={currentUser.departmentName || 'Computer Science & Engineering'}
+                value={currentUser.departmentName || 'Computer Science'}
                 disabled
                 className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-500"
               />
@@ -420,7 +414,7 @@ export const HODCirculars: React.FC = () => {
                       key={fac.id}
                       className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
                         form.selectedFacultyIds.includes(fac.id)
-                          ? 'bg-[#313866]/10 dark:bg-[#8A92D0]/10'
+                          ? 'bg-[#1E40AF]/10 dark:bg-[#2563EB]/10'
                           : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'
                       }`}
                     >
@@ -428,7 +422,7 @@ export const HODCirculars: React.FC = () => {
                         type="checkbox"
                         checked={form.selectedFacultyIds.includes(fac.id)}
                         onChange={() => toggleFacultySelection(fac.id)}
-                        className="w-3.5 h-3.5 rounded border-zinc-300 text-[#313866] focus:ring-[#313866]"
+                        className="w-3.5 h-3.5 rounded border-zinc-300 text-[#1E40AF] focus:ring-[#1E40AF]"
                       />
                       <img
                         src={fac.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'}
@@ -453,7 +447,7 @@ export const HODCirculars: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value="All Students — All Departments, All Courses, All Years, All Shifts"
+                  value="All Students ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â All Departments, All Courses, All Years, All Shifts"
                   disabled
                   className="w-full p-2.5 bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-500 dark:text-zinc-400"
                 />
@@ -467,7 +461,7 @@ export const HODCirculars: React.FC = () => {
                   <select
                     value={form.department}
                     onChange={(e) => setForm({ ...form, department: e.target.value })}
-                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
+                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]"
                   >
                     {permittedDepartments.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -481,12 +475,14 @@ export const HODCirculars: React.FC = () => {
                   <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Course</label>
                   <select
                     value={form.course}
-                    onChange={(e) => setForm({ ...form, course: e.target.value, year: 'I', shift: 'First Shift' })}
-                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
+                    onChange={(e) => setForm({ ...form, course: e.target.value, year: 'First Year', shift: 'All Shifts' })}
+                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]"
                   >
                     <option value="UG">UG (Bachelor's)</option>
                     <option value="M.Sc Computer Science">M.Sc Computer Science</option>
-                    <option value="M.Sc Information Technology">M.Sc Information Technology</option>
+                    <option value="MCS">MCS (Master of Computer Science)</option>
+                    <option value="M.Sc IT">M.Sc IT</option>
+                    <option value="MSc Information Technology">MSc Information Technology</option>
                   </select>
                 </div>
 
@@ -495,18 +491,18 @@ export const HODCirculars: React.FC = () => {
                   <select
                     value={form.year}
                     onChange={(e) => setForm({ ...form, year: e.target.value })}
-                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
+                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]"
                   >
                     {form.course === 'UG' ? (
                       <>
-                        <option value="I">I Year</option>
-                        <option value="II">II Year</option>
-                        <option value="III">III Year</option>
+                        <option value="First Year">First Year</option>
+                        <option value="Second Year">Second Year</option>
+                        <option value="Third Year">Third Year</option>
                       </>
                     ) : (
                       <>
-                        <option value="I">I Year</option>
-                        <option value="II">II Year</option>
+                        <option value="First Year">First Year (PG)</option>
+                        <option value="Second Year">Second Year (PG)</option>
                       </>
                     )}
                   </select>
@@ -517,8 +513,9 @@ export const HODCirculars: React.FC = () => {
                   <select
                     value={form.shift}
                     onChange={(e) => setForm({ ...form, shift: e.target.value })}
-                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#313866] dark:text-[#8A92D0]"
+                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]"
                   >
+                    <option value="All Shifts">All Shifts (Both)</option>
                     {form.course === 'UG' ? (
                       <>
                         <option value="First Shift">First Shift (Morning)</option>
@@ -528,6 +525,9 @@ export const HODCirculars: React.FC = () => {
                       <option value="First Shift">First Shift (Morning)</option>
                     )}
                   </select>
+                  <p className="text-[10px] text-zinc-400 mt-1">
+                    Year targeting automatically covers both shifts — choose a specific shift only to restrict it.
+                  </p>
                 </div>
               </>
             )}
@@ -539,7 +539,7 @@ export const HODCirculars: React.FC = () => {
                 type="date"
                 value={form.validFrom}
                 onChange={(e) => setForm({ ...form, validFrom: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
               />
             </div>
 
@@ -550,7 +550,7 @@ export const HODCirculars: React.FC = () => {
                 type="date"
                 value={form.validUntil}
                 onChange={(e) => setForm({ ...form, validUntil: e.target.value })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
               />
             </div>
 
@@ -563,7 +563,7 @@ export const HODCirculars: React.FC = () => {
                   placeholder="Attachment URL or file path"
                   value={form.attachmentUrl}
                   onChange={(e) => setForm({ ...form, attachmentUrl: e.target.value })}
-                  className="flex-1 p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#313866]"
+                  className="flex-1 p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
                 />
                 <button
                   type="button"
@@ -575,16 +575,46 @@ export const HODCirculars: React.FC = () => {
             </div>
           </div>
 
-          {/* Recipient Preview */}
+          {/* Recipient Summary */}
           {form.target && (
-            <div className="p-3.5 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+            <div className="p-3.5 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
               <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-                Estimated Recipients:{' '}
-                <span className="text-[#313866] dark:text-[#8A92D0]">
-                  {getRecipientCount(form.target, form.department, form.course, form.year, form.shift, form.selectedFacultyIds)}{' '}
-                  {form.target.includes('faculty') ? 'faculty member(s)' : 'student(s)'}
-                </span>
+                Recipient Summary
               </p>
+              {form.target.includes('faculty') ? (
+                <p className="text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]">
+                  {getRecipientCount(form.target, form.department, form.course, form.year, form.shift, form.selectedFacultyIds)}{' '}
+                  faculty member(s)
+                </p>
+              ) : (
+                <p className="text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6]">
+                  {circularStudentSummary(
+                    {
+                      id: 'draft',
+                      title: form.title,
+                      description: form.description,
+                      target: form.target,
+                      departmentId: form.department,
+                      departmentName: currentUser.departmentName || 'Computer Science',
+                      course: form.target === 'all_students' ? undefined : form.course,
+                      year: form.target === 'all_students' ? undefined : form.year,
+                      shift: form.shift === 'All Shifts' ? undefined : form.shift,
+                      validFrom: form.validFrom,
+                      validUntil: form.validUntil,
+                      status: 'draft',
+                      recipientCount: getRecipientCount(form.target, form.department, form.course, form.year, form.shift, form.selectedFacultyIds),
+                      createdBy: currentUser.name,
+                      createdAt: ''
+                    },
+                    students
+                  )}
+                </p>
+              )}
+              {form.target === 'individual_faculty' && (
+                <p className="text-[10px] text-zinc-400 font-semibold">
+                  Selected: {form.selectedFacultyIds.map((id) => facultyList.find((f) => f.id === id)?.name).filter(Boolean).join(', ') || 'None yet'}
+                </p>
+              )}
             </div>
           )}
 
@@ -598,7 +628,7 @@ export const HODCirculars: React.FC = () => {
             </button>
             <button
               onClick={handleCreate}
-              className="px-5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:hover:bg-[#a3a8e0] text-white dark:text-[#0D1127] text-xs font-bold rounded-xl transition-all shadow-md"
+              className="px-5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-bold rounded-xl transition-all shadow-md"
             >
               Create & Preview
             </button>
@@ -617,7 +647,7 @@ export const HODCirculars: React.FC = () => {
         >
           <div className="space-y-4 text-xs">
             {/* Circular Content Preview */}
-            <div className="p-4 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
+            <div className="p-4 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{selectedCircular.title}</h4>
                 {getStatusBadge(selectedCircular.status)}
@@ -629,16 +659,12 @@ export const HODCirculars: React.FC = () => {
                 <div>
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Target</span>
                   <p className="font-bold text-zinc-900 dark:text-zinc-100">
-                    {selectedCircular.target === 'all_faculty' && 'All Faculty'}
-                    {selectedCircular.target === 'individual_faculty' && 'Individual Faculty'}
-                    {selectedCircular.target === 'all_students' && 'All Students (All Depts)'}
-                    {selectedCircular.target === 'specific_students' &&
-                      `${selectedCircular.course || ''} ${selectedCircular.year || ''} Year ${selectedCircular.shift || ''}`}
+                    {circularRecipientLabel(selectedCircular)}
                   </p>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Recipients</span>
-                  <p className="font-bold text-[#313866] dark:text-[#8A92D0]">{selectedCircular.recipientCount} Recipient(s)</p>
+                  <p className="font-bold text-[#1E40AF] dark:text-[#3B82F6]">{selectedCircular.recipientCount} Recipient(s)</p>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Valid From</span>
@@ -707,7 +733,7 @@ export const HODCirculars: React.FC = () => {
           maxWidth="2xl"
         >
           <div className="space-y-4 text-xs">
-            <div className="p-4 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
+            <div className="p-4 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{selectedCircular.title}</h4>
                 {getStatusBadge(selectedCircular.status)}
@@ -719,16 +745,12 @@ export const HODCirculars: React.FC = () => {
                 <div>
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Target</span>
                   <p className="font-bold text-zinc-900 dark:text-zinc-100">
-                    {selectedCircular.target === 'all_faculty' && 'All Faculty'}
-                    {selectedCircular.target === 'individual_faculty' && 'Individual Faculty'}
-                    {selectedCircular.target === 'all_students' && 'All Students (All Depts)'}
-                    {selectedCircular.target === 'specific_students' &&
-                      `${selectedCircular.course || ''} ${selectedCircular.year || ''} Year ${selectedCircular.shift || ''}`}
+                    {circularRecipientLabel(selectedCircular)}
                   </p>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Recipients</span>
-                  <p className="font-bold text-[#313866] dark:text-[#8A92D0]">{selectedCircular.recipientCount} Recipient(s)</p>
+                  <p className="font-bold text-[#1E40AF] dark:text-[#3B82F6]">{selectedCircular.recipientCount} Recipient(s)</p>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Department</span>

@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
+import { BackButton } from '../common/BackButton';
+import { academicYearLabel } from '../../services/academicStructure';
 import { Circular, CircularStatus } from '../../types';
 import {
   GraduationCap,
@@ -73,7 +75,7 @@ export const TutorCircular: React.FC = () => {
             <GraduationCap className="w-5 h-5 text-amber-600 dark:text-amber-400" /> Tutor Circular
           </h2>
         </div>
-        <div className="p-8 bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center space-y-4">
+        <div className="p-8 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center space-y-4">
           <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto" />
           <div>
             <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Not Assigned as Tutor</p>
@@ -101,23 +103,25 @@ export const TutorCircular: React.FC = () => {
       description: form.description,
       target: 'tutor_class',
       departmentId: currentUser.departmentId || 'dept-cs',
-      departmentName: currentUser.departmentName || 'Computer Science & Engineering',
+      departmentName: currentUser.departmentName || 'Computer Science',
       targetClass: { semester: tutorFor.semester, section: tutorFor.section },
       validFrom: form.validFrom,
       validUntil: form.validUntil,
       status: 'draft',
-      createdBy: currentUser.name
+      createdBy: currentUser.name,
+      createdByRole: 'faculty',
+      createdByName: currentUser.name
     });
 
-    publishCircular(created.id, currentUser.name);
-    addToast('Tutor Circular Sent', `Published to ${tutorClassStudents.length} students in Sem ${tutorFor.semester} Sec ${tutorFor.section}`, 'success');
+    publishCircular(created.id, currentUser.name, created);
+    addToast('Tutor Circular Sent', `Published to ${tutorClassStudents.length} students in Sem ${tutorFor.semester} ${academicYearLabel(tutorFor.semester)}`, 'success');
 
     resetForm();
     setView('list');
   };
 
   const handlePublish = (circular: Circular) => {
-    publishCircular(circular.id, currentUser.name);
+    publishCircular(circular.id, currentUser.name, circular);
     setShowPreview(false);
   };
 
@@ -137,6 +141,7 @@ export const TutorCircular: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
@@ -144,7 +149,7 @@ export const TutorCircular: React.FC = () => {
             <GraduationCap className="w-5 h-5 text-amber-600 dark:text-amber-400" /> Tutor Circular
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Send circulars to your tutor class · Sem {tutorFor.semester} · Sec {tutorFor.section} · {tutorClassStudents.length} students
+            Send circulars to your tutor class · Sem {tutorFor.semester} · {academicYearLabel(tutorFor.semester)} · {tutorClassStudents.length} students
           </p>
         </div>
         {view === 'list' && (
@@ -160,15 +165,26 @@ export const TutorCircular: React.FC = () => {
       {/* List View */}
       {view === 'list' && (
         <>
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search your tutor circulars..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none"
-            />
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <div className="relative flex-1 w-full">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search your tutor circulars..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setSearchQuery((e.target as HTMLInputElement).value);
+                }}
+                className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setSearchQuery(searchQuery)}
+              className="px-3 py-1.5 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+            >
+              Enter
+            </button>
           </div>
 
           {/* Tutor Class Students Preview */}
@@ -197,7 +213,8 @@ export const TutorCircular: React.FC = () => {
           </div>
 
           {/* Circulars Table */}
-          <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-semibold uppercase tracking-wider">
                 <tr>
@@ -221,7 +238,7 @@ export const TutorCircular: React.FC = () => {
                       <td className="p-3.5 pl-4">
                         <div className="font-bold text-zinc-900 dark:text-zinc-100">{circ.title}</div>
                         <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-semibold">
-                          Sem {circ.targetClass?.semester} · Sec {circ.targetClass?.section}
+                          Sem {circ.targetClass?.semester} · {circ.targetClass ? academicYearLabel(circ.targetClass.semester) : ''}
                         </div>
                       </td>
                       <td className="p-3.5 font-bold text-amber-700 dark:text-amber-400">
@@ -257,13 +274,14 @@ export const TutorCircular: React.FC = () => {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
 
       {/* Create View */}
       {view === 'create' && (
-        <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Send Tutor Circular</h3>
             <button
@@ -277,7 +295,7 @@ export const TutorCircular: React.FC = () => {
           <div className="p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
             <p className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
               <GraduationCap className="w-4 h-4" />
-              This circular will be sent to Semester {tutorFor.semester}, Section {tutorFor.section} ({tutorClassStudents.length} students)
+              This circular will be sent to Semester {tutorFor.semester}, {academicYearLabel(tutorFor.semester)} ({tutorClassStudents.length} students)
             </p>
           </div>
 
@@ -326,11 +344,11 @@ export const TutorCircular: React.FC = () => {
           </div>
 
           {/* Recipient Preview */}
-          <div className="p-3.5 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+          <div className="p-3.5 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
             <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
               Recipients:{' '}
               <span className="text-amber-700 dark:text-amber-400">
-                {tutorClassStudents.length} student(s) of Sem {tutorFor.semester} · Sec {tutorFor.section}
+                {tutorClassStudents.length} student(s) of Sem {tutorFor.semester} · {academicYearLabel(tutorFor.semester)}
               </span>
             </p>
           </div>
@@ -362,7 +380,7 @@ export const TutorCircular: React.FC = () => {
           maxWidth="2xl"
         >
           <div className="space-y-4 text-xs">
-            <div className="p-4 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
+            <div className="p-4 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{selectedCircular.title}</h4>
                 {getStatusBadge(selectedCircular.status)}
@@ -374,7 +392,7 @@ export const TutorCircular: React.FC = () => {
                 <div>
                   <span className="text-[10px] font-bold text-zinc-400 uppercase">Target Class</span>
                   <p className="font-bold text-amber-700 dark:text-amber-400">
-                    Sem {selectedCircular.targetClass?.semester} · Sec {selectedCircular.targetClass?.section}
+                    Sem {selectedCircular.targetClass?.semester} · {selectedCircular.targetClass ? academicYearLabel(selectedCircular.targetClass.semester) : ''}
                   </p>
                 </div>
                 <div>

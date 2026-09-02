@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { BackButton } from '../common/BackButton';
 import { CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 
 export const FacultyMonitoring: React.FC = () => {
@@ -22,21 +23,20 @@ export const FacultyMonitoring: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           Department Faculty Marking Compliance & Audit
         </h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Monitor on-time attendance entry rates, total lectures conducted, and pending period entries
-        </p>
+
       </div>
 
-      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 font-semibold uppercase tracking-wider">
             <tr>
               <th className="p-3.5 pl-4">Faculty Member</th>
-              <th className="p-3.5">Designation</th>
               <th className="p-3.5">Assigned Courses</th>
               <th className="p-3.5">Marking Compliance Rate</th>
               <th className="p-3.5 text-right pr-4">Last Period Logged</th>
@@ -62,12 +62,11 @@ export const FacultyMonitoring: React.FC = () => {
                       />
                       <div>
                         <span>{fac.name}</span>
-                        <span className="block text-[10px] font-mono text-[#313866] dark:text-[#8A92D0]">{fac.employeeId}</span>
+                        <span className="block text-[10px] font-mono text-[#1E40AF] dark:text-[#3B82F6]">{fac.employeeId}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="p-3.5 text-zinc-600 dark:text-zinc-300">{fac.designation}</td>
-                  <td className="p-3.5 font-bold text-[#313866] dark:text-[#8A92D0]">
+                  <td className="p-3.5 font-bold text-[#1E40AF] dark:text-[#3B82F6]">
                     {assigned} Course(s)
                   </td>
                   <td className={`p-3.5 font-bold ${statusColor}`}>
@@ -93,6 +92,7 @@ export const FacultyMonitoring: React.FC = () => {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

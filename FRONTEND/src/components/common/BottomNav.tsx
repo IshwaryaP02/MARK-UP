@@ -10,7 +10,9 @@ import {
   Settings,
   Eye,
   Palette,
-  BookOpen
+  BookOpen,
+  IdCard,
+  Award
 } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
@@ -34,6 +36,7 @@ export const BottomNav: React.FC = () => {
         { id: 'my_classes', label: 'My Classes', icon: BookOpen },
         { id: 'faculty_timetable', label: 'Schedule', icon: Calendar },
         { id: 'leave_queue', label: 'Leaves', icon: FileText },
+        { id: 'faculty_bonafide', label: 'Bonafide', icon: Award },
         { id: 'settings', label: 'Themes', icon: Palette }
       ];
     }
@@ -43,6 +46,7 @@ export const BottomNav: React.FC = () => {
         { id: 'student_attendance', label: 'Attendance', icon: CheckSquare },
         { id: 'student_apply_leave', label: 'Apply Leave', icon: FileText },
         { id: 'student_timetable', label: 'Timetable', icon: Calendar },
+        { id: 'student_bonafide', label: 'Bonafide', icon: Award },
         { id: 'student_circulars', label: 'Circulars', icon: FileText },
         { id: 'settings', label: 'Themes', icon: Palette }
       ];
@@ -50,7 +54,9 @@ export const BottomNav: React.FC = () => {
     // HOD
     return [
       { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+      { id: 'student_details', label: 'Student Details', icon: IdCard },
       { id: 'hod_all_classes', label: 'All Classes', icon: Eye },
+      { id: 'hod_bonafide', label: 'Bonafide', icon: Award },
       { id: 'hod_circulars', label: 'Circulars', icon: FileText },
       { id: 'hod_leaves', label: 'Leaves', icon: FileText }
     ];
@@ -59,7 +65,7 @@ export const BottomNav: React.FC = () => {
   const items = getMobileItems();
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#161B33]/95 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 md:hidden px-2 py-1 flex items-center justify-around shadow-lg">
+    <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0A0F1E]/95 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 md:hidden px-1 py-1 flex items-center shadow-lg overflow-x-auto no-scrollbar">
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = activeScreen === item.id;
@@ -67,9 +73,9 @@ export const BottomNav: React.FC = () => {
           <button
             key={item.id}
             onClick={() => setActiveScreen(item.id)}
-            className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors ${
+            className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors shrink-0 ${
               isActive
-                ? 'text-[#313866] dark:text-[#8A92D0]'
+                ? 'text-[#1E40AF] dark:text-[#3B82F6]'
                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
           >

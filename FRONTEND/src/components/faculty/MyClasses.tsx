@@ -1,9 +1,12 @@
 import React, { useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { academicYearLabel } from '../../services/academicStructure';
+import { filteredSlotsForDayOrder } from '../../services/timetableDayOrder';
+import { BackButton } from '../common/BackButton';
 import { BookOpen, Users, Award, ShieldCheck, CheckSquare, Calendar, GraduationCap, Eye } from 'lucide-react';
 
 export const MyClasses: React.FC = () => {
-  const { subjects, students, facultyList, currentUser, timetable, attendanceRecords, setActiveScreen, setAttendanceSubjectId } = useApp();
+  const { subjects, students, facultyList, currentUser, timetable, attendanceRecords, setActiveScreen, setAttendanceSubjectId, getCurrentDayOrder } = useApp();
 
   const myFaculty = useMemo(
     () => facultyList.find((f) => f.id === currentUser.id),
@@ -25,8 +28,12 @@ export const MyClasses: React.FC = () => {
   })();
 
   const todaySlots = useMemo(
-    () => timetable.filter((s) => s.day === todayDay),
-    [timetable, todayDay]
+    () =>
+      filteredSlotsForDayOrder(
+        timetable.filter((s) => s.day === todayDay),
+        getCurrentDayOrder()
+      ),
+    [timetable, todayDay, getCurrentDayOrder]
   );
 
   const getStudentCountForSubject = (subjectId: string) => {
@@ -62,18 +69,16 @@ export const MyClasses: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           My Assigned Classes
         </h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Classes and subjects assigned to you by Admin. Mark attendance only for your assigned classes.
-        </p>
       </div>
 
       {/* Tutor Class Section */}
       {tutorFor && (
-        <div className="bg-white dark:bg-[#21284C] border-2 border-amber-200 dark:border-amber-800/50 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="bg-white dark:bg-[#0A0A0A] border-2 border-amber-200 dark:border-amber-800/50 rounded-2xl p-5 shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-amber-100 dark:border-amber-900/30">
             <GraduationCap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             <div>
@@ -85,7 +90,7 @@ export const MyClasses: React.FC = () => {
           <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/20">
             <div>
               <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                Semester {tutorFor.semester} · Section {tutorFor.section}
+                Semester {tutorFor.semester} · {academicYearLabel(tutorFor.semester)}
               </span>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
                 {tutorClassStudents.length} students in this class
@@ -94,7 +99,7 @@ export const MyClasses: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setActiveScreen('tutor_class_students')}
-                className="px-3 py-1.5 bg-white dark:bg-[#161B33] hover:bg-zinc-50 dark:hover:bg-zinc-800 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1"
+                className="px-3 py-1.5 bg-white dark:bg-[#0A0A0A] hover:bg-zinc-50 dark:hover:bg-zinc-800 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1"
               >
                 <Eye className="w-3 h-3" /> View Students
               </button>
@@ -108,14 +113,14 @@ export const MyClasses: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-center text-xs">
-            <div className="p-2.5 bg-zinc-50 dark:bg-[#161B33]/60 rounded-xl">
+            <div className="p-2.5 bg-zinc-50 dark:bg-[#0A0A0A]/60 rounded-xl">
               <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{tutorClassStudents.length}</span>
               <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                 <Users className="w-3 h-3" /> Students
               </span>
             </div>
-            <div className="p-2.5 bg-zinc-50 dark:bg-[#161B33]/60 rounded-xl">
-              <span className="font-bold text-zinc-900 dark:text-zinc-100 block">Sem {tutorFor.semester} · Sec {tutorFor.section}</span>
+            <div className="p-2.5 bg-zinc-50 dark:bg-[#0A0A0A]/60 rounded-xl">
+              <span className="font-bold text-zinc-900 dark:text-zinc-100 block">Sem {tutorFor.semester} · {academicYearLabel(tutorFor.semester)}</span>
               <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                 <Award className="w-3 h-3" /> Class
               </span>
@@ -132,7 +137,7 @@ export const MyClasses: React.FC = () => {
       </div>
 
       {assignedSubjects.length === 0 ? (
-        <div className="p-8 bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center">
+        <div className="p-8 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center">
           <BookOpen className="w-10 h-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
           <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">No subjects assigned to you yet.</p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Contact your administrator to get subjects assigned.</p>
@@ -147,34 +152,34 @@ export const MyClasses: React.FC = () => {
             return (
               <div
                 key={sub.id}
-                className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl p-5 shadow-sm space-y-4"
+                className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm space-y-4"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">
+                    <span className="text-xs font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">
                       {sub.code} · Sem {sub.semester}
                     </span>
                     <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">{sub.name}</h3>
                   </div>
-                  <span className="px-2.5 py-1 bg-[#313866]/10 text-[#313866] dark:bg-[#313866]/50 dark:text-[#8A92D0] text-xs font-bold rounded-lg">
+                  <span className="px-2.5 py-1 bg-[#1E40AF]/10 text-[#1E40AF] dark:bg-[#2563EB]/50 dark:text-[#3B82F6] text-xs font-bold rounded-lg">
                     {sub.credits} Credits
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-zinc-100 dark:border-[#2D376A] text-xs">
-                  <div className="p-2.5 bg-zinc-50 dark:bg-[#161B33]/60 rounded-xl">
+                <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-zinc-100 dark:border-[#232326] text-xs">
+                  <div className="p-2.5 bg-zinc-50 dark:bg-[#0A0A0A]/60 rounded-xl">
                     <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{studentCount}</span>
                     <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                       <Users className="w-3 h-3" /> Students
                     </span>
                   </div>
-                  <div className="p-2.5 bg-zinc-50 dark:bg-[#161B33]/60 rounded-xl">
+                  <div className="p-2.5 bg-zinc-50 dark:bg-[#0A0A0A]/60 rounded-xl">
                     <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{sub.totalClassesHeld}</span>
                     <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                       <BookOpen className="w-3 h-3" /> Lectures Held
                     </span>
                   </div>
-                  <div className="p-2.5 bg-zinc-50 dark:bg-[#161B33]/60 rounded-xl">
+                  <div className="p-2.5 bg-zinc-50 dark:bg-[#0A0A0A]/60 rounded-xl">
                     <span className="font-bold text-emerald-600 dark:text-emerald-400 block">{stats.avgPct > 0 ? `${stats.avgPct}%` : '--'}</span>
                     <span className="text-[10px] text-zinc-400 flex items-center justify-center gap-1 mt-0.5">
                       <ShieldCheck className="w-3 h-3" /> Avg Attendance
@@ -185,7 +190,7 @@ export const MyClasses: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleMarkAttendance(sub.id)}
-                    className="flex-1 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <CheckSquare className="w-4 h-4" /> Mark Attendance
                   </button>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AuditLog } from '../../types';
 import { Modal } from '../common/Modal';
+import { BackButton } from '../common/BackButton';
 import { ShieldAlert, Search, Code, User, Clock, Terminal } from 'lucide-react';
 
 export const AuditLogs: React.FC = () => {
@@ -19,32 +20,42 @@ export const AuditLogs: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Security Audit Trail & Payload Inspector
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Immutable log trail of all user actions, attendance submissions, and administrative changes
-          </p>
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Filter audit logs by action, user name, module, or details..."
-          className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
-        />
+      <div className="flex flex-col sm:flex-row items-center gap-2">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') setSearchTerm((e.target as HTMLInputElement).value);
+            }}
+            placeholder="Filter audit logs by action, user name, module, or details..."
+            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+          />
+        </div>
+        <button
+          onClick={() => setSearchTerm(searchTerm)}
+          className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+        >
+          Enter
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-zinc-50 dark:bg-[#161B33]/80 border-b border-zinc-200 dark:border-[#2D376A] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+          <thead className="bg-zinc-50 dark:bg-[#0A0A0A]/80 border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
             <tr>
               <th className="p-3.5 pl-4">Timestamp</th>
               <th className="p-3.5">User</th>
@@ -62,14 +73,14 @@ export const AuditLogs: React.FC = () => {
                   {log.userName}
                   <span className="block text-[10px] text-zinc-400 uppercase font-mono">{log.role}</span>
                 </td>
-                <td className="p-3.5 font-bold text-[#313866] dark:text-[#8A92D0]">{log.action}</td>
+                <td className="p-3.5 font-bold text-[#1E40AF] dark:text-[#3B82F6]">{log.action}</td>
                 <td className="p-3.5 text-zinc-600 dark:text-zinc-300 font-sans">{log.module}</td>
                 <td className="p-3.5 text-zinc-500 font-sans truncate max-w-xs">{log.details}</td>
                 <td className="p-3.5 text-right pr-4">
                   {log.payloadDiff ? (
                     <button
                       onClick={() => setSelectedLog(log)}
-                      className="p-1.5 text-xs font-semibold text-[#313866] dark:text-[#8A92D0] hover:bg-[#313866]/10 rounded-lg transition-colors inline-flex items-center gap-1 font-sans"
+                      className="p-1.5 text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] hover:bg-[#1E40AF]/10 rounded-lg transition-colors inline-flex items-center gap-1 font-sans"
                     >
                       <Code className="w-3.5 h-3.5" /> Inspect JSON
                     </button>
@@ -81,6 +92,7 @@ export const AuditLogs: React.FC = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Payload Modal */}
@@ -92,7 +104,7 @@ export const AuditLogs: React.FC = () => {
           subtitle={`By ${selectedLog.userName} on ${selectedLog.timestamp}`}
         >
           <div className="space-y-3">
-            <div className="p-3 bg-[#161B33] text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto border border-[#2D376A]">
+            <div className="p-3 bg-[#FFFFFF] text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto border border-[#E2E8F0]">
               <pre>{JSON.stringify(JSON.parse(selectedLog.payloadDiff || '{}'), null, 2)}</pre>
             </div>
             <p className="text-xs text-zinc-500">Origin IP: {selectedLog.ipAddress}</p>

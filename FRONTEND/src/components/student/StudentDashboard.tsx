@@ -1,6 +1,9 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { StatCard } from '../common/StatCard';
+import { StudentDailyAttendanceTrend } from './StudentDailyAttendanceTrend';
+import { academicYearLabel } from '../../services/academicStructure';
+import { filteredSlotsForDayOrder } from '../../services/timetableDayOrder';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -14,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const StudentDashboard: React.FC = () => {
-  const { currentUser, subjects, attendanceRecords, leaveRequests, timetable, setActiveScreen } = useApp();
+  const { currentUser, subjects, attendanceRecords, leaveRequests, timetable, setActiveScreen, getPeriodTime, getCurrentDayOrder } = useApp();
 
   // Compute student stats from real attendance records
   const myRecords = attendanceRecords.filter((r) => r.entries.some((e) => e.studentId === currentUser.id));
@@ -40,23 +43,26 @@ export const StudentDashboard: React.FC = () => {
   const leavePending = myLeaves.filter((l) => l.status === 'pending_faculty' || l.status === 'pending_hod').length;
 
   const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const todaySlots = timetable.filter(
-    (t) => t.day === dayName && t.semester === currentUser.semester && t.section === currentUser.section
+  const todaySlots = filteredSlotsForDayOrder(
+    timetable.filter(
+      (t) => t.day === dayName && t.semester === currentUser.semester && t.section === currentUser.section
+    ),
+    getCurrentDayOrder()
   );
 
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-[#313866] dark:bg-[#161B33] border border-zinc-200/20 dark:border-zinc-800 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-[#1E40AF] dark:bg-[#0A0A0A] border border-zinc-200/20 dark:border-zinc-800 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-[#8A92D0] dark:text-zinc-200 text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block border border-white/10">
+          <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-[#1E40AF] dark:text-zinc-200 text-[10px] font-bold uppercase tracking-wider rounded-full mb-2 inline-block border border-white/10">
             Student Portal
           </span>
-          <h2 className="text-xl font-bold tracking-tight">Welcome back, {currentUser.name}</h2>
+          <h2 className="text-xl font-bold tracking-tight">Student Dashboard</h2>
           <p className="text-xs text-zinc-200 dark:text-zinc-300 mt-1">
-            Reg No: <strong className="font-mono text-[#8A92D0] dark:text-amber-300">{currentUser.regNo || '2024CS01'}</strong>
+            Reg No: <strong className="font-mono text-[#1E40AF] dark:text-amber-300">{currentUser.regNo || '2024CS01'}</strong>
             <span className="block text-[11px] text-zinc-300 dark:text-zinc-400 mt-0.5">
-              Mobile: <strong className="font-mono">{currentUser.phone || '+91 98765 43210'}</strong> · Roll No: {currentUser.rollNo || '101'} · Sem {currentUser.semester || 4} - Sec {currentUser.section || 'A'}
+              Mobile: <strong className="font-mono">{currentUser.phone || '+91 98765 43210'}</strong> · Roll No: {currentUser.rollNo || '101'} · {academicYearLabel(currentUser.semester || 4)}
             </span>
           </p>
         </div>
@@ -79,9 +85,9 @@ export const StudentDashboard: React.FC = () => {
         />
 
         {/* Safe Miss Calculator Box */}
-        <div className="bg-[#8A92D0]/20 dark:bg-[#2B325C] border border-[#8A92D0]/40 dark:border-[#424B80] rounded-[24px] p-5 shadow-sm flex flex-col justify-between">
+        <div className="bg-[#1E40AF]/20 dark:bg-[#0A0A0A] border border-[#1E40AF]/40 dark:border-[#232326] rounded-[24px] p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#313866] dark:text-[#8A92D0] block mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E40AF] dark:text-[#3B82F6] block mb-1">
               Attendance Buffer
             </span>
             <div className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100">{maxSafeMisses} Classes</div>
@@ -89,7 +95,7 @@ export const StudentDashboard: React.FC = () => {
               Classes you can safely miss without dropping below 75%
             </p>
           </div>
-          <div className="mt-2 text-[10px] font-bold text-[#313866] dark:text-[#8A92D0] bg-[#313866]/15 dark:bg-[#8A92D0]/20 p-1.5 rounded-lg flex items-center gap-1">
+          <div className="mt-2 text-[10px] font-bold text-[#1E40AF] dark:text-[#3B82F6] bg-[#1E40AF]/15 dark:bg-[#2563EB]/20 p-1.5 rounded-lg flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" /> High Attendance Buffer
           </div>
         </div>
@@ -98,9 +104,12 @@ export const StudentDashboard: React.FC = () => {
         <StatCard title="Active Leave Applications" value={myLeaves.length} icon={Clock} subtitle={`${leaveApproved} Approved · ${leavePending} Pending`} color="periwinkle" />
       </div>
 
+      {/* Daily Attendance Trend (weekly) */}
+      <StudentDailyAttendanceTrend />
+
       {/* Subject-Wise Progress Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm space-y-4">
+        <div className="lg:col-span-8 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-base font-bold text-zinc-800 dark:text-zinc-100">Subject-Wise Attendance Progress</h3>
@@ -108,7 +117,7 @@ export const StudentDashboard: React.FC = () => {
             </div>
             <button
               onClick={() => setActiveScreen('student_attendance')}
-              className="text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
             >
               Detailed Breakdown <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
@@ -129,11 +138,11 @@ export const StudentDashboard: React.FC = () => {
                 <div
                   key={sub.id}
                   onClick={() => setActiveScreen('student_attendance')}
-                  className="p-3.5 bg-zinc-50/80 dark:bg-[#0D1127] border border-zinc-200/60 dark:border-zinc-800 rounded-2xl space-y-2 cursor-pointer hover:border-[#313866] dark:hover:border-[#8A92D0] transition-colors"
+                  className="p-3.5 bg-zinc-50/80 dark:bg-[#0A0A0A] border border-zinc-200/60 dark:border-zinc-800 rounded-2xl space-y-2 cursor-pointer hover:border-[#1E40AF] dark:hover:border-[#3B82F6] transition-colors"
                 >
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-zinc-800 dark:text-zinc-100">
-                      <span className="font-mono text-[#313866] dark:text-[#8A92D0] mr-2">{sub.code}</span>
+                      <span className="font-mono text-[#1E40AF] dark:text-[#3B82F6] mr-2">{sub.code}</span>
                       {sub.name}
                     </span>
                     <span
@@ -152,7 +161,7 @@ export const StudentDashboard: React.FC = () => {
                   <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${
-                        noRecords ? 'bg-zinc-300 dark:bg-zinc-600' : isLow ? 'bg-rose-500' : 'bg-[#313866] dark:bg-[#8A92D0]'
+                        noRecords ? 'bg-zinc-300 dark:bg-zinc-600' : isLow ? 'bg-rose-500' : 'bg-[#1E40AF] dark:bg-[#2563EB]'
                       }`}
                       style={{ width: `${noRecords ? 0 : pct}%` }}
                     />
@@ -164,7 +173,7 @@ export const StudentDashboard: React.FC = () => {
         </div>
 
         {/* Circular Percentage Overview - Bento Tile */}
-        <div className="lg:col-span-4 bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm flex flex-col items-center justify-between">
+        <div className="lg:col-span-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-[32px] p-6 shadow-sm flex flex-col items-center justify-between">
           <div className="w-full flex justify-between items-center mb-2">
             <h3 className="font-bold text-zinc-800 dark:text-zinc-100 text-sm">Attendance Overview</h3>
             <span className="text-xs text-zinc-400 font-semibold">Semester {currentUser.semester}</span>
@@ -182,7 +191,7 @@ export const StudentDashboard: React.FC = () => {
                 strokeDasharray="427"
                 strokeDashoffset={427 - (427 * overallPct) / 100}
                 fill="transparent"
-                className="text-[#313866] dark:text-[#8A92D0] transition-all duration-1000"
+                className="text-[#1E40AF] dark:text-[#3B82F6] transition-all duration-1000"
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -205,29 +214,32 @@ export const StudentDashboard: React.FC = () => {
       </div>
 
       {/* Today's Schedule Card */}
-      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-3">
         <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" /> Today's Scheduled Lectures ({dayName})
+          <Calendar className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Today's Scheduled Lectures ({dayName})
         </h3>
 
         {todaySlots.length === 0 ? (
           <p className="text-xs text-zinc-400 dark:text-zinc-500">No classes scheduled for today.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {todaySlots.map((slot) => (
+            {todaySlots.map((slot) => {
+              const pt = getPeriodTime(slot.periodNumber);
+              return (
               <div
                 key={slot.id}
-                className="p-3 bg-[#313866]/10 dark:bg-[#313866]/40 border border-[#313866]/30 dark:border-[#8A92D0]/40 rounded-xl text-xs space-y-1"
+                className="p-3 bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 border border-[#1E40AF]/30 dark:border-[#3B82F6]/40 rounded-xl text-xs space-y-1"
               >
-                <span className="font-mono font-bold text-[#313866] dark:text-[#8A92D0] block">
-                  Period {slot.periodNumber} ({slot.startTime})
+                <span className="font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">
+                  Period {slot.periodNumber} ({pt ? pt.start : slot.startTime})
                 </span>
                 <span className="font-bold text-zinc-900 dark:text-zinc-100 block">
                   {slot.subjectCode} - {slot.subjectName}
                 </span>
-                <span className="text-[10px] text-zinc-500">Hall: {slot.roomNo} · {slot.facultyName}</span>
+                <span className="text-[10px] text-zinc-500">{slot.facultyName}</span>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Student } from '../../types';
 import { Modal } from './Modal';
+import { academicYearLabel } from '../../services/academicStructure';
 import { User, Mail, Phone, GraduationCap, Building2, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 interface StudentDetailModalProps {
@@ -19,28 +20,28 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, 
       isOpen={isOpen}
       onClose={onClose}
       title={`Student Profile & Academic Record`}
-      subtitle={`Reg No: ${student.regNo} · Mobile: ${student.phone || '+91 98765 43210'}`}
+      subtitle={`Reg No: ${student.regNo} Ãƒâ€šÃ‚Â· Mobile: ${student.phone || '+91 98765 43210'}`}
       maxWidth="md"
     >
       <div className="space-y-4 text-xs">
         {/* Student Avatar Header */}
-        <div className="flex items-center gap-4 p-4 bg-[#F3F4F9] dark:bg-[#0D1127] rounded-2xl border border-zinc-200/80 dark:border-zinc-800">
+        <div className="flex items-center gap-4 p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] rounded-2xl border border-zinc-200/80 dark:border-zinc-800">
           <img
             src={student.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
             alt={student.name}
-            className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#313866]/30 dark:ring-[#8A92D0]/30"
+            className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#1E40AF]/30 dark:ring-[#3B82F6]/30"
           />
           <div>
             <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">{student.name}</h3>
-            <p className="text-xs font-mono font-bold text-[#313866] dark:text-[#8A92D0]">Reg: {student.regNo}</p>
-            <p className="text-xs font-mono font-semibold text-zinc-600 dark:text-zinc-300">Mobile: {student.phone || '+91 98765 43210'} · Roll: {student.rollNo}</p>
+            <p className="text-xs font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6]">Reg: {student.regNo}</p>
+            <p className="text-xs font-mono font-semibold text-zinc-600 dark:text-zinc-300">Mobile: {student.phone || '+91 98765 43210'} Ãƒâ€šÃ‚Â· Roll: {student.rollNo}</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{student.email}</p>
             <div className="flex flex-wrap gap-2 mt-2">
-              <span className="px-2.5 py-0.5 bg-[#313866] text-white dark:bg-[#8A92D0] dark:text-[#0D1127] font-bold text-[10px] rounded-md">
+              <span className="px-2.5 py-0.5 bg-[#1E40AF] text-white dark:bg-[#2563EB] dark:text-[#FFFFFF] font-bold text-[10px] rounded-md">
                 {student.departmentName || 'Computer Science'}
               </span>
               <span className="px-2.5 py-0.5 bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-[10px] rounded-md">
-                Sem {student.semester} - Sec {student.section}
+                {academicYearLabel(student.semester)}
               </span>
             </div>
           </div>
@@ -48,14 +49,14 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, 
 
         {/* Attendance Metric */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3.5 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-xl">
+          <div className="p-3.5 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-xl">
             <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">Overall Attendance</span>
             <span className={`text-2xl font-extrabold ${isLowAttendance ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
               {student.overallAttendancePct}%
             </span>
           </div>
 
-          <div className="p-3.5 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-xl">
+          <div className="p-3.5 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-xl">
             <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">Exam Eligibility</span>
             <div className="flex items-center gap-1.5 mt-1">
               {isLowAttendance ? (
@@ -74,7 +75,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, 
         </div>
 
         {/* Contact & Parent Details */}
-        <div className="p-4 bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
+        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
           <h4 className="font-bold text-zinc-900 dark:text-zinc-100 text-xs pb-1 border-b border-zinc-100 dark:border-zinc-800">
             Contact & Parent Information
           </h4>

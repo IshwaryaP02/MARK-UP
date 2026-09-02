@@ -28,14 +28,14 @@ import {
 export const AdminDashboard: React.FC = () => {
   const { students, facultyList, departments, subjects, setActiveScreen } = useApp();
 
-  // Weekly attendance mock data
+  // Weekly attendance mock data (X-axis labels I-VI = Monday-Saturday)
   const trendData = [
-    { day: 'Mon', attendancePct: 88, target: 85 },
-    { day: 'Tue', attendancePct: 91, target: 85 },
-    { day: 'Wed', attendancePct: 86, target: 85 },
-    { day: 'Thu', attendancePct: 93, target: 85 },
-    { day: 'Fri', attendancePct: 87, target: 85 },
-    { day: 'Sat', attendancePct: 82, target: 85 }
+    { day: 'I', attendancePct: 88, target: 85 },
+    { day: 'II', attendancePct: 91, target: 85 },
+    { day: 'III', attendancePct: 86, target: 85 },
+    { day: 'IV', attendancePct: 93, target: 85 },
+    { day: 'V', attendancePct: 87, target: 85 },
+    { day: 'VI', attendancePct: 82, target: 85 }
   ];
 
   return (
@@ -46,15 +46,12 @@ export const AdminDashboard: React.FC = () => {
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Institutional Admin Command Center
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Real-time campus metrics, faculty compliance, and system management
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveScreen('students')}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Add Student
@@ -63,7 +60,7 @@ export const AdminDashboard: React.FC = () => {
             onClick={() => setActiveScreen('reports_hub')}
             className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-colors"
           >
-            <FileSpreadsheet className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" />
+            <FileSpreadsheet className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
             Reports Hub
           </button>
         </div>
@@ -128,7 +125,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Charts & Department Progress */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Weekly Trend Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#161B33] border border-zinc-200/90 dark:border-zinc-800 rounded-[28px] p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-white dark:bg-[#0A0A0A] border border-zinc-200/90 dark:border-zinc-800 rounded-[28px] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Weekly Attendance Trend</h3>
@@ -144,30 +141,30 @@ export const AdminDashboard: React.FC = () => {
               <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="primaryGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#313866" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#313866" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#37415120" />
                 <XAxis dataKey="day" stroke="#9CA3AF" fontSize={11} tickLine={false} />
                 <YAxis stroke="#9CA3AF" fontSize={11} domain={[60, 100]} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0D1127', borderColor: '#313866', borderRadius: '16px', fontSize: '12px', color: '#fff' }}
+                  contentStyle={{ backgroundColor: '#080C14', borderColor: '#2563EB', borderRadius: '16px', fontSize: '12px', color: '#fff' }}
                 />
-                <Area type="monotone" dataKey="attendancePct" stroke="#8A92D0" strokeWidth={3} fillOpacity={1} fill="url(#primaryGrad)" />
+                <Area type="monotone" dataKey="attendancePct" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#primaryGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Department Attendance Performance */}
-        <div className="bg-white dark:bg-[#161B33] border border-zinc-200/90 dark:border-zinc-800 rounded-[28px] p-6 shadow-sm flex flex-col justify-between">
+        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/90 dark:border-zinc-800 rounded-[28px] p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Department Performance</h3>
               <button
                 onClick={() => setActiveScreen('departments')}
-                className="text-xs font-bold text-[#313866] dark:text-[#8A92D0] hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
               >
                 Manage <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
@@ -181,10 +178,10 @@ export const AdminDashboard: React.FC = () => {
                   className="cursor-pointer group p-1.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors"
                 >
                   <div className="flex justify-between text-xs font-semibold mb-1">
-                    <span className="text-zinc-700 dark:text-zinc-200 group-hover:text-[#313866] dark:group-hover:text-[#8A92D0] transition-colors">
+                    <span className="text-zinc-700 dark:text-zinc-200 group-hover:text-[#1E40AF] dark:group-hover:text-[#3B82F6] transition-colors">
                       {dept.name}
                     </span>
-                    <span className="font-bold text-[#313866] dark:text-[#8A92D0]">{dept.avgAttendancePct}%</span>
+                    <span className="font-bold text-[#1E40AF] dark:text-[#3B82F6]">{dept.avgAttendancePct}%</span>
                   </div>
                   <div className="w-full h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div
@@ -192,7 +189,7 @@ export const AdminDashboard: React.FC = () => {
                         dept.avgAttendancePct >= 85
                           ? 'bg-emerald-500'
                           : dept.avgAttendancePct >= 75
-                          ? 'bg-[#313866] dark:bg-[#8A92D0]'
+                          ? 'bg-[#1E40AF] dark:bg-[#2563EB]'
                           : 'bg-amber-500'
                       }`}
                       style={{ width: `${dept.avgAttendancePct}%` }}
@@ -204,7 +201,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl text-xs text-[#313866] dark:text-[#8A92D0] font-semibold">
+          <div className="mt-4 p-3 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl text-xs text-[#1E40AF] dark:text-[#3B82F6] font-semibold">
             <strong>System Health:</strong> All departments meeting academic compliance limits.
           </div>
         </div>
@@ -227,9 +224,9 @@ export const AdminDashboard: React.FC = () => {
               <button
                 key={mod.id}
                 onClick={() => setActiveScreen(mod.id)}
-                className="p-3.5 bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl hover:border-[#313866] dark:hover:border-[#8A92D0] hover:shadow-md transition-all text-left group"
+                className="p-3.5 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl hover:border-[#1E40AF] dark:hover:border-[#3B82F6] hover:shadow-md transition-all text-left group"
               >
-                <div className="p-2 bg-[#F3F4F9] dark:bg-[#0D1127] text-[#313866] dark:text-[#8A92D0] rounded-xl w-fit mb-2 group-hover:scale-110 transition-transform">
+                <div className="p-2 bg-[#FFFFFF] dark:bg-[#0A0A0A] text-[#1E40AF] dark:text-[#3B82F6] rounded-xl w-fit mb-2 group-hover:scale-110 transition-transform">
                   <Icon className="w-4 h-4" />
                 </div>
                 <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{mod.label}</h4>

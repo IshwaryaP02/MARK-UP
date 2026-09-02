@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CalendarEvent } from '../../types';
 import { Modal } from '../common/Modal';
-import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BackButton } from '../common/BackButton';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Pencil, FileText } from 'lucide-react';
 
 export const AcademicCalendar: React.FC = () => {
-  const { calendarEvents, addCalendarEvent, deleteCalendarEvent } = useApp();
+  const { calendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent, setActiveScreen } = useApp();
 
   // Month navigation state
   const [viewMonth, setViewMonth] = useState<number>(7); // 0-indexed month (7 = August)
   const [viewYear, setViewYear] = useState<number>(2026);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Omit<CalendarEvent, 'id'>>({
     date: '2026-08-15',
     type: 'holiday',
@@ -60,34 +62,69 @@ export const AcademicCalendar: React.FC = () => {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title) return;
-    addCalendarEvent(formData);
+    if (editingEventId) {
+      updateCalendarEvent({ id: editingEventId, ...formData });
+    } else {
+      addCalendarEvent(formData);
+    }
     setModalOpen(false);
+    setEditingEventId(null);
+  };
+
+  const openAddModal = () => {
+    setEditingEventId(null);
+    setFormData({
+      date: dateStrFor(1),
+      type: 'holiday',
+      title: '',
+      description: ''
+    });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (event: CalendarEvent) => {
+    setEditingEventId(event.id);
+    setFormData({
+      date: event.date,
+      type: event.type,
+      title: event.title,
+      description: event.description || ''
+    });
+    setModalOpen(true);
   };
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Academic Calendar & Holiday Planner
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Navigate any month to view dates; mark working days, exam periods, holidays, and institutional events
-          </p>
+
         </div>
 
-        <button
-          onClick={() => setModalOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Add
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveScreen('monthly_staff_order')}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-colors"
+          >
+            <FileText className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+            Monthly Staff Orders
+          </button>
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add
+          </button>
+        </div>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 p-3 bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-xl text-xs font-semibold">
+      <div className="flex flex-wrap items-center gap-4 p-3 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl text-xs font-semibold">
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-rose-500" /> Holiday / Non-working
         </span>
@@ -98,17 +135,17 @@ export const AcademicCalendar: React.FC = () => {
           <span className="w-3 h-3 rounded-full bg-emerald-500" /> Working Day
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-[#313866] dark:bg-[#8A92D0]" /> Institutional Event
+          <span className="w-3 h-3 rounded-full bg-[#1E40AF] dark:bg-[#2563EB]" /> Institutional Event
         </span>
       </div>
 
       {/* Month Grid */}
-      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl p-4 shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm">
         {/* Month navigation header */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={goPrevMonth}
-            className="p-2 text-zinc-500 hover:text-[#313866] dark:hover:text-[#8A92D0] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+            className="p-2 text-zinc-500 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
             aria-label="Previous month"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -118,65 +155,77 @@ export const AcademicCalendar: React.FC = () => {
           </h3>
           <button
             onClick={goNextMonth}
-            className="p-2 text-zinc-500 hover:text-[#313866] dark:hover:text-[#8A92D0] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+            className="p-2 text-zinc-500 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
             aria-label="Next month"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-            <div key={d} className="text-center text-[10px] font-bold uppercase text-zinc-400 p-2">
-              {d}
-            </div>
-          ))}
+        <div className="overflow-x-auto no-scrollbar">
+          <div className="grid grid-cols-7 gap-2 min-w-[560px]">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+              <div key={d} className="text-center text-[10px] font-bold uppercase text-zinc-400 p-2">
+                {d}
+              </div>
+            ))}
 
-          {Array.from({ length: firstDayIndex }).map((_, idx) => (
-            <div key={`blank-${idx}`} className="min-h-20 p-2" />
-          ))}
+            {Array.from({ length: firstDayIndex }).map((_, idx) => (
+              <div key={`blank-${idx}`} className="min-h-20 p-2" />
+            ))}
 
-          {daysInMonth.map(({ day, dateStr, events }) => (
-            <div
-              key={day}
-              className="min-h-20 p-2 bg-zinc-50 dark:bg-[#161B33]/60 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex flex-col justify-between"
-            >
+            {daysInMonth.map(({ day, dateStr, events }) => (
+              <div
+                key={day}
+                className="min-h-20 p-2 bg-zinc-50 dark:bg-[#0A0A0A]/60 border border-zinc-200/60 dark:border-zinc-800 rounded-xl flex flex-col justify-between"
+              >
               <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{day}</span>
               <div className="space-y-1">
                 {events.map((e) => {
                   let badgeColor = 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300';
                   if (e.type === 'exam') badgeColor = 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300';
                   if (e.type === 'working') badgeColor = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300';
-                  if (e.type === 'event') badgeColor = 'bg-[#313866]/20 text-[#313866] dark:bg-[#313866]/50 dark:text-[#8A92D0]';
+                  if (e.type === 'event') badgeColor = 'bg-[#1E40AF]/20 text-[#1E40AF] dark:bg-[#2563EB]/50 dark:text-[#3B82F6]';
 
                   return (
                     <div
                       key={e.id}
                       className={`p-1 rounded text-[9px] font-bold flex items-center justify-between ${badgeColor}`}
-                      title={`${e.title}${e.description ? ` — ${e.description}` : ''}`}
+                      title={`${e.title}${e.description ? ` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â ${e.description}` : ''}`}
                     >
                       <span className="truncate">{e.title}</span>
-                      <button
-                        onClick={() => deleteCalendarEvent(e.id)}
-                        className="opacity-60 hover:opacity-100 ml-1"
-                      >
-                        <Trash2 className="w-2.5 h-2.5" />
-                      </button>
+                      <div className="flex items-center shrink-0">
+                        <button
+                          onClick={() => openEditModal(e)}
+                          className="opacity-60 hover:opacity-100 ml-1"
+                          title="Edit event"
+                        >
+                          <Pencil className="w-2.5 h-2.5" />
+                        </button>
+                        <button
+                          onClick={() => deleteCalendarEvent(e.id)}
+                          className="opacity-60 hover:opacity-100 ml-1"
+                          title="Delete event"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
           ))}
+          </div>
         </div>
       </div>
 
-      {/* Add Modal */}
+      {/* Add / Edit Modal */}
       <Modal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Tag Academic Calendar Date"
-        subtitle="Mark holidays, exams, or custom working days"
+        onClose={() => { setModalOpen(false); setEditingEventId(null); }}
+        title={editingEventId ? 'Edit Academic Calendar Event' : 'Tag Academic Calendar Date'}
+        subtitle={editingEventId ? 'Update the existing calendar event details' : 'Mark holidays, exams, or custom working days'}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
@@ -229,9 +278,9 @@ export const AcademicCalendar: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
+            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
           >
-            Save Calendar Event
+            {editingEventId ? 'Save Changes' : 'Save Calendar Event'}
           </button>
         </form>
       </Modal>

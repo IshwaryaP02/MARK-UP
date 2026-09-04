@@ -30,7 +30,7 @@ export const NotificationCenter: React.FC = () => {
                 <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{n.title}</h4>
                 <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1">{n.message}</p>
               </div>
-              <span className="text-[10px] text-zinc-400 font-mono">{n.createdAt}</span>
+              <span className="text-[10px] text-zinc-400 font-mono">{n.timestamp}</span>
             </div>
           </div>
         ))}

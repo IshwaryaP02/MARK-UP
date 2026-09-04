@@ -1,144 +1,160 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Shield, User, GraduationCap, Users, Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
-import { UserRole } from '../../types';
+import { Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 
 export const LoginPage: React.FC = () => {
   const { login } = useApp();
-  const [selectedRole, setSelectedRole] = useState<UserRole>('admin');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(selectedRole);
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter your username and password.');
+      return;
+    }
+    setError('');
+    setIsLoading(true);
+    try {
+      await login(username.trim(), password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const demoAccounts: { role: UserRole; name: string; email: string; icon: React.ElementType }[] = [
-    { role: 'admin', name: 'Dr. Robert Vance (Admin)', email: 'admin@university.edu', icon: Shield },
-    { role: 'hod', name: 'Dr. Alan Turing (HOD - CSE)', email: 'hod.cs@university.edu', icon: Users },
-    { role: 'faculty', name: 'Prof. Sarah Jenkins (Faculty)', email: 'sarah.jenkins@university.edu', icon: User },
-    { role: 'student', name: 'Alex Mercer (Student)', email: 'alex.mercer@student.edu', icon: GraduationCap }
-  ];
-
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gradient-to-br from-[#313866]/10 via-transparent to-[#313866]/20">
-      <div className="w-full max-w-md bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-3xl p-6 sm:p-8 shadow-2xl">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-[#313866] dark:bg-[#8A92D0] text-white dark:text-[#0D1127] flex items-center justify-center font-black text-xl shadow-lg mx-auto mb-3">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0D1127] via-[#161B33] to-[#0D1127] p-4 relative overflow-hidden">
+
+      {/* Background glow effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#313866]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8A92D0]/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-sm relative">
+        {/* Logo / Brand */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#313866] to-[#8A92D0] flex items-center justify-center font-black text-2xl text-white shadow-2xl mx-auto mb-4">
             SA
           </div>
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            Smart Attendance SaaS
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Enterprise Portal for University & Institutional Tracking
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Smart Attendance
+          </h1>
+          <p className="text-sm text-zinc-400 mt-1">
+            College Portal — Secure Sign In
           </p>
         </div>
 
-        {/* Role Selector Tabs */}
-        <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-100 dark:bg-[#161B33] rounded-2xl mb-6">
-          {(['admin', 'hod', 'faculty', 'student'] as UserRole[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => {
-                setSelectedRole(r);
-                setEmail(`${r}@university.edu`);
-              }}
-              className={`py-2 text-[11px] font-bold uppercase rounded-xl transition-all ${
-                selectedRole === r
-                  ? 'bg-[#313866] text-white dark:bg-[#8A92D0] dark:text-[#0D1127] shadow-md'
-                  : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
+        {/* Login Card */}
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
 
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Account Email
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-              <input
-                type="email"
-                required
-                value={email || `${selectedRole}@university.edu`}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 text-xs bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866] font-medium"
-              />
+          {/* Error Alert */}
+          {error && (
+            <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-3.5 mb-6">
+              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-red-300 leading-relaxed">{error}</p>
             </div>
-          </div>
+          )}
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                Password
+          <form onSubmit={handleLogin} className="space-y-4">
+            {/* Username */}
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-2 tracking-wide uppercase">
+                Username
               </label>
-              <button
-                type="button"
-                onClick={() => setForgotOpen(true)}
-                className="text-[11px] font-medium text-[#313866] dark:text-[#8A92D0] hover:underline"
-              >
-                Forgot password?
-              </button>
+              <div className="relative">
+                <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="login-username"
+                  type="text"
+                  required
+                  autoFocus
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                  placeholder="e.g. 22CS001 / GFCSE01 / ADISHWARYAP"
+                  className="w-full pl-10 pr-4 py-3 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#8A92D0]/50 focus:border-[#8A92D0]/50 transition-all"
+                />
+              </div>
+              <p className="text-[10px] text-zinc-600 mt-1.5 pl-1">
+                Students: Reg. No. &nbsp;|&nbsp; Faculty/HOD: Employee ID &nbsp;|&nbsp; Admin: Your username
+              </p>
             </div>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-              <input
-                type="password"
-                required
-                value={password || 'password123'}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 text-xs bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
-              />
-            </div>
-          </div>
 
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-2 py-3 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-all shadow-md"
-          >
-            Sign In to {selectedRole.toUpperCase()} Dashboard
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
-
-        {/* Quick Demo Switcher */}
-        <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" />
-            Quick Demo Auto-Login
-          </p>
-          <div className="space-y-2">
-            {demoAccounts.map((acc) => {
-              const Icon = acc.icon;
-              return (
+            {/* Password */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-zinc-300 tracking-wide uppercase">
+                  Password
+                </label>
                 <button
-                  key={acc.role}
-                  onClick={() => {
-                    login(acc.role);
-                  }}
-                  className="w-full flex items-center justify-between p-2.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-[#161B33] hover:bg-[#F3F4F9] dark:hover:bg-[#313866]/40 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl transition-all"
+                  type="button"
+                  onClick={() => setForgotOpen(true)}
+                  className="text-[11px] text-[#8A92D0] hover:text-white transition-colors"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 text-[#313866] dark:text-[#8A92D0] shrink-0" />
-                    <span>{acc.name}</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-[#313866] dark:text-[#8A92D0] uppercase">
-                    Auto Login
-                  </span>
+                  Forgot password?
                 </button>
-              );
-            })}
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  placeholder="Enter your password"
+                  className="w-full pl-10 pr-10 py-3 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#8A92D0]/50 focus:border-[#8A92D0]/50 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              id="login-submit"
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#313866] to-[#8A92D0] hover:from-[#8A92D0] hover:to-[#313866] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-lg shadow-[#313866]/30 mt-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Signing in…
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Info footer */}
+          <div className="mt-6 pt-5 border-t border-white/5 text-center">
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              Default password is your <span className="text-zinc-400">username</span>.<br />
+              Contact your administrator if you cannot log in.
+            </p>
           </div>
         </div>
+
+        <p className="text-center text-[11px] text-zinc-700 mt-6">
+          Authorized access only · {new Date().getFullYear()}
+        </p>
       </div>
 
       <ForgotPasswordModal isOpen={forgotOpen} onClose={() => setForgotOpen(false)} />

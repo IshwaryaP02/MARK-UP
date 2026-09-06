@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { CorrectionRequest } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
+import { BackButton } from '../common/BackButton';
 import { Edit3, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 export const ApproveCorrections: React.FC = () => {
@@ -19,17 +20,16 @@ export const ApproveCorrections: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           Attendance Correction Approvals Queue (HOD Authority)
         </h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Review faculty requests to override submitted attendance records with reason notes
-        </p>
+
       </div>
 
       {pending.length === 0 ? (
-        <div className="p-8 text-center bg-zinc-50 dark:bg-[#21284C] border border-dashed border-zinc-200 dark:border-[#2D376A] rounded-2xl">
+        <div className="p-8 text-center bg-zinc-50 dark:bg-[#0A0A0A] border border-dashed border-zinc-200 dark:border-[#232326] rounded-2xl">
           <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Zero Pending Corrections</h3>
           <p className="text-xs text-zinc-400 mt-1">All faculty attendance adjustment requests have been reviewed.</p>
@@ -39,14 +39,14 @@ export const ApproveCorrections: React.FC = () => {
           {pending.map((req) => (
             <div
               key={req.id}
-              className="p-5 bg-white dark:bg-[#21284C] border border-amber-200 dark:border-amber-800/60 rounded-2xl shadow-sm space-y-4"
+              className="p-5 bg-white dark:bg-[#0A0A0A] border border-amber-200 dark:border-amber-800/60 rounded-2xl shadow-sm space-y-4"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-100 dark:border-zinc-800">
                 <div>
                   <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                     Faculty: {req.facultyName}
                   </h3>
-                  <span className="text-xs font-mono font-bold text-[#313866] dark:text-[#8A92D0]">
+                  <span className="text-xs font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6]">
                     {req.subjectCode} - {req.subjectName} · {req.date} Period {req.periodNumber}
                   </span>
                 </div>
@@ -73,7 +73,7 @@ export const ApproveCorrections: React.FC = () => {
                 </button>
                 <button
                   onClick={() => handleApprove(req.id)}
-                  className="px-4 py-2 bg-[#313866] hover:bg-[#161B33] text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-1"
+                  className="px-4 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-colors shadow-sm flex items-center gap-1"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Update Roster
                 </button>

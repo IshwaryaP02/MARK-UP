@@ -50,14 +50,40 @@ export const CommandPalette: React.FC = () => {
 
   if (!commandPaletteOpen) return null;
 
-  const navActions = [
+  const navActions: {
+    label: string;
+    screen: string;
+    screens?: Partial<Record<UserRole, string>>;
+    icon: typeof LayoutDashboard;
+    category: string;
+    roles?: UserRole[];
+  }[] = [
     { label: 'Dashboard', screen: 'dashboard', icon: LayoutDashboard, category: 'Navigation' },
     { label: 'Mark Attendance', screen: 'mark_attendance', icon: CheckSquare, category: 'Quick Action', roles: ['faculty'] },
-    { label: 'Students Roster', screen: 'students', icon: GraduationCap, category: 'Management', roles: ['admin', 'hod'] },
-    { label: 'Faculty Directory', screen: 'faculty', icon: Users, category: 'Management', roles: ['admin', 'hod'] },
-    { label: 'Timetable Builder / Schedule', screen: 'timetable', icon: Calendar, category: 'Navigation' },
-    { label: 'Attendance Reports & Analytics', screen: 'reports', icon: FileSpreadsheet, category: 'Reports' },
-    { label: 'Leave Applications', screen: 'leaves', icon: FileText, category: 'Navigation' },
+    { label: 'Students Roster', screen: 'students', icon: GraduationCap, category: 'Management', roles: ['admin'] },
+    { label: 'Faculty Directory', screen: 'faculty', icon: Users, category: 'Management', roles: ['admin'] },
+    {
+      label: 'Timetable Builder / Schedule',
+      screen: 'timetable_builder',
+      screens: { admin: 'timetable_builder', faculty: 'faculty_timetable', hod: 'faculty_timetable', student: 'student_timetable' },
+      icon: Calendar,
+      category: 'Navigation'
+    },
+    {
+      label: 'Attendance Reports & Analytics',
+      screen: 'reports_hub',
+      screens: { admin: 'reports_hub', faculty: 'faculty_reports', hod: 'reports_hub', student: 'student_reports' },
+      icon: FileSpreadsheet,
+      category: 'Reports'
+    },
+    {
+      label: 'Leave Applications',
+      screen: 'leave_queue',
+      screens: { faculty: 'leave_queue', hod: 'hod_leaves', student: 'student_apply_leave' },
+      icon: FileText,
+      category: 'Navigation',
+      roles: ['faculty', 'hod', 'student']
+    },
     { label: 'Audit Logs Viewer', screen: 'audit_logs', icon: ShieldAlert, category: 'Admin', roles: ['admin'] },
     { label: 'Database Backup & Restore', screen: 'db_backup', icon: Database, category: 'Admin', roles: ['admin'] }
   ];
@@ -77,7 +103,9 @@ export const CommandPalette: React.FC = () => {
   const filteredRoles = roleActions.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
 
   const handleSelectNav = (screen: string) => {
-    setActiveScreen(screen);
+    const item = navActions.find((n) => n.screen === screen || (n.screens && n.screens[currentUser.role] === screen));
+    const target = item?.screens?.[currentUser.role] || screen;
+    setActiveScreen(target);
     setCommandPaletteOpen(false);
     setQuery('');
   };
@@ -103,11 +131,11 @@ export const CommandPalette: React.FC = () => {
           initial={{ opacity: 0, scale: 0.95, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -10 }}
-          className="relative w-full max-w-xl bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-2xl shadow-2xl overflow-hidden z-10"
+          className="relative w-full max-w-xl bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-2xl shadow-2xl overflow-hidden z-10"
         >
           {/* Input field */}
-          <div className="flex items-center px-4 py-3.5 border-b border-zinc-200 dark:border-[#2D376A]">
-            <Search className="w-5 h-5 text-[#313866] dark:text-[#8A92D0] mr-3 shrink-0" />
+          <div className="flex items-center px-4 py-3.5 border-b border-zinc-200 dark:border-[#232326]">
+            <Search className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6] mr-3 shrink-0" />
             <input
               type="text"
               autoFocus
@@ -116,7 +144,7 @@ export const CommandPalette: React.FC = () => {
               placeholder="Type a command, screen name, or role..."
               className="w-full bg-transparent text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
             />
-            <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-semibold text-zinc-500 bg-zinc-100 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-md">
+            <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-semibold text-zinc-500 bg-zinc-100 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-md">
               ESC
             </kbd>
           </div>
@@ -132,7 +160,7 @@ export const CommandPalette: React.FC = () => {
                   setCommandPaletteOpen(false);
                   addToast('Theme Toggled', `Switched to ${!isDarkMode ? 'Dark' : 'Light'} mode`, 'info');
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-[#F3F4F9] dark:hover:bg-[#313866]/40 hover:text-[#313866] dark:hover:text-[#8A92D0] rounded-xl transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
               >
                 <div className="flex items-center gap-2">
                   {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
@@ -152,13 +180,13 @@ export const CommandPalette: React.FC = () => {
                     <button
                       key={item.screen}
                       onClick={() => handleSelectNav(item.screen)}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-[#F3F4F9] dark:hover:bg-[#313866]/40 hover:text-[#313866] dark:hover:text-[#8A92D0] rounded-xl transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
                     >
                       <div className="flex items-center gap-2.5">
                         <Icon className="w-4 h-4 shrink-0 text-zinc-500" />
                         <span>{item.label}</span>
                       </div>
-                      <span className="text-[10px] text-zinc-400 bg-zinc-100 dark:bg-[#161B33] px-2 py-0.5 rounded-md">
+                      <span className="text-[10px] text-zinc-400 bg-zinc-100 dark:bg-[#0A0A0A] px-2 py-0.5 rounded-md">
                         {item.category}
                       </span>
                     </button>
@@ -175,10 +203,10 @@ export const CommandPalette: React.FC = () => {
                   <button
                     key={item.role}
                     onClick={() => handleSelectRole(item.role)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-[#F3F4F9] dark:hover:bg-[#313866]/40 hover:text-[#313866] dark:hover:text-[#8A92D0] rounded-xl transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <UserCheck className="w-4 h-4 text-[#313866] dark:text-[#8A92D0] shrink-0" />
+                      <UserCheck className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6] shrink-0" />
                       <span>{item.label}</span>
                     </div>
                     {currentUser.role === item.role && (

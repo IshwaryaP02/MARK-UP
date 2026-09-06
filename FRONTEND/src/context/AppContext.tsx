@@ -15,8 +15,16 @@ import {
   AuditLog,
   BackupSnapshot,
   AppNotification,
+  Circular,
+  CircularStatus,
+  PeriodTiming,
+  StaffOrder,
+  StaffDayOrder,
+  BonafideRequest,
+  BonafideStatus
 } from '../types';
 import { apiClient, setJwt, clearJwt } from '../lib/apiClient';
+import { studentsForCircular } from '../services/circularTargeting';
 
 export interface ToastMessage {
   id: string;
@@ -34,6 +42,7 @@ interface AppContextType {
   departments: Department[];
   subjects: Subject[];
   timetable: TimetableSlot[];
+  periodTimes: PeriodTiming[];
   attendanceRecords: AttendanceRecord[];
   leaveRequests: LeaveRequest[];
   correctionRequests: CorrectionRequest[];
@@ -42,14 +51,17 @@ interface AppContextType {
   auditLogs: AuditLog[];
   backups: BackupSnapshot[];
   notifications: AppNotification[];
+  circulars: Circular[];
   isDarkMode: boolean;
   currentTheme: string;
   activeScreen: string;
+  attendanceSubjectId: string | null;
   commandPaletteOpen: boolean;
   toasts: ToastMessage[];
 
   // Actions
   login: (username: string, password: string) => Promise<void>;
+  setAttendanceSubjectId: (subjectId: string | null) => void;
   logout: () => void;
   switchRole: (role: UserRole) => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
@@ -79,6 +91,8 @@ interface AppContextType {
 
   saveTimetableSlot: (slot: TimetableSlot) => Promise<void>;
   deleteTimetableSlot: (id: string) => Promise<void>;
+  savePeriodTimes: (timings: PeriodTiming[]) => void;
+  getPeriodTime: (periodNumber: number) => { start: string; end: string } | undefined;
 
   markAttendance: (record: AttendanceRecord) => Promise<void>;
   submitCorrectionRequest: (req: Omit<CorrectionRequest, 'id' | 'createdAt' | 'status'>) => Promise<void>;
@@ -86,6 +100,7 @@ interface AppContextType {
 
   submitLeaveRequest: (leave: Omit<LeaveRequest, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   reviewLeaveRequest: (id: string, stage: 'faculty' | 'hod', status: 'approved' | 'rejected', reviewerId: string, reviewerName: string, comment?: string) => Promise<void>;
+  deleteLeaveRequest: (id: string) => void;
 
   submitSubstitutionRequest: (sub: Omit<SubstitutionRequest, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   reviewSubstitutionRequest: (id: string, action: 'accept' | 'reject' | 'approve') => Promise<void>;
@@ -93,11 +108,42 @@ interface AppContextType {
   respondSubstitution: (id: string, action: 'approved' | 'rejected') => Promise<void>;
 
   addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<void>;
+  updateCalendarEvent: (event: CalendarEvent) => void;
   deleteCalendarEvent: (id: string) => Promise<void>;
+
+  staffOrders: StaffOrder[];
+  addStaffOrder: (order: Omit<StaffOrder, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateStaffOrder: (order: StaffOrder) => void;
+  deleteStaffOrder: (id: string) => void;
+
+  staffDayOrders: StaffDayOrder[];
+  saveStaffDayOrder: (data: Omit<StaffDayOrder, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateStaffDayOrder: (data: StaffDayOrder) => void;
+  deleteStaffDayOrder: (id: string) => void;
+  getDayOrderForDate: (date: string) => number | null;
+  getCurrentDayOrder: () => number | null;
 
   triggerBackup: (type: 'manual' | 'automated') => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   clearAllNotifications: () => Promise<void>;
+
+  addCircular: (circular: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>) => Circular;
+  updateCircular: (circular: Circular) => void;
+  deleteCircular: (id: string) => void;
+  signCircular: (id: string, signerName: string) => void;
+  publishCircular: (id: string, publisherName: string, providedCirc?: Circular) => void;
+  archiveCircular: (id: string) => void;
+
+  bonafideRequests: BonafideRequest[];
+  submitBonafideRequest: (data: Omit<BonafideRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => void;
+  reviewBonafideRequest: (
+    id: string,
+    stage: 'faculty' | 'hod' | 'principal',
+    status: 'approve' | 'recommend' | 'reject',
+    actorId: string,
+    actorName: string,
+    comment?: string
+  ) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -107,25 +153,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('smart_att_user');
     return saved ? JSON.parse(saved) : {} as User;
   });
+
   const [users, setUsers] = useState<User[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [facultyList, setFacultyList] = useState<Faculty[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
+  const [periodTimes, setPeriodTimes] = useState<PeriodTiming[]>(() => {
+    try {
+      const saved = localStorage.getItem('smart_att_period_times');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [correctionRequests, setCorrectionRequests] = useState<CorrectionRequest[]>([]);
   const [substitutionRequests, setSubstitutionRequests] = useState<SubstitutionRequest[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [staffOrders, setStaffOrders] = useState<StaffOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('smart_att_staff_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [staffDayOrders, setStaffDayOrders] = useState<StaffDayOrder[]>(() => {
+    try {
+      const saved = localStorage.getItem('smart_att_staff_day_orders');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [backups, setBackups] = useState<BackupSnapshot[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('smart_att_theme');
-    return saved ? saved === 'dark' : false;
+  const [circulars, setCirculars] = useState<Circular[]>(() => {
+    try {
+      const saved = localStorage.getItem('smart_att_circulars');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
+  const [bonafideRequests, setBonafideRequests] = useState<BonafideRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('smart_att_bonafide');
+      return saved ? JSON.parse(saved) : [] as BonafideRequest[];
+    } catch {
+      return [] as BonafideRequest[];
+    }
+  });
+
+  const [theme, setTheme] = useState<string>(() => {
+    return localStorage.getItem('theme') || localStorage.getItem('smart_att_theme') || 'light';
+  });
+
+  const isDarkMode = theme === 'dark';
+
   const [currentTheme, setCurrentTheme] = useState<string>(() => {
     return localStorage.getItem('smart_att_color_palette') || 'palette-classic';
   });
@@ -134,23 +223,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved !== null ? saved === 'true' : false;
   });
   const [activeScreen, setActiveScreen] = useState<string>('dashboard');
+  const [attendanceSubjectId, setAttendanceSubjectId] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Apply theme ONLY to authenticated portal pages.
+  // The Login Page must stay in its original design and must never be themed.
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark');
-      localStorage.setItem('smart_att_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const root = document.documentElement;
+    localStorage.setItem('theme', theme);
+    if (!isAuthenticated) {
+      root.removeAttribute('data-theme');
+      root.classList.remove('dark');
       document.body.classList.remove('dark');
-      localStorage.setItem('smart_att_theme', 'light');
+      return;
     }
-  }, [isDarkMode]);
+    root.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+  }, [theme, isAuthenticated]);
 
+  // Apply color palette theme (accent palettes kept for backwards compatibility)
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', currentTheme);
     localStorage.setItem('smart_att_color_palette', currentTheme);
   }, [currentTheme]);
 
@@ -166,6 +265,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentTheme(theme);
   };
 
+  useEffect(() => {
+    localStorage.setItem('smart_att_period_times', JSON.stringify(periodTimes));
+  }, [periodTimes]);
+
+  useEffect(() => {
+    localStorage.setItem('smart_att_substitutions', JSON.stringify(substitutionRequests));
+  }, [substitutionRequests]);
+
+  useEffect(() => {
+    localStorage.setItem('smart_att_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
   const addToast = (title: string, message?: string, type: 'success' | 'danger' | 'warning' | 'info' = 'info') => {
     const id = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
     setToasts((prev) => [...prev, { id, title, message, type }]);
@@ -179,7 +290,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
+    setTheme((t) => (t === 'light' ? 'dark' : 'light'));
+  };
+
+  const enrichUser = (target: User): User => {
+    if (target.role !== 'student') return target;
+    const studentRecord = students.find((s) => s.id === target.id);
+    if (!studentRecord) return target;
+    return {
+      ...target,
+      regNo: studentRecord.regNo,
+      rollNo: studentRecord.rollNo,
+      semester: studentRecord.semester,
+      section: studentRecord.section,
+      batch: studentRecord.batch,
+      departmentId: studentRecord.departmentId,
+      departmentName: studentRecord.departmentName,
+      guardianName: studentRecord.guardianName,
+      guardianPhone: studentRecord.guardianPhone,
+      phone: studentRecord.phone || target.phone,
+      avatar: studentRecord.avatar || target.avatar,
+      address: studentRecord.address || target.address,
+      dob: studentRecord.dob || target.dob,
+      gender: studentRecord.gender || target.gender
+    };
   };
 
   const logAudit = (action: string, module: string, details: string) => {
@@ -195,6 +329,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ipAddress: '127.0.0.1',
     };
     setAuditLogs((prev) => [newLog, ...prev]);
+  };
+
+  // Local-only notification helper for main-only Circular/Bonafide flows that are
+  // not backed by an apiClient endpoint. Does not touch API-backed notification state.
+  const pushNotification = (
+    title: string,
+    message: string,
+    targetRole: UserRole | undefined,
+    filter: { semester?: number; section?: string } | undefined,
+    type: 'success' | 'danger' | 'warning' | 'info',
+    link?: string
+  ) => {
+    const newNotification: AppNotification = {
+      id: 'notif-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      title,
+      message,
+      timestamp: 'Just now',
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      read: false,
+      type,
+      targetRole,
+      link,
+      targetSemesters: filter?.semester !== undefined ? [filter.semester] : undefined,
+      targetClass: filter?.section
+    } as AppNotification;
+    setNotifications((prev) => [newNotification, ...prev]);
   };
 
   const setCurrentUser = (user: User) => {
@@ -604,6 +764,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  const savePeriodTimes = (timings: PeriodTiming[]) => {
+    setPeriodTimes(timings);
+    logAudit('UPDATE_PERIOD_TIMES', 'Timetable Builder', 'Updated period timings');
+  };
+
+  const getPeriodTime = (periodNumber: number): { start: string; end: string } | undefined => {
+    const t = periodTimes.find((p) => p.periodNumber === periodNumber);
+    return t ? { start: t.start, end: t.end } : undefined;
+  };
+
   // Mark Attendance
   const markAttendance = useCallback(async (record: AttendanceRecord) => {
     try {
@@ -758,6 +928,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  const deleteLeaveRequest = (id: string) => {
+    const target = leaveRequests.find((l) => l.id === id);
+    setLeaveRequests((prev) => prev.filter((l) => l.id !== id));
+    logAudit('DELETE_LEAVE', 'Student Leave', `Leave application ${id} deleted by ${target?.studentName || 'student'}`);
+    addToast('Leave Deleted', 'Your leave application has been removed', 'warning');
+  };
+
   // Substitutions
   const _mapSubstitutionFromApi = (apiSub: any): SubstitutionRequest => ({
     id: apiSub.id,
@@ -870,6 +1047,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
+  const updateCalendarEvent = (event: CalendarEvent) => {
+    setCalendarEvents((prev) => prev.map((e) => (e.id === event.id ? event : e)));
+    addToast('Calendar Updated', `Updated ${event.title} on ${event.date}`, 'success');
+  };
+
   const deleteCalendarEvent = useCallback(async (id: string) => {
     try {
       await apiClient.deleteCalendarEvent(id);
@@ -879,6 +1061,83 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addToast('Error', error instanceof Error ? error.message : 'Failed to delete calendar event', 'danger');
     }
   }, []);
+
+  // Monthly Staff Orders
+  useEffect(() => {
+    localStorage.setItem('smart_att_staff_orders', JSON.stringify(staffOrders));
+  }, [staffOrders]);
+
+  const addStaffOrder = (order: Omit<StaffOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const now = new Date().toISOString().slice(0, 10);
+    const newOrder: StaffOrder = { ...order, id: 'so-' + Date.now(), createdAt: now, updatedAt: now };
+    setStaffOrders((prev) => [newOrder, ...prev]);
+    addToast('Staff Order Created', `Monthly staff order for ${order.month} created`, 'success');
+  };
+
+  const updateStaffOrder = (order: StaffOrder) => {
+    const now = new Date().toISOString().slice(0, 10);
+    const updated = { ...order, updatedAt: now };
+    setStaffOrders((prev) => prev.map((o) => (o.id === order.id ? updated : o)));
+    addToast('Staff Order Updated', `Monthly staff order for ${order.month} updated`, 'success');
+  };
+
+  const deleteStaffOrder = (id: string) => {
+    setStaffOrders((prev) => prev.filter((o) => o.id !== id));
+    addToast('Staff Order Deleted', 'Monthly staff order removed', 'info');
+  };
+
+  // Monthly Staff Day Order (OCR-extracted date → day order mapping)
+  useEffect(() => {
+    localStorage.setItem('smart_att_staff_day_orders', JSON.stringify(staffDayOrders));
+  }, [staffDayOrders]);
+
+  const saveStaffDayOrder = (data: Omit<StaffDayOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const trimmedEntries = data.entries
+      .map((e) => ({ date: e.date, dayOrder: Number(e.dayOrder) || 1 }))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+    setStaffDayOrders((prev) => {
+      const existing = prev.find((o) => o.month === data.month);
+      const record: Omit<StaffDayOrder, 'id'> = {
+        ...data,
+        entries: trimmedEntries,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now
+      };
+      if (existing) {
+        return prev.map((o) => (o.id === existing.id ? { ...record, id: existing.id } : o));
+      }
+      return [{ ...record, id: 'sdo-' + Date.now() }, ...prev];
+    });
+    logAudit('SAVE_STAFF_DAY_ORDER', 'Monthly Staff Day Order', `Saved ${trimmedEntries.length} day order entries for ${data.month}`);
+    addToast('Day Order Saved', `Saved ${trimmedEntries.length} dated day order entries (${data.month})`, 'success');
+  };
+
+  const updateStaffDayOrder = (data: StaffDayOrder) => {
+    setStaffDayOrders((prev) => prev.map((o) => (o.id === data.id ? { ...data, updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 19) } : o)));
+    addToast('Day Order Updated', `Updated staff day order for ${data.month}`, 'success');
+  };
+
+  const deleteStaffDayOrder = (id: string) => {
+    setStaffDayOrders((prev) => prev.filter((o) => o.id !== id));
+    addToast('Day Order Deleted', 'Staff day order data removed', 'info');
+  };
+
+  const getDayOrderForDate = (date: string): number | null => {
+    for (const record of staffDayOrders) {
+      const entry = record.entries.find((e) => e.date === date);
+      if (entry) return entry.dayOrder;
+    }
+    return null;
+  };
+
+  const getCurrentDayOrder = (): number | null => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return getDayOrderForDate(`${y}-${m}-${d}`);
+  };
 
   // Backups
   const triggerBackup = useCallback(async (type: 'manual' | 'automated') => {
@@ -934,6 +1193,332 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     initAuth();
   }, [isAuthenticated, loadDataForRole]);
 
+  // Circular CRUD
+  useEffect(() => {
+    localStorage.setItem('smart_att_circulars', JSON.stringify(circulars));
+  }, [circulars]);
+
+  // Bonafide persistence
+  useEffect(() => {
+    localStorage.setItem('smart_att_bonafide', JSON.stringify(bonafideRequests));
+  }, [bonafideRequests]);
+
+  const addCircular = (circularData: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>): Circular => {
+    const recipientCount =
+      circularData.target === 'all_faculty'
+        ? facultyList.length
+        : circularData.target === 'individual_faculty'
+        ? circularData.selectedFacultyIds?.length || 0
+        : circularData.target === 'all_students'
+        ? studentsForCircular({ ...circularData, target: circularData.target }, students).length
+        : circularData.target === 'tutor_class'
+        ? studentsForCircular({ ...circularData, target: circularData.target }, students).length
+        : circularData.target === 'specific_students'
+        ? studentsForCircular({ ...circularData, target: circularData.target }, students).length
+        : 0;
+    const newCircular: Circular = {
+      ...circularData,
+      id: 'circ-' + Date.now(),
+      createdByRole: circularData.createdByRole || currentUser.role,
+      createdByName: circularData.createdByName || currentUser.name,
+      recipientCount,
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+    };
+    setCirculars((prev) => [newCircular, ...prev]);
+    logAudit('CREATE_CIRCULAR', 'Circulars', `Created circular: ${newCircular.title}`);
+    addToast('Circular Created', `"${newCircular.title}" saved as draft`, 'success');
+    return newCircular;
+  };
+
+  const updateCircular = (updated: Circular) => {
+    setCirculars((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    logAudit('UPDATE_CIRCULAR', 'Circulars', `Updated circular: ${updated.title}`);
+    addToast('Circular Updated', `"${updated.title}" saved`, 'success');
+  };
+
+  const deleteCircular = (id: string) => {
+    const target = circulars.find((c) => c.id === id);
+    setCirculars((prev) => prev.filter((c) => c.id !== id));
+    logAudit('DELETE_CIRCULAR', 'Circulars', `Deleted circular: ${target?.title || id}`);
+    addToast('Circular Deleted', 'Circular removed from the system', 'info');
+  };
+
+  const signCircular = (id: string, signerName: string) => {
+    setCirculars((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return {
+            ...c,
+            status: 'signed' as CircularStatus,
+            signedBy: signerName,
+            signedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          };
+        }
+        return c;
+      })
+    );
+    logAudit('SIGN_CIRCULAR', 'Circulars', `Circular ${id} signed by ${signerName}`);
+    addToast('Circular Signed', 'Ready for publishing', 'success');
+  };
+
+  const publishCircular = (id: string, publisherName: string, providedCirc?: Circular) => {
+    setCirculars((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return {
+            ...c,
+            status: 'published' as CircularStatus,
+            publishedBy: publisherName,
+            publishedAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+          };
+        }
+        return c;
+      })
+    );
+
+    // `providedCirc` lets callers publish a freshly-created circular before state commits.
+    const circ = providedCirc || circulars.find((c) => c.id === id) || null;
+    if (circ) {
+      // Faculty-created circulars are ONLY visible to students and their notifications
+      // are ONLY delivered to students.
+      const isFacultyAuthor = circ.createdByRole === 'faculty';
+
+      const targetRole: UserRole | undefined =
+        circ.target === 'all_faculty' || circ.target === 'individual_faculty'
+          ? (isFacultyAuthor ? undefined : 'faculty')
+          : circ.target === 'all_students' || circ.target === 'specific_students' || circ.target === 'tutor_class'
+          ? 'student'
+          : undefined;
+
+      const targetStudents = studentsForCircular(circ, students);
+      const targetSemesters = Array.from(new Set(targetStudents.map((s) => s.semester)));
+      const targetDepartmentIds = Array.from(new Set(targetStudents.map((s) => s.departmentId)));
+
+      const newNotification: AppNotification = {
+        id: 'notif-circ-' + Date.now(),
+        title: `Circular: ${circ.title}`,
+        message: `${circ.description.substring(0, 120)}${circ.description.length > 120 ? '...' : ''}`,
+        timestamp: 'Just now',
+        createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        read: false,
+        type: 'info',
+        targetRole,
+        link:
+          circ.target === 'all_faculty' || circ.target === 'individual_faculty'
+            ? 'hod_circulars'
+            : 'student_circulars',
+        circularId: circ.id,
+        targetDepartmentIds: targetRole === 'student' ? targetDepartmentIds : undefined,
+        targetSemesters: targetRole === 'student' && targetSemesters.length > 0 ? targetSemesters : undefined,
+        targetClass: circ.target === 'tutor_class' ? circ.targetClass : undefined
+      };
+
+      setNotifications((prev) => [newNotification, ...prev]);
+    }
+
+    logAudit('PUBLISH_CIRCULAR', 'Circulars', `Circular ${id} published by ${publisherName}`);
+    addToast('Circular Published', 'Now visible to recipients', 'success');
+  };
+
+  const archiveCircular = (id: string) => {
+    setCirculars((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return { ...c, status: 'archived' as CircularStatus };
+        }
+        return c;
+      })
+    );
+    addToast('Circular Archived', 'Circular has been archived', 'info');
+  };
+
+  // ---- Bonafide Certificate ----
+
+  const submitBonafideRequest = (data: Omit<BonafideRequest, 'id' | 'status' | 'createdAt' | 'updatedAt'>) => {
+    const now = new Date().toISOString();
+    const newReq: BonafideRequest = {
+      ...data,
+      id: 'bnf-' + Date.now(),
+      status: 'submitted',
+      createdAt: now,
+      updatedAt: now
+    };
+    setBonafideRequests((prev) => [newReq, ...prev]);
+    logAudit('SUBMIT_BONAFIDE', 'Bonafide Certificate', `Bonafide requested by ${newReq.studentName} (${newReq.studentRegNo})`);
+    pushNotification(
+      'Bonafide Request Submitted',
+      `${newReq.studentName} (${newReq.studentRegNo}) requested a bonafide certificate.`,
+      'faculty',
+      { semester: newReq.semester, section: newReq.section },
+      'info',
+      'faculty_bonafide'
+    );
+    addToast('Bonafide Requested', 'Submitted for faculty review', 'success');
+  };
+
+  const reviewBonafideRequest = (
+    id: string,
+    stage: 'faculty' | 'hod' | 'principal',
+    status: 'approve' | 'recommend' | 'reject',
+    actorId: string,
+    actorName: string,
+    comment?: string
+  ) => {
+    const now = new Date().toISOString();
+    let target: BonafideRequest | undefined;
+
+    setBonafideRequests((prev) =>
+      prev.map((b) => {
+        if (b.id !== id) return b;
+        target = b;
+
+        if (stage === 'faculty') {
+          if (status === 'reject') {
+            return { ...b, status: 'submitted' as BonafideStatus, updatedAt: now, facultyComment: comment };
+          }
+          // Faculty recommends → forwards to HOD
+          return {
+            ...b,
+            status: 'faculty_recommended' as BonafideStatus,
+            facultyId: actorId,
+            facultyName: actorName,
+            facultyRecommendedAt: now,
+            facultyComment: comment,
+            updatedAt: now
+          };
+        }
+
+        if (stage === 'hod') {
+          if (status === 'reject') {
+            return { ...b, status: 'faculty_review' as BonafideStatus, updatedAt: now, hodComment: comment };
+          }
+          if (status === 'recommend') {
+            // HOD recommends → forwards to Principal
+            return {
+              ...b,
+              status: 'hod_recommended' as BonafideStatus,
+              hodId: actorId,
+              hodName: actorName,
+              hodRecommendedAt: now,
+              hodComment: comment,
+              updatedAt: now
+            };
+          }
+          // HOD approves final (after principal return) → Approved
+          return {
+            ...b,
+            status: 'approved' as BonafideStatus,
+            hodId: actorId,
+            hodName: actorName,
+            finalApprovedAt: now,
+            hodComment: comment,
+            updatedAt: now
+          };
+        }
+
+        // Principal
+        if (status === 'reject') {
+          return { ...b, status: 'hod_review' as BonafideStatus, updatedAt: now, principalName: actorName };
+        }
+        // Principal approves → returned to HOD for final approval
+        return {
+          ...b,
+          status: 'returned_to_hod' as BonafideStatus,
+          principalName: actorName,
+          principalApprovedAt: now,
+          updatedAt: now
+        };
+      })
+    );
+
+    if (target) {
+      if (stage === 'faculty') {
+        if (status === 'recommend') {
+          pushNotification(
+            'Bonafide Recommended',
+            `${actorName} recommended your bonafide request — forwarded to HOD.`,
+            'student',
+            { semester: target.semester, section: target.section },
+            'info',
+            'student_bonafide'
+          );
+          pushNotification(
+            'Bonafide Pending HOD Review',
+            `${target.studentName} (${target.studentRegNo})'s bonafide has been recommended by faculty and is awaiting your review.`,
+            'hod',
+            undefined,
+            'info',
+            'hod_bonafide'
+          );
+        } else {
+          pushNotification(
+            'Bonafide Returned',
+            `${actorName} returned your bonafide request for corrections.`,
+            'student',
+            { semester: target.semester, section: target.section },
+            'warning',
+            'student_bonafide'
+          );
+        }
+      } else if (stage === 'hod') {
+        if (status === 'recommend') {
+          pushNotification(
+            'Bonafide Sent for Principal Approval',
+            `${actorName} recommended ${target.studentName}'s bonafide — awaiting Principal approval.`,
+            'hod',
+            undefined,
+            'info',
+            'hod_bonafide'
+          );
+          pushNotification(
+            'Bonafide Awaiting Principal',
+            `${target.studentName} (${target.studentRegNo})'s bonafide is ready for your final approval.`,
+            'hod',
+            undefined,
+            'info',
+            'hod_bonafide'
+          );
+        } else if (status === 'approve') {
+          pushNotification(
+            'Bonafide Approved',
+            `Your bonafide certificate has been approved and is ready to print.`,
+            'student',
+            { semester: target.semester, section: target.section },
+            'success',
+            'student_bonafide'
+          );
+        } else {
+          pushNotification(
+            'Bonafide Returned to Faculty',
+            `${actorName} returned ${target.studentName}'s bonafide to the faculty stage for corrections.`,
+            'faculty',
+            { semester: target.semester, section: target.section },
+            'warning',
+            'faculty_bonafide'
+          );
+        }
+      } else {
+        pushNotification(
+          status === 'approve' ? 'Bonafide Approved by Principal' : 'Bonafide Returned',
+          status === 'approve'
+            ? `Principal approved ${target.studentName}'s bonafide certificate.`
+            : `Principal returned ${target.studentName}'s bonafide to HOD.`,
+          'hod',
+          undefined,
+          status === 'approve' ? 'success' : 'warning',
+          'hod_bonafide'
+        );
+      }
+
+      logAudit('REVIEW_BONAFIDE', 'Bonafide Certificate', `Bonafide ${id} ${status} by ${stage.toUpperCase()} (${actorName})`);
+      addToast(
+        'Bonafide Updated',
+        `${stage.charAt(0).toUpperCase() + stage.slice(1)} marked request as ${status}`,
+        status === 'reject' ? 'warning' : 'success'
+      );
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -945,17 +1530,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         departments,
         subjects,
         timetable,
+        periodTimes,
         attendanceRecords,
         leaveRequests,
         correctionRequests,
         substitutionRequests,
         calendarEvents,
+        staffOrders,
+        staffDayOrders,
         auditLogs,
         backups,
         notifications,
+        circulars,
         isDarkMode,
         currentTheme,
         activeScreen,
+        attendanceSubjectId,
         commandPaletteOpen,
         toasts,
 
@@ -964,6 +1554,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         switchRole,
         changePassword,
         setActiveScreen,
+        setAttendanceSubjectId,
         setCommandPaletteOpen,
         toggleDarkMode,
         setAppTheme,
@@ -988,6 +1579,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         saveTimetableSlot,
         deleteTimetableSlot,
+        savePeriodTimes,
+        getPeriodTime,
 
         markAttendance,
         submitCorrectionRequest,
@@ -995,6 +1588,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         submitLeaveRequest,
         reviewLeaveRequest,
+        deleteLeaveRequest,
 
         submitSubstitutionRequest,
         reviewSubstitutionRequest,
@@ -1002,11 +1596,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         respondSubstitution,
 
         addCalendarEvent,
+        updateCalendarEvent,
         deleteCalendarEvent,
+        addStaffOrder,
+        updateStaffOrder,
+        deleteStaffOrder,
+        saveStaffDayOrder,
+        updateStaffDayOrder,
+        deleteStaffDayOrder,
+        getDayOrderForDate,
+        getCurrentDayOrder,
 
         triggerBackup,
         markNotificationRead,
         clearAllNotifications,
+
+        addCircular,
+        updateCircular,
+        deleteCircular,
+        signCircular,
+        publishCircular,
+        archiveCircular,
+
+        bonafideRequests,
+        submitBonafideRequest,
+        reviewBonafideRequest
       }}
     >
       {children}

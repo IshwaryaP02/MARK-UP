@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../common/Modal';
-import { User, Camera, Trash2, Save, UserCheck, Phone, Mail, MapPin, Calendar, Building, Heart } from 'lucide-react';
+import { User, Camera, Trash2, Save, UserCheck, Phone, Mail, MapPin, Calendar, Building, Heart, Lock } from 'lucide-react';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -16,7 +16,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     email: currentUser.email || '',
     phone: currentUser.phone || '',
     avatar: currentUser.avatar || '',
-    departmentName: currentUser.departmentName || 'Computer Science & Engineering',
+    departmentName: currentUser.departmentName || 'Computer Science',
     address: currentUser.address || '123 Campus Avenue, University Housing, Block B',
     gender: currentUser.gender || 'Male',
     dob: currentUser.dob || '2003-05-14',
@@ -32,7 +32,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         email: currentUser.email || '',
         phone: currentUser.phone || '',
         avatar: currentUser.avatar || '',
-        departmentName: currentUser.departmentName || 'Computer Science & Engineering',
+        departmentName: currentUser.departmentName || 'Computer Science',
         address: currentUser.address || '123 Campus Avenue, University Housing, Block B',
         gender: currentUser.gender || 'Male',
         dob: currentUser.dob || '2003-05-14',
@@ -43,6 +43,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     }
   }, [currentUser, isOpen]);
 
+  const isLocked = currentUser.role === 'student' && !!currentUser.profileSubmitted;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -50,6 +52,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const submittingStudent = currentUser.role === 'student';
 
     const updatedUser = {
       ...currentUser,
@@ -63,7 +67,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
       dob: formData.dob,
       fatherName: formData.fatherName,
       motherName: formData.motherName,
-      parentPhone: formData.parentPhone
+      parentPhone: formData.parentPhone,
+      profileSubmitted: submittingStudent ? true : currentUser.profileSubmitted
     };
 
     setCurrentUser(updatedUser);
@@ -71,19 +76,29 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
     if (currentUser.role === 'student') {
       updateStudent({
         id: currentUser.id,
+        regNo: currentUser.regNo || '',
+        rollNo: currentUser.rollNo || '',
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         avatar: formData.avatar,
+        departmentId: currentUser.departmentId || 'dept-cs',
         departmentName: formData.departmentName,
+        semester: currentUser.semester || 4,
+        section: currentUser.section || 'A',
+        batch: currentUser.batch || '2024',
+        overallAttendancePct: 0,
+        guardianName: formData.fatherName,
+        guardianPhone: formData.parentPhone,
+        active: true,
         address: formData.address,
         gender: formData.gender,
         dob: formData.dob,
         fatherName: formData.fatherName,
         motherName: formData.motherName,
-        guardianName: formData.fatherName,
-        guardianPhone: formData.parentPhone
-      } as any);
+        parentPhone: formData.parentPhone,
+        profileSubmitted: true
+      });
     } else if (currentUser.role === 'faculty' || currentUser.role === 'hod') {
       updateFaculty({
         id: currentUser.id,
@@ -119,9 +134,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
       subtitle={`Update personal & institutional details for ${currentUser.role.toUpperCase()}`}
       maxWidth="xl"
     >
+      {isLocked ? (
+        <div className="p-8 text-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-[#1E40AF]/10 dark:bg-[#2563EB]/20 flex items-center justify-center mb-3">
+            <Lock className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" />
+          </div>
+          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Profile Submitted &amp; Locked</h4>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 max-w-sm mx-auto">
+            Your profile details are already submitted and cannot be edited. For any corrections, please contact the administrator.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-5 px-4 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] text-white text-xs font-bold rounded-xl shadow-md transition-all"
+          >
+            Okay
+          </button>
+        </div>
+      ) : (
       <form onSubmit={handleSave} className="space-y-4">
         {/* Photo & Role Header */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-zinc-50 dark:bg-[#0D1127] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+        <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
           <div className="relative group">
             <img
               src={
@@ -129,9 +162,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
               }
               alt={formData.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-[#313866] dark:border-[#8A92D0] shadow-md"
+              className="w-16 h-16 rounded-full object-cover border-2 border-[#1E40AF] dark:border-[#3B82F6] shadow-md"
             />
-            <div className="absolute bottom-0 right-0 p-1 bg-[#313866] text-white rounded-full shadow-sm">
+            <div className="absolute bottom-0 right-0 p-1 bg-[#1E40AF] text-white rounded-full shadow-sm">
               <Camera className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -146,7 +179,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
               value={formData.avatar}
               onChange={handleChange}
               placeholder="https://images.unsplash.com/photo-..."
-              className="w-full px-3 py-1.5 text-xs bg-white dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full px-3 py-1.5 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             />
           </div>
         </div>
@@ -155,7 +188,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" /> Full Name
+              <User className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Full Name
             </label>
             <input
               type="text"
@@ -163,13 +196,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
               required
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" /> Email Address
+              <Mail className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Email Address
             </label>
             <input
               type="email"
@@ -177,13 +210,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
               required
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" /> Phone Number
+              <Phone className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Phone Number
             </label>
             <input
               type="text"
@@ -191,19 +224,19 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
               value={formData.phone}
               onChange={handleChange}
               placeholder="+1 (555) 000-0000"
-              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-              <Building className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" /> Department
+              <Building className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Department
             </label>
             <select
               name="departmentName"
               value={formData.departmentName}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             >
               {departments.map((d) => (
                 <option key={d.id} value={d.name}>
@@ -215,13 +248,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
           <div>
             <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-              <Heart className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" /> Gender
+              <Heart className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Gender
             </label>
             <select
               name="gender"
               value={formData.gender}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             >
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -231,21 +264,21 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
 
           <div>
             <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" /> Date of Birth
+              <Calendar className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Date of Birth
             </label>
             <input
               type="date"
               name="dob"
               value={formData.dob}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             />
           </div>
         </div>
 
         <div>
           <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-[#313866] dark:text-[#8A92D0]" /> Residential Address
+            <MapPin className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Residential Address
           </label>
           <input
             type="text"
@@ -253,14 +286,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
             value={formData.address}
             onChange={handleChange}
             placeholder="Street name, City, Zipcode"
-            className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+            className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
           />
         </div>
 
         {/* Student Specific Fields */}
         {currentUser.role === 'student' && (
           <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
-            <h4 className="text-xs font-extrabold text-[#313866] dark:text-[#8A92D0] uppercase tracking-wider">
+            <h4 className="text-xs font-extrabold text-[#1E40AF] dark:text-[#3B82F6] uppercase tracking-wider">
               Parent & Guardian Details
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -274,7 +307,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                   value={formData.fatherName}
                   onChange={handleChange}
                   placeholder="Father Name"
-                  className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                  className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
                 />
               </div>
 
@@ -288,7 +321,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                   value={formData.motherName}
                   onChange={handleChange}
                   placeholder="Mother Name"
-                  className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                  className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
                 />
               </div>
 
@@ -302,7 +335,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                   value={formData.parentPhone}
                   onChange={handleChange}
                   placeholder="+1 (555) 987-6543"
-                  className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#161B33] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                  className="w-full px-3 py-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
                 />
               </div>
             </div>
@@ -329,13 +362,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#313866] hover:bg-[#161B33] text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-all"
+              className="px-5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-1.5 transition-all"
             >
               <Save className="w-3.5 h-3.5" /> Update Profile
             </button>
           </div>
         </div>
       </form>
+      )}
     </Modal>
   );
 };

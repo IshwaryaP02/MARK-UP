@@ -1,9 +1,10 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { Download, FileText } from 'lucide-react';
+import { BackButton } from '../common/BackButton';
 
 export const StudentReports: React.FC = () => {
-  const { addToast } = useApp();
+  const { addToast, setActiveScreen } = useApp();
 
   const handleDownload = () => {
     addToast('Report Downloaded', 'Student monthly attendance certificate generated as PDF', 'success');
@@ -11,28 +12,29 @@ export const StudentReports: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton label="Back to Dashboard" />
+
       <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Personal Attendance Reports & Certificates
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">Export verified attendance statement for scholarship or hall ticket clearance</p>
         </div>
 
         <button
           onClick={handleDownload}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
         >
           <Download className="w-4 h-4" />
           Download PDF Report
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4">
           <div>
             <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Semester 4 Cumulative Attendance Transcript</h3>
-            <p className="text-xs text-zinc-500">Issued by Department of Computer Science & Engineering</p>
+            <p className="text-xs text-zinc-500">Issued by Department of Computer Science</p>
           </div>
           <span className="px-3 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 font-bold text-xs rounded-full">
             Status: Exam Clearance Approved (88.3%)

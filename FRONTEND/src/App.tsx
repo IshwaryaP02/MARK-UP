@@ -15,6 +15,7 @@ import { DepartmentManagement } from './components/admin/DepartmentManagement';
 import { SubjectManagement } from './components/admin/SubjectManagement';
 import { TimetableBuilder } from './components/admin/TimetableBuilder';
 import { AcademicCalendar } from './components/admin/AcademicCalendar';
+import { MonthlyStaffOrder } from './components/admin/MonthlyStaffOrder';
 import { UserAccounts } from './components/admin/UserAccounts';
 import { ReportsHub } from './components/admin/ReportsHub';
 import { DBBackup } from './components/admin/DBBackup';
@@ -25,11 +26,14 @@ import { FacultyDashboard } from './components/faculty/FacultyDashboard';
 import { MyClasses } from './components/faculty/MyClasses';
 import { FacultyTimetable } from './components/faculty/FacultyTimetable';
 import { MarkAttendance } from './components/faculty/MarkAttendance';
+import { FacultyBonafide } from './components/faculty/FacultyBonafide';
 import { AttendanceHistory } from './components/faculty/AttendanceHistory';
 import { FacultyReports } from './components/faculty/FacultyReports';
 import { StudentSearch } from './components/faculty/StudentSearch';
 import { LeaveQueue } from './components/faculty/LeaveQueue';
 import { SubstitutionManager } from './components/faculty/SubstitutionManager';
+import { TutorCircular } from './components/faculty/TutorCircular';
+import { TutorClassStudents } from './components/faculty/TutorClassStudents';
 
 // Student Components
 import { StudentDashboard } from './components/student/StudentDashboard';
@@ -38,7 +42,9 @@ import { StudentTimetable } from './components/student/StudentTimetable';
 import { ApplyLeave } from './components/student/ApplyLeave';
 import { StudentReports } from './components/student/StudentReports';
 import { StudentNotifications } from './components/student/StudentNotifications';
+import { StudentCirculars } from './components/student/StudentCirculars';
 import { StudentProfile } from './components/student/StudentProfile';
+import { StudentBonafide } from './components/student/StudentBonafide';
 
 // HOD Components
 import { HODDashboard } from './components/hod/HODDashboard';
@@ -47,6 +53,9 @@ import { FacultyMonitoring } from './components/hod/FacultyMonitoring';
 import { ApproveCorrections } from './components/hod/ApproveCorrections';
 import { ApproveLeaves } from './components/hod/ApproveLeaves';
 import { ApproveSubstitutions } from './components/hod/ApproveSubstitutions';
+import { HODCirculars } from './components/hod/HODCirculars';
+import { StudentDetails } from './components/hod/StudentDetails';
+import { HODBonafide } from './components/hod/HODBonafide';
 
 // Shared Components
 import { NotificationCenter } from './components/common/NotificationCenter';
@@ -78,6 +87,7 @@ const AppContent: React.FC = () => {
         case 'subjects': return <SubjectManagement />;
         case 'timetable_builder': return <TimetableBuilder />;
         case 'academic_calendar': return <AcademicCalendar />;
+        case 'monthly_staff_order': return <MonthlyStaffOrder />;
         case 'user_accounts': return <UserAccounts />;
         case 'reports_hub':
         case 'reports': return <ReportsHub />;
@@ -93,11 +103,14 @@ const AppContent: React.FC = () => {
         case 'my_classes': return <MyClasses />;
         case 'faculty_timetable': return <FacultyTimetable />;
         case 'mark_attendance': return <MarkAttendance />;
+        case 'faculty_bonafide': return <FacultyBonafide />;
         case 'attendance_history': return <AttendanceHistory />;
         case 'faculty_reports': return <FacultyReports />;
         case 'student_search': return <StudentSearch />;
         case 'leave_queue': return <LeaveQueue />;
         case 'substitution': return <SubstitutionManager />;
+        case 'tutor_circular': return <TutorCircular />;
+        case 'tutor_class_students': return <TutorClassStudents />;
         default: return <FacultyDashboard />;
       }
     }
@@ -110,7 +123,9 @@ const AppContent: React.FC = () => {
         case 'student_apply_leave': return <ApplyLeave />;
         case 'student_reports': return <StudentReports />;
         case 'student_notifications': return <StudentNotifications />;
+        case 'student_circulars': return <StudentCirculars />;
         case 'student_profile': return <StudentProfile />;
+        case 'student_bonafide': return <StudentBonafide />;
         default: return <StudentDashboard />;
       }
     }
@@ -118,12 +133,14 @@ const AppContent: React.FC = () => {
     if (role === 'hod') {
       switch (activeScreen) {
         case 'dashboard': return <HODDashboard />;
-        case 'timetable_builder': return <TimetableBuilder />;
         case 'hod_all_classes': return <AllClassesView />;
+        case 'student_details': return <StudentDetails />;
+        case 'hod_circulars': return <HODCirculars />;
         case 'faculty_monitoring': return <FacultyMonitoring />;
         case 'hod_corrections': return <ApproveCorrections />;
         case 'hod_leaves': return <ApproveLeaves />;
         case 'hod_substitutions': return <ApproveSubstitutions />;
+        case 'hod_bonafide': return <HODBonafide />;
         case 'hod_reports':
         case 'reports_hub':
         case 'reports': return <ReportsHub />;
@@ -135,7 +152,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#F3F4F9] dark:bg-[#161B33] text-zinc-900 dark:text-zinc-100 font-sans antialiased selection:bg-[#313866] selection:text-white transition-colors duration-200">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#F1F5F9] dark:bg-[#000000] text-zinc-900 dark:text-zinc-100 font-sans antialiased selection:bg-[#1E40AF] selection:text-white transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar />
 

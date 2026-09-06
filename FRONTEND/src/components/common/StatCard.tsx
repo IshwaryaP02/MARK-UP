@@ -24,9 +24,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   onClick
 }) => {
   const unifiedTheme = {
-    cardBg: 'bg-[#8A92D0]/20 dark:bg-[#2B325C]',
-    border: 'border-[#8A92D0]/40 dark:border-[#424B80]',
-    iconBox: 'bg-[#8A92D0] text-[#0D1127] dark:bg-[#8A92D0] dark:text-[#0D1127]',
+    cardBg: 'bg-[#1E40AF]/20 dark:bg-[#0A0A0A]',
+    border: 'border-[#1E40AF]/40 dark:border-[#232326]',
+    iconBox: 'bg-[#1E40AF] text-[#111827] dark:bg-[#2563EB] dark:text-[#FFFFFF]',
   };
 
   const theme = unifiedTheme;
@@ -49,7 +49,7 @@ export const StatCard: React.FC<StatCardProps> = ({
               {value}
             </span>
             {change && (
-              <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#313866]/15 dark:bg-[#8A92D0]/20 text-[#313866] dark:text-[#8A92D0]">
+              <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#1E40AF]/15 dark:bg-[#2563EB]/20 text-[#1E40AF] dark:text-[#3B82F6]">
                 {trend === 'up' && <TrendingUp className="w-3 h-3 mr-1" />}
                 {trend === 'down' && <TrendingDown className="w-3 h-3 mr-1" />}
                 {change}

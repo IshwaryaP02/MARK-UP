@@ -34,7 +34,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
     case 'leave':
     case 'casual':
     case 'medical':
-      style = 'bg-[#F3F4F9] text-[#313866] dark:bg-[#313866]/40 dark:text-[#8A92D0] border-[#313866]/30 dark:border-[#8A92D0]/40';
+      style = 'bg-[#1E40AF]/10 text-[#1E40AF] dark:bg-[#2563EB]/40 dark:text-[#3B82F6] border-[#1E40AF]/30 dark:border-[#3B82F6]/40';
       label = 'On Leave';
       break;
     case 'pending':
@@ -46,14 +46,17 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
     case 'approved':
     case 'active':
     case 'success':
+    case 'accepted':
+    case 'approved_by_hod':
       style = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60';
-      label = norm === 'active' ? 'Active' : norm === 'success' ? 'Success' : 'Approved';
+      label = norm === 'active' ? 'Active' : norm === 'success' ? 'Success' : norm === 'accepted' ? 'Accepted' : norm === 'approved_by_hod' ? 'HOD Approved' : 'Approved';
       break;
     case 'rejected':
     case 'inactive':
     case 'failed':
+    case 'rejected_by_sub':
       style = 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border-rose-200 dark:border-rose-800/60';
-      label = norm === 'inactive' ? 'Inactive' : norm === 'failed' ? 'Failed' : 'Rejected';
+      label = norm === 'inactive' ? 'Inactive' : norm === 'failed' ? 'Failed' : norm === 'rejected_by_sub' ? 'Declined' : 'Rejected';
       break;
   }
 

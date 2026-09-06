@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SubstitutionRequest } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
-import { Repeat, CheckCircle2, UserCheck, Edit2, XCircle, Check } from 'lucide-react';
+import { BackButton } from '../common/BackButton';
+import { Repeat, CheckCircle2, XCircle, Check } from 'lucide-react';
 
 export const ApproveSubstitutions: React.FC = () => {
-  const { substitutionRequests, facultyList, addToast } = useApp();
+  const { substitutionRequests, facultyList, reviewSubstitutionRequest, addToast } = useApp();
 
-  const [requests, setRequests] = useState(substitutionRequests);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedSubstitutes, setSelectedSubstitutes] = useState<Record<string, { id: string; name: string }>>({});
 
   const handleSelectSubstitute = (reqId: string, facultyId: string) => {
@@ -21,48 +19,35 @@ export const ApproveSubstitutions: React.FC = () => {
   };
 
   const handleApprove = (reqId: string) => {
-    setRequests((prev) =>
-      prev.map((r) => {
-        if (r.id === reqId) {
-          const chosenSub = selectedSubstitutes[reqId];
-          return {
-            ...r,
-            substituteFacultyId: chosenSub ? chosenSub.id : r.substituteFacultyId,
-            substituteFacultyName: chosenSub ? chosenSub.name : r.substituteFacultyName,
-            status: 'approved_by_hod' as const
-          };
-        }
-        return r;
-      })
-    );
-    setEditingId(null);
+    const chosenSub = selectedSubstitutes[reqId];
+    reviewSubstitutionRequest(reqId, 'approve', chosenSub);
     addToast('Substitution Approved', 'HOD successfully approved class substitution', 'success');
   };
 
   const handleReject = (reqId: string) => {
-    setRequests((prev) =>
-      prev.map((r) => (r.id === reqId ? { ...r, status: 'rejected_by_sub' as const } : r))
-    );
+    reviewSubstitutionRequest(reqId, 'reject');
     addToast('Substitution Rejected', 'Class substitution request rejected', 'info');
   };
 
+  const actionable = (status: string) => status === 'pending' || status === 'accepted';
+
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-          <Repeat className="w-5 h-5 text-[#313866] dark:text-[#8A92D0]" /> Approve Faculty Substitutions
+          <Repeat className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Approve Faculty Substitutions
         </h2>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          As HOD, review peer substitution requests, modify assigned substitute faculty if needed, and click Approve.
-        </p>
+
       </div>
 
-      <div className="bg-white dark:bg-[#161B33] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
           <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
             <tr>
               <th className="p-3.5 pl-4">Date & Period</th>
-              <th className="p-3.5">Course & Room</th>
+              <th className="p-3.5">Course</th>
               <th className="p-3.5">Requesting Faculty</th>
               <th className="p-3.5">Assigned Substitute (HOD Editable)</th>
               <th className="p-3.5">Status</th>
@@ -70,14 +55,21 @@ export const ApproveSubstitutions: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-            {requests.map((s) => {
+            {substitutionRequests.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-zinc-400">
+                  No substitution requests have been submitted yet.
+                </td>
+              </tr>
+            )}
+            {substitutionRequests.map((s) => {
               const chosenSubId = selectedSubstitutes[s.id]?.id || s.substituteFacultyId;
 
               return (
                 <tr key={s.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors">
                   <td className="p-3.5 pl-4">
                     <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100 block">{s.date}</span>
-                    <span className="text-[10px] font-semibold text-[#313866] dark:text-[#8A92D0]">
+                    <span className="text-[10px] font-semibold text-[#1E40AF] dark:text-[#3B82F6]">
                       Period {s.periodNumber}
                     </span>
                   </td>
@@ -85,7 +77,6 @@ export const ApproveSubstitutions: React.FC = () => {
                     <span className="font-bold text-zinc-900 dark:text-zinc-100 block">
                       {s.subjectCode} - {s.subjectName}
                     </span>
-                    <span className="text-[10px] text-zinc-400">Room: {s.roomNo || 'LH-101'}</span>
                   </td>
                   <td className="p-3.5 font-bold text-zinc-800 dark:text-zinc-200">{s.requestingFacultyName}</td>
                   <td className="p-3.5">
@@ -93,20 +84,24 @@ export const ApproveSubstitutions: React.FC = () => {
                       <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg">
                         {s.substituteFacultyName}
                       </span>
-                    ) : (
+                    ) : actionable(s.status) ? (
                       <div className="flex items-center gap-2">
                         <select
                           value={chosenSubId}
                           onChange={(e) => handleSelectSubstitute(s.id, e.target.value)}
-                          className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-[#313866] dark:text-[#8A92D0] focus:ring-2 focus:ring-[#313866]"
+                          className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] focus:ring-2 focus:ring-[#1E40AF]"
                         >
-                          {facultyList.map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.name} ({f.departmentName})
-                            </option>
-                          ))}
+                          {facultyList
+                            .filter((f) => f.id !== s.requestingFacultyId)
+                            .map((f) => (
+                              <option key={f.id} value={f.id}>
+                                {f.name} ({f.departmentName})
+                              </option>
+                            ))}
                         </select>
                       </div>
+                    ) : (
+                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">{s.substituteFacultyName}</span>
                     )}
                   </td>
                   <td className="p-3.5">
@@ -117,7 +112,7 @@ export const ApproveSubstitutions: React.FC = () => {
                       <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px] flex items-center justify-end gap-1">
                         <CheckCircle2 className="w-4 h-4" /> Approved
                       </span>
-                    ) : (
+                    ) : actionable(s.status) ? (
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleApprove(s.id)}
@@ -132,6 +127,8 @@ export const ApproveSubstitutions: React.FC = () => {
                           <XCircle className="w-3.5 h-3.5" /> Reject
                         </button>
                       </div>
+                    ) : (
+                      <span className="text-zinc-400 text-[11px] font-semibold">No action</span>
                     )}
                   </td>
                 </tr>
@@ -139,6 +136,7 @@ export const ApproveSubstitutions: React.FC = () => {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

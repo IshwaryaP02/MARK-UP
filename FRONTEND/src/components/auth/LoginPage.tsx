@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
+import './login.css';
+
+const ROLES: Record<UserRole, { label: string; placeholder: string; autocomplete: string; pattern: RegExp; error: string }> = {
+  admin: { label: 'Username :', placeholder: 'Enter your username', autocomplete: 'username', pattern: /^[a-zA-Z0-9._-]{3,32}$/, error: 'Enter a valid username (3-32 characters).' },
+  hod: { label: 'Employee ID :', placeholder: 'Enter your employee ID', autocomplete: 'username', pattern: /^[a-zA-Z0-9-]{3,20}$/, error: 'Enter a valid employee ID.' },
+  faculty: { label: 'Employee ID :', placeholder: 'Enter your employee ID', autocomplete: 'username', pattern: /^[a-zA-Z0-9-]{3,20}$/, error: 'Enter a valid employee ID.' },
+  student: { label: 'Register Number :', placeholder: 'Enter your register number', autocomplete: 'username', pattern: /^[a-zA-Z0-9]{5,20}$/, error: 'Enter a valid register number.' },
+};
+
+const REMEMBER_KEY = 'college-login-remember';
 
 export const LoginPage: React.FC = () => {
   const { login } = useApp();

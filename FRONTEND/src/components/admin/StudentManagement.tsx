@@ -3,6 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { Student } from '../../types';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
+import { BackButton } from '../common/BackButton';
+import { academicYearLabel } from '../../services/academicStructure';
 import {
   Search,
   Plus,
@@ -24,6 +26,11 @@ export const StudentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
 
+  // Admin student directory is scoped to Computer Science only
+  const adminDepartments = departments.filter(
+    (d) => d.id === 'dept-cs' || d.name?.toLowerCase().includes('computer science')
+  );
+
   // Modals state
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -37,9 +44,9 @@ export const StudentManagement: React.FC = () => {
     rollNo: '',
     email: '',
     departmentId: departments[0]?.id || 'dept-cs',
-    departmentName: departments[0]?.name || 'Computer Science & Engineering',
+    departmentName: departments[0]?.name || 'Computer Science',
     semester: 4,
-    section: 'A',
+    section: 'First Shift',
     batch: '2022-2026',
     guardianName: '',
     guardianPhone: '',
@@ -69,9 +76,9 @@ export const StudentManagement: React.FC = () => {
         rollNo: `24CS${String(students.length + 1).padStart(2, '0')}`,
         email: '',
         departmentId: departments[0]?.id || 'dept-cs',
-        departmentName: departments[0]?.name || 'Computer Science & Engineering',
+        departmentName: departments[0]?.name || 'Computer Science',
         semester: 4,
-        section: 'A',
+        section: 'First Shift',
         batch: '2022-2026',
         guardianName: '',
         guardianPhone: '',
@@ -109,9 +116,9 @@ export const StudentManagement: React.FC = () => {
           name: parts[2]?.trim() || 'Imported Student',
           email: parts[3]?.trim() || 'student@university.edu',
           departmentId: 'dept-cs',
-          departmentName: 'Computer Science & Engineering',
+          departmentName: 'Computer Science',
           semester: 4,
-          section: 'A',
+          section: 'First Shift',
           batch: '2022-2026',
           guardianName: 'Guardian',
           guardianPhone: '+1 555-000-0000',
@@ -131,15 +138,14 @@ export const StudentManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             Students Roster Management
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            View, add, edit, or bulk import registered university students
-          </p>
+
         </div>
 
         <div className="flex items-center gap-2">
@@ -147,12 +153,12 @@ export const StudentManagement: React.FC = () => {
             onClick={() => setImportModalOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-colors"
           >
-            <FileUp className="w-4 h-4 text-[#313866] dark:text-[#8A92D0]" />
+            <FileUp className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
             CSV Bulk Import
           </button>
           <button
             onClick={() => handleOpenAdd()}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Register Student
@@ -168,18 +174,27 @@ export const StudentManagement: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') setSearchTerm((e.target as HTMLInputElement).value);
+            }}
             placeholder="Search by student name, Reg No, or Roll No..."
-            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
           />
         </div>
+        <button
+          onClick={() => setSearchTerm(searchTerm)}
+          className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+        >
+          Enter
+        </button>
 
         <select
           value={deptFilter}
           onChange={(e) => setDeptFilter(e.target.value)}
-          className="w-full sm:w-56 px-3 py-2 text-xs bg-white dark:bg-[#21284C] border border-zinc-200 dark:border-[#2D376A] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+          className="w-full sm:w-56 px-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
         >
           <option value="all">All Departments</option>
-          {departments.map((d) => (
+          {adminDepartments.map((d) => (
             <option key={d.id} value={d.id}>
               {d.name}
             </option>
@@ -188,14 +203,14 @@ export const StudentManagement: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#21284C] border border-zinc-200/80 dark:border-[#2D376A] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="p-3.5 pl-4">Student</th>
                 <th className="p-3.5">Reg No & Roll</th>
-                <th className="p-3.5">Department & Sec</th>
+                <th className="p-3.5">Department & Year</th>
                 <th className="p-3.5">Attendance %</th>
                 <th className="p-3.5">Guardian</th>
                 <th className="p-3.5 text-right pr-4">Actions</th>
@@ -227,13 +242,13 @@ export const StudentManagement: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-3.5 font-medium">
-                        <span className="block font-mono text-[#313866] dark:text-[#8A92D0] font-bold">{s.regNo}</span>
-                        <span className="block text-[10px] text-zinc-600 dark:text-zinc-300 font-mono font-semibold">📱 {s.phone || '+91 98765 43210'}</span>
+                        <span className="block font-mono text-[#1E40AF] dark:text-[#3B82F6] font-bold">{s.regNo}</span>
+                        <span className="block text-[10px] text-zinc-600 dark:text-zinc-300 font-mono font-semibold">🐱 {s.phone || '+91 98765 43210'}</span>
                         <span className="text-[10px] text-zinc-400">Roll: {s.rollNo}</span>
                       </td>
                       <td className="p-3.5">
                         <span className="block font-semibold text-zinc-800 dark:text-zinc-200">{s.departmentName}</span>
-                        <span className="text-[10px] text-zinc-400">Sem {s.semester} - Sec {s.section}</span>
+                        <span className="text-[10px] text-zinc-400">{academicYearLabel(s.semester)}</span>
                       </td>
                       <td className="p-3.5">
                         <div className="flex items-center gap-2">
@@ -258,7 +273,7 @@ export const StudentManagement: React.FC = () => {
                               setSelectedStudent(s);
                               setDetailModalOpen(true);
                             }}
-                            className="p-1.5 text-zinc-400 hover:text-[#313866] hover:bg-[#313866]/10 rounded-lg transition-colors"
+                            className="p-1.5 text-zinc-400 hover:text-[#1E40AF] hover:bg-[#1E40AF]/10 rounded-lg transition-colors"
                             title="View Profile"
                           >
                             <Eye className="w-4 h-4" />
@@ -353,7 +368,7 @@ export const StudentManagement: React.FC = () => {
                 }}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
               >
-                {departments.map((d) => (
+                {adminDepartments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.code}
                   </option>
@@ -365,20 +380,22 @@ export const StudentManagement: React.FC = () => {
               <input
                 type="number"
                 min={1}
-                max={8}
+                max={10}
                 value={formData.semester || 4}
                 onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Section</label>
-              <input
-                type="text"
-                value={formData.section || 'A'}
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Shift</label>
+              <select
+                value={formData.section || 'First Shift'}
                 onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-              />
+              >
+                <option value="First Shift">First Shift</option>
+                <option value="Second Shift">Second Shift</option>
+              </select>
             </div>
           </div>
 
@@ -405,7 +422,7 @@ export const StudentManagement: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
+            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
           >
             {selectedStudent ? 'Save Changes' : 'Register Student'}
           </button>
@@ -429,12 +446,12 @@ export const StudentManagement: React.FC = () => {
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
               placeholder={`2024CS1050, 24CS10, Michael Scott, michael.s@student.edu\n2024CS1051, 24CS11, Pam Beesly, pam.b@student.edu`}
-              className="w-full p-3 font-mono text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#313866]"
+              className="w-full p-3 font-mono text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#313866] hover:bg-[#161B33] dark:bg-[#8A92D0] dark:text-[#0D1127] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
+            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
           >
             Parse & Add Students
           </button>
@@ -450,30 +467,30 @@ export const StudentManagement: React.FC = () => {
           subtitle={`Reg No: ${selectedStudent.regNo}`}
         >
           <div className="space-y-4 text-xs">
-            <div className="flex items-center gap-4 p-4 bg-zinc-50 dark:bg-[#161B33]/80 rounded-2xl">
+            <div className="flex items-center gap-4 p-4 bg-zinc-50 dark:bg-[#0A0A0A]/80 rounded-2xl">
               <img
                 src={selectedStudent.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
                 alt={selectedStudent.name}
-                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#313866]"
+                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#1E40AF]"
               />
               <div>
                 <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{selectedStudent.name}</h4>
                 <p className="text-zinc-400">{selectedStudent.email}</p>
                 <div className="flex gap-2 mt-2">
-                  <span className="px-2 py-0.5 bg-[#313866]/10 text-[#313866] dark:bg-[#313866]/50 dark:text-[#8A92D0] font-semibold rounded-md">
+                  <span className="px-2 py-0.5 bg-[#1E40AF]/10 text-[#1E40AF] dark:bg-[#2563EB]/50 dark:text-[#3B82F6] font-semibold rounded-md">
                     {selectedStudent.departmentName}
                   </span>
                   <span className="px-2 py-0.5 bg-zinc-200 dark:bg-zinc-700 font-semibold rounded-md">
-                    Sem {selectedStudent.semester} - Sec {selectedStudent.section}
+                    {academicYearLabel(selectedStudent.semester)}
                   </span>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-zinc-50 dark:bg-[#161B33]/60 rounded-xl">
+              <div className="p-3 bg-zinc-50 dark:bg-[#0A0A0A]/60 rounded-xl">
                 <span className="text-zinc-400 block text-[10px] uppercase font-bold">Overall Attendance</span>
-                <span className="text-xl font-bold text-[#313866] dark:text-[#8A92D0]">
+                <span className="text-xl font-bold text-[#1E40AF] dark:text-[#3B82F6]">
                   {selectedStudent.overallAttendancePct}%
                 </span>
               </div>

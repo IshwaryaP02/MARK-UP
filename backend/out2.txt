@@ -1,0 +1,6 @@
+INFO:     127.0.0.1:49906 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65155 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57665 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57665 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57665 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50246 - "OPTIONS /api/batches HTTP/1.1" 400 Bad Request

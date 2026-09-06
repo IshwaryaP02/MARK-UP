@@ -56,6 +56,7 @@ export const NotificationCenter: React.FC = () => {
                 </div>
                 <span className="text-[10px] text-zinc-400 font-mono shrink-0">{n.timestamp}</span>
               </div>
+              <span className="text-[10px] text-zinc-400 font-mono">{n.timestamp}</span>
             </div>
           ))
         )}

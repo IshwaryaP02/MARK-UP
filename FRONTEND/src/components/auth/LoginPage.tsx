@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { UserRole } from '../../types';
+import { Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import './login.css';
 
@@ -15,163 +15,157 @@ const REMEMBER_KEY = 'college-login-remember';
 
 export const LoginPage: React.FC = () => {
   const { login } = useApp();
-  const [selectedRole, setSelectedRole] = useState<UserRole>('admin');
-  const [identifier, setIdentifier] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
-  const [identifierError, setIdentifierError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [status, setStatus] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(REMEMBER_KEY) || 'null');
-      if (saved && ROLES[saved.role as UserRole]) {
-        setSelectedRole(saved.role);
-        setIdentifier(saved.id || '');
-        setRemember(true);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const role = ROLES[selectedRole];
-    let ok = true;
-
-    setIdentifierError('');
-    setPasswordError('');
-    setStatus('');
-
-    if (!role.pattern.test(identifier)) {
-      setIdentifierError(role.error);
-      ok = false;
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter your username and password.');
+      return;
     }
-    if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters.');
-      ok = false;
-    }
-    if (!ok) return;
-
+    setError('');
+    setIsLoading(true);
     try {
-      if (remember) {
-        localStorage.setItem(REMEMBER_KEY, JSON.stringify({ role: selectedRole, id: identifier }));
-      } else {
-        localStorage.removeItem(REMEMBER_KEY);
-      }
-    } catch {
-      /* storage unavailable */
+      await login(username.trim(), password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    login(selectedRole);
   };
 
-  const role = ROLES[selectedRole];
-
   return (
-    <div className="login-page">
-      <section className="card" aria-labelledby="login-title">
-        <header className="card__head">
-          <img className="logo" src="/assets/tn-emblem.png" alt="Tamil Nadu Government emblem" />
-          <p className="college-name">Government Arts &amp; Science College</p>
-          <p className="college-sub">Affiliated to the University · Estd. 1965</p>
-          <h1 className="card__title" id="login-title">Login to your account</h1>
-        </header>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0D1127] via-[#161B33] to-[#0D1127] p-4 relative overflow-hidden">
 
-        <form className="form" onSubmit={handleLogin} noValidate>
-          {/* Login As */}
-          <div className="field">
-            <label className="label" htmlFor="loginAs">Login As :</label>
-            <div className="select-wrap">
-              <select
-                className="control select"
-                id="loginAs"
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-                required
-              >
-                <option value="admin">Admin</option>
-                <option value="hod">HOD</option>
-                <option value="faculty">Faculty</option>
-                <option value="student">Student</option>
-              </select>
-              <svg className="icon icon--chevron" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+      {/* Background glow effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#313866]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#8A92D0]/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-sm relative">
+        {/* Logo / Brand */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#313866] to-[#8A92D0] flex items-center justify-center font-black text-2xl text-white shadow-2xl mx-auto mb-4">
+            SA
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Smart Attendance
+          </h1>
+          <p className="text-sm text-zinc-400 mt-1">
+            College Portal — Secure Sign In
+          </p>
+        </div>
+
+        {/* Login Card */}
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+
+          {/* Error Alert */}
+          {error && (
+            <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-3.5 mb-6">
+              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-red-300 leading-relaxed">{error}</p>
             </div>
-          </div>
+          )}
 
-          {/* Dynamic identifier field */}
-          <div className="field">
-            <label className="label" htmlFor="identifier">{role.label}</label>
-            <input
-              className="control"
-              type="text"
-              id="identifier"
-              placeholder={role.placeholder}
-              autoComplete={role.autocomplete}
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              required
-            />
-            {identifierError && <p className="error" role="alert">{identifierError}</p>}
-          </div>
-
-          {/* Password */}
-          <div className="field">
-            <label className="label" htmlFor="password">Password :</label>
-            <div className="input-wrap">
-              <input
-                className="control"
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                className="toggle"
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-                  <circle cx="12" cy="12" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.9" />
-                </svg>
-              </button>
+          <form onSubmit={handleLogin} className="space-y-4">
+            {/* Username */}
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-2 tracking-wide uppercase">
+                Username
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="login-username"
+                  type="text"
+                  required
+                  autoFocus
+                  value={username}
+                  onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                  placeholder="e.g. 22CS001 / GFCSE01 / ADISHWARYAP"
+                  className="w-full pl-10 pr-4 py-3 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#8A92D0]/50 focus:border-[#8A92D0]/50 transition-all"
+                />
+              </div>
+              <p className="text-[10px] text-zinc-600 mt-1.5 pl-1">
+                Students: Reg. No. &nbsp;|&nbsp; Faculty/HOD: Employee ID &nbsp;|&nbsp; Admin: Your username
+              </p>
             </div>
-            {passwordError && <p className="error" role="alert">{passwordError}</p>}
-          </div>
 
-          <div className="row">
-            <label className="remember">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-              />
-              <span>Remember Me</span>
-            </label>
-            <button type="button" className="link" onClick={() => setForgotOpen(true)}>
-              Forgot Password?
+            {/* Password */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-zinc-300 tracking-wide uppercase">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(true)}
+                  className="text-[11px] text-[#8A92D0] hover:text-white transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                  placeholder="Enter your password"
+                  className="w-full pl-10 pr-10 py-3 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#8A92D0]/50 focus:border-[#8A92D0]/50 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              id="login-submit"
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#313866] to-[#8A92D0] hover:from-[#8A92D0] hover:to-[#313866] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-lg shadow-[#313866]/30 mt-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Signing in…
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
+          </form>
+
+          {/* Info footer */}
+          <div className="mt-6 pt-5 border-t border-white/5 text-center">
+            <p className="text-[11px] text-zinc-600 leading-relaxed">
+              Default password is your <span className="text-zinc-400">username</span>.<br />
+              Contact your administrator if you cannot log in.
+            </p>
           </div>
+        </div>
 
-          <button className="btn" type="submit">Login</button>
-          {status && <p className="status" role="status">{status}</p>}
-        </form>
-
-        <footer className="card__foot">
-          <span className="pill">Don't have an account? <a className="link" href="#signup">Sign Up now</a></span>
-        </footer>
-      </section>
+        <p className="text-center text-[11px] text-zinc-700 mt-6">
+          Authorized access only · {new Date().getFullYear()}
+        </p>
+      </div>
 
       <ForgotPasswordModal isOpen={forgotOpen} onClose={() => setForgotOpen(false)} />
     </div>

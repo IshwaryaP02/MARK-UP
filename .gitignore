@@ -1,1 +1,44 @@
-customizable-login-page/
+# ── Python / Backend ──────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+*.db
+*.sqlite3
+backend/dev.db
+
+# ── Node / Frontend ───────────────────────────────
+node_modules/
+dist/
+build/
+coverage/
+*.local
+*.tsbuildinfo
+
+# ── Logs & temp ───────────────────────────────────
+*.log
+backend/out.txt
+backend/err.txt
+backend/out2.txt
+backend/err2.txt
+backend/server_logs.txt
+backend/server_logs_err.txt
+backend/t.json
+backend/test_body.json
+
+# ── Env & secrets ─────────────────────────────────
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ── Tooling / OS ──────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.tmp
+hello.env

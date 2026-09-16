@@ -1,5 +1,5 @@
 from app.core.config import settings
-from app.core.database import Base, engine, AsyncSessionLocal
+from app.core.database import Base, engine
 
 import app.models.models  # noqa: F401 — ensures all models registered
 
@@ -7,18 +7,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.routers import auth, admin, faculty, student, hod, reports, notifications
+from app.routers import auth, admin, faculty, student, hod, reports, notifications, timetable
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all DB tables on startup (safe: won't drop existing tables)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    # Seed the two hardcoded admin accounts
-    async with AsyncSessionLocal() as db:
-        from app.services.auth import seed_admin_users
-        await seed_admin_users(db)
+    # Supabase schema is managed by sql/migration_001_schema.sql; do not run DDL on every boot.
     yield
 
 
@@ -39,6 +33,8 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -54,6 +50,7 @@ app.include_router(student.router, prefix=f"{API_V1}/student", tags=["student"])
 app.include_router(hod.router, prefix=f"{API_V1}/hod", tags=["hod"])
 app.include_router(reports.router, prefix=f"{API_V1}/reports", tags=["reports"])
 app.include_router(notifications.router, prefix=f"{API_V1}/notifications", tags=["notifications"])
+app.include_router(timetable.router, prefix=f"{API_V1}/timetable", tags=["timetable"])
 
 
 @app.get(f"{API_V1}/health")

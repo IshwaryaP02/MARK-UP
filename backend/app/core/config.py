@@ -3,17 +3,23 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # ── Database ──
-    SUPABASE_DB_URL: str = "sqlite+aiosqlite:///./dev.db"
+    SUPABASE_DB_URL: str
 
     # ── JWT / Auth ──
-    SECRET_KEY: str = "dev-secret-key-change-in-production"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     DEV_MODE: bool = True
     
-    # ── Admin Credentials ──
-    ADMIN1_PASSWORD: str = "ADISHWARYAP"
-    ADMIN2_PASSWORD: str = "ADRICHERD"
+    # ── Initial administrator accounts ──
+    ADMIN1_USERNAME: str
+    ADMIN1_PASSWORD: str
+    ADMIN1_NAME: str
+    ADMIN1_EMAIL: str
+    ADMIN2_USERNAME: str
+    ADMIN2_PASSWORD: str
+    ADMIN2_NAME: str
+    ADMIN2_EMAIL: str
 
     # ── Supabase (optional — for storage etc.) ──
     SUPABASE_URL: str = ""

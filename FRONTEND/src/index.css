@@ -187,6 +187,15 @@
   outline-offset: 1px;
 }
 
+/* Keep button interaction states visible on mouse, keyboard, and touch. */
+button:not(:disabled):hover,
+button:not(:disabled):active,
+button:not(:disabled):focus-visible {
+  background-color: #93C5FD !important;
+  border-color: #60A5FA !important;
+  color: #1E3A8A !important;
+}
+
 
 /* Deep charcoal table headings (Light Mode only). This gives the
    standard data tables across all portals a structural charcoal header

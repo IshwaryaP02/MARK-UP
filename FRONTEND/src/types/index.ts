@@ -68,6 +68,7 @@ export interface Faculty {
   avatar?: string;
   departmentId: string;
   departmentName: string;
+  designation: string;
   phone: string;
   assignedSubjectIds: string[];
   isHOD?: boolean;

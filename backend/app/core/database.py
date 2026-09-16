@@ -2,11 +2,15 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
 
-_is_sqlite = "sqlite" in settings.SUPABASE_DB_URL
+if not settings.SUPABASE_DB_URL.startswith("postgresql+asyncpg://"):
+    raise RuntimeError("SUPABASE_DB_URL must use the PostgreSQL asyncpg Supabase connection URL")
 
-_engine_kwargs = {}
-if not _is_sqlite:
-    _engine_kwargs = {"pool_pre_ping": True, "pool_size": 20, "max_overflow": 30}
+_engine_kwargs = {
+    "pool_pre_ping": True,
+    "pool_size": 5,
+    "max_overflow": 5,
+    "connect_args": {"ssl": "require", "timeout": 10, "command_timeout": 10},
+}
 
 engine = create_async_engine(
     settings.SUPABASE_DB_URL,

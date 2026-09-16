@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from app.models.models import UserRole
 
 
@@ -21,14 +21,18 @@ class LoginResponse(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    old_password: str
-    new_password: str
+    old_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=6)
+
+
+class PublicChangePasswordRequest(ChangePasswordRequest):
+    username: str = Field(min_length=1)
 
 
 class ResetPasswordRequest(BaseModel):
     """Used when admin has enabled password reset for the user (forgot-password flow)."""
     username: str
-    new_password: str
+    new_password: str = Field(min_length=6)
 
 
 class EnablePasswordResetRequest(BaseModel):
@@ -37,7 +41,7 @@ class EnablePasswordResetRequest(BaseModel):
 
 class SetUserPasswordRequest(BaseModel):
     """Admin sets or resets a user's password directly."""
-    new_password: str
+    new_password: str = Field(min_length=6)
 
 
 class UserRead(BaseModel):

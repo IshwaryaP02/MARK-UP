@@ -6,6 +6,7 @@ import { slotForDayOrder, filteredSlotsForDayOrder, availableDayOrders, todayIsD
 import { Modal } from '../common/Modal';
 import { BackButton } from '../common/BackButton';
 import { academicYearLabel } from '../../services/academicStructure';
+import { TimetableAutomationPanel } from './TimetableAutomationPanel';
 import {
   Calendar,
   Plus,
@@ -377,6 +378,8 @@ export const TimetableBuilder: React.FC = () => {
           </span>
         </div>
       </div>
+
+      <TimetableAutomationPanel departments={builderDepartments} />
 
       {/* View Timetable For — segmented control */}
       <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm">

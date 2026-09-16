@@ -1,23 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Lock, User, ArrowRight, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
+import { ChangePasswordModal } from './ChangePasswordModal';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import './login.css';
-
-const ROLES: Record<UserRole, { label: string; placeholder: string; autocomplete: string; pattern: RegExp; error: string }> = {
-  admin: { label: 'Username :', placeholder: 'Enter your username', autocomplete: 'username', pattern: /^[a-zA-Z0-9._-]{3,32}$/, error: 'Enter a valid username (3-32 characters).' },
-  hod: { label: 'Employee ID :', placeholder: 'Enter your employee ID', autocomplete: 'username', pattern: /^[a-zA-Z0-9-]{3,20}$/, error: 'Enter a valid employee ID.' },
-  faculty: { label: 'Employee ID :', placeholder: 'Enter your employee ID', autocomplete: 'username', pattern: /^[a-zA-Z0-9-]{3,20}$/, error: 'Enter a valid employee ID.' },
-  student: { label: 'Register Number :', placeholder: 'Enter your register number', autocomplete: 'username', pattern: /^[a-zA-Z0-9]{5,20}$/, error: 'Enter a valid register number.' },
-};
-
-const REMEMBER_KEY = 'college-login-remember';
 
 export const LoginPage: React.FC = () => {
   const { login } = useApp();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [changeOpen, setChangeOpen] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -88,7 +81,7 @@ export const LoginPage: React.FC = () => {
                   autoFocus
                   value={username}
                   onChange={(e) => { setUsername(e.target.value); setError(''); }}
-                  placeholder="e.g. 22CS001 / GFCSE01 / ADISHWARYAP"
+                  placeholder="Enter your username"
                   className="w-full pl-10 pr-4 py-3 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#8A92D0]/50 focus:border-[#8A92D0]/50 transition-all"
                 />
               </div>
@@ -105,10 +98,10 @@ export const LoginPage: React.FC = () => {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setForgotOpen(true)}
+                  onClick={() => setChangeOpen(true)}
                   className="text-[11px] text-[#8A92D0] hover:text-white transition-colors"
                 >
-                  Forgot password?
+                  Change password
                 </button>
               </div>
               <div className="relative">
@@ -167,6 +160,12 @@ export const LoginPage: React.FC = () => {
         </p>
       </div>
 
+      <ChangePasswordModal
+        isOpen={changeOpen}
+        onClose={() => setChangeOpen(false)}
+        publicMode
+        onForgotPassword={() => { setChangeOpen(false); setForgotOpen(true); }}
+      />
       <ForgotPasswordModal isOpen={forgotOpen} onClose={() => setForgotOpen(false)} />
     </div>
   );

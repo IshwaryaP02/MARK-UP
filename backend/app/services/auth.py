@@ -7,10 +7,6 @@ from app.models import User, UserRole
 from app.schemas import LoginResponse, UserRead
 
 
-# ─── Hardcoded admin usernames ───────────────────────────────────────────────
-ADMIN_USERNAMES = ["ADISHWARYAP", "ADRICHERD"]
-
-
 def _format_user(user: User) -> UserRead:
     dept_name = None
     if user.department:
@@ -43,10 +39,12 @@ def _format_user(user: User) -> UserRead:
 
 
 async def seed_admin_users(db: AsyncSession) -> None:
-    """Seed the two hardcoded admin accounts on startup if they don't exist."""
+    """Create configured admins and repair only untouched bootstrap accounts."""
     admin_configs = [
-        {"username": "ADISHWARYAP", "name": "Dr. Ishwarya P (Admin)", "email": "admin1@college.edu"},
-        {"username": "ADRICHERD",   "name": "Dr. Richard (Admin)",    "email": "admin2@college.edu"},
+        {"username": settings.ADMIN1_USERNAME, "password": settings.ADMIN1_PASSWORD,
+         "name": settings.ADMIN1_NAME, "email": settings.ADMIN1_EMAIL},
+        {"username": settings.ADMIN2_USERNAME, "password": settings.ADMIN2_PASSWORD,
+         "name": settings.ADMIN2_NAME, "email": settings.ADMIN2_EMAIL},
     ]
     for cfg in admin_configs:
         result = await db.execute(select(User).where(User.username == cfg["username"]))
@@ -58,24 +56,22 @@ async def seed_admin_users(db: AsyncSession) -> None:
                 email=cfg["email"],
                 role=UserRole.admin,
                 is_active=True,
-                # Default password = username itself (admin must change on first login)
-                password_hash=hash_password(cfg["username"]),
+                password_hash=hash_password(cfg["password"]),
                 has_set_password=False,
             )
             db.add(admin)
+        elif not existing.has_set_password:
+            existing.password_hash = hash_password(cfg["password"])
+            existing.is_active = True
     await db.commit()
 
 
 async def login_by_username(username: str, password: str, db: AsyncSession) -> LoginResponse:
     """
-    Production login: look up user by username, verify bcrypt password.
-    Username formats:
-      - Student  : their registration number   e.g. 22CS001
-      - Faculty  : their employee ID            e.g. GFCSE01
-      - HOD      : their employee ID            e.g. GHCSE1
-      - Admin    : hardcoded ADISHWARYAP / ADRICHERD
-    Default password = username (admin should reset for new users).
+        Look up the user by username and verify the bcrypt password.
+        Administrator credentials are configured through environment settings.
     """
+    username = username.strip()
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalar_one_or_none()
 
@@ -119,6 +115,25 @@ async def change_password(user_id: str, old_password: str, new_password: str, db
     user.password_hash = hash_password(new_password)
     user.has_set_password = True
     user.password_reset_enabled = False  # clear reset flag after successful change
+    await db.commit()
+
+
+async def change_password_by_username(
+    username: str, old_password: str, new_password: str, db: AsyncSession
+) -> None:
+    """Change a password before login after verifying the existing password."""
+    result = await db.execute(select(User).where(User.username == username.strip()))
+    user = result.scalar_one_or_none()
+    if not user or not user.is_active or not user.password_hash:
+        raise ValueError("Invalid username or password")
+    if not verify_password(old_password, user.password_hash):
+        raise ValueError("Old password is incorrect")
+    if old_password == new_password:
+        raise ValueError("New password must be different from the old password")
+
+    user.password_hash = hash_password(new_password)
+    user.has_set_password = True
+    user.password_reset_enabled = False
     await db.commit()
 
 

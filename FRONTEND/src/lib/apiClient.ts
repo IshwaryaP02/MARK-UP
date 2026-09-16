@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
 
 type FetchOptions = {
   skipAuth?: boolean;
@@ -104,7 +104,32 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
   return camelizeKeys(raw) as T;
 }
 
+async function upload<T>(path: string, formData: FormData): Promise<T> {
+  const token = getJwt();
+  const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+  const response = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: formData });
+  const raw = await response.json().catch(() => ({ detail: 'Unknown error' }));
+  if (!response.ok) throw new Error(typeof raw.detail === 'string' ? raw.detail : 'Request failed');
+  return camelizeKeys(raw) as T;
+}
+
 export const apiClient = {
+  timetableOcr: (file: File, departmentId?: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    if (departmentId) form.append('department_id', departmentId);
+    return upload<{ departmentId: string; rawText: string; rows: Array<Record<string, string>> }>('/timetable/ocr', form);
+  },
+
+  timetableAllocate: (file: File, sections: string[], totalClasses: number, departmentId?: string) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('sections', sections.join(','));
+    form.append('total_classes', String(totalClasses));
+    if (departmentId) form.append('department_id', departmentId);
+    return upload<{ allocation: Array<Record<string, string | number>>; totalSlots: number }>('/timetable/allocate', form);
+  },
+
   // Auth
   login: (username: string, password: string) =>
     request<{ accessToken: string; tokenType: string; user: any }>('/auth/login', {
@@ -118,6 +143,13 @@ export const apiClient = {
     request<{ message: string }>('/auth/change-password', {
       method: 'POST',
       body: { oldPassword, newPassword },
+    }),
+
+  changePasswordPublic: (username: string, oldPassword: string, newPassword: string) =>
+    request<{ message: string }>('/auth/change-password-public', {
+      method: 'POST',
+      body: { username, oldPassword, newPassword },
+      skipAuth: true,
     }),
 
   resetPassword: (username: string, newPassword: string) =>

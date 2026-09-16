@@ -17,8 +17,9 @@ export const FacultyManagement: React.FC = () => {
     name: '',
     employeeId: '',
     email: '',
-    departmentId: departments[0]?.id || 'dept-cs',
-    departmentName: departments[0]?.name || 'Computer Science',
+    departmentId: departments[0]?.id || '',
+    departmentName: departments[0]?.name || '',
+    designation: '',
     phone: '',
     assignedSubjectIds: [],
     active: true
@@ -28,8 +29,6 @@ export const FacultyManagement: React.FC = () => {
 
   const filtered = facultyList.filter(
     (f) =>
-      // Admin faculty directory is scoped to Computer Science only
-      (f.departmentId === 'dept-cs' || f.departmentName?.toLowerCase().includes('computer')) &&
       (f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         f.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         f.email.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -45,8 +44,9 @@ export const FacultyManagement: React.FC = () => {
         name: '',
         employeeId: `FAC-${100 + facultyList.length + 1}`,
         email: '',
-        departmentId: departments[0]?.id || 'dept-cs',
-        departmentName: departments[0]?.name || 'Computer Science',
+        departmentId: departments[0]?.id || '',
+        departmentName: departments[0]?.name || '',
+        designation: '',
         phone: '',
         assignedSubjectIds: [],
         active: true
@@ -57,7 +57,11 @@ export const FacultyManagement: React.FC = () => {
 
   const handleSaveFaculty = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.employeeId) return;
+    if (!formData.name || !formData.employeeId || !formData.email || !formData.designation ||
+        !formData.phone || !formData.departmentId) {
+      addToast('Missing Details', 'Complete every faculty/HOD field before registering.', 'danger');
+      return;
+    }
 
     if (selectedFaculty) {
       updateFaculty(formData as Faculty);
@@ -242,6 +246,7 @@ export const FacultyManagement: React.FC = () => {
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Phone</label>
               <input
                 type="text"
+                required
                 value={formData.phone || ''}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
@@ -249,9 +254,31 @@ export const FacultyManagement: React.FC = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Designation</label>
+              <input
+                type="text"
+                required
+                value={formData.designation || ''}
+                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 mt-6">
+              <input
+                type="checkbox"
+                checked={Boolean(formData.isHOD)}
+                onChange={(e) => setFormData({ ...formData, isHOD: e.target.checked })}
+              />
+              Register as Head of Department
+            </label>
+          </div>
+
           <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Department</label>
               <select
+                required
                 value={formData.departmentId || ''}
                 onChange={(e) => {
                   const d = departments.find((dept) => dept.id === e.target.value);
@@ -259,6 +286,7 @@ export const FacultyManagement: React.FC = () => {
                 }}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
               >
+                <option value="">Select department</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}

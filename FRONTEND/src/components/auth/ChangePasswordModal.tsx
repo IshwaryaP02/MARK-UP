@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { X, Lock, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { apiClient } from '../../lib/apiClient';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
+  publicMode?: boolean;
+  onForgotPassword?: () => void;
 }
 
-export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClose }) => {
+export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
+  isOpen, onClose, publicMode = false, onForgotPassword,
+}) => {
   const { changePassword } = useApp();
+  const [username, setUsername] = useState('');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,6 +28,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen
   if (!isOpen) return null;
 
   const handleClose = () => {
+    setUsername('');
     setOldPassword('');
     setNewPassword('');
     setConfirmPassword('');
@@ -47,7 +54,11 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen
     setError('');
     setIsLoading(true);
     try {
-      await changePassword(oldPassword, newPassword);
+      if (publicMode) {
+        await apiClient.changePasswordPublic(username.trim(), oldPassword, newPassword);
+      } else {
+        await changePassword(oldPassword, newPassword);
+      }
       setSuccess(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to change password.');
@@ -88,6 +99,22 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {publicMode && (
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 uppercase tracking-wide">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={username}
+                    onChange={(e) => { setUsername(e.target.value); setError(''); }}
+                    placeholder="Enter your username"
+                    className="w-full px-4 py-3 text-sm bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-xl text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#313866]/40 dark:focus:ring-[#8A92D0]/40 transition-all"
+                  />
+                </div>
+              )}
+
               {/* Old Password */}
               <div>
                 <label className="block text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2 uppercase tracking-wide">
@@ -155,6 +182,16 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen
                 <p className="text-xs text-red-500 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg px-3 py-2">
                   {error}
                 </p>
+              )}
+
+              {publicMode && onForgotPassword && (
+                <button
+                  type="button"
+                  onClick={onForgotPassword}
+                  className="w-full text-xs text-[#313866] dark:text-[#8A92D0] hover:underline"
+                >
+                  Forgot password? Ask an administrator to enable reset
+                </button>
               )}
 
               <div className="flex gap-3 pt-1">

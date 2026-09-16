@@ -187,7 +187,7 @@ export const UserAccounts: React.FC = () => {
           { role: 'Student', fmt: 'Reg. No. (22CS001)', color: 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/40 text-emerald-700 dark:text-emerald-400' },
           { role: 'Faculty', fmt: 'Employee ID (GFCSE01)', color: 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/40 text-blue-700 dark:text-blue-400' },
           { role: 'HOD', fmt: 'Employee ID (GHCSE1)', color: 'bg-purple-50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800/40 text-purple-700 dark:text-purple-400' },
-          { role: 'Admin', fmt: 'ADISHWARYAP / ADRICHERD', color: 'bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-400' },
+          { role: 'Admin', fmt: 'Configured administrator username', color: 'bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-800/40 text-rose-700 dark:text-rose-400' },
         ].map((item) => (
           <div key={item.role} className={`border rounded-xl px-3 py-2 ${item.color}`}>
             <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">{item.role} Login</p>

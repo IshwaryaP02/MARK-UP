@@ -6,6 +6,7 @@ from app.schemas.auth import (
     UserCreate,
     UserUpdate,
     ChangePasswordRequest,
+    PublicChangePasswordRequest,
     ResetPasswordRequest,
     EnablePasswordResetRequest,
     SetUserPasswordRequest,
@@ -64,7 +65,7 @@ from app.schemas.entities import (
 
 __all__ = [
     "LoginRequest", "LoginResponse", "Token", "UserRead", "UserCreate", "UserUpdate",
-    "ChangePasswordRequest", "ResetPasswordRequest", "EnablePasswordResetRequest", "SetUserPasswordRequest",
+    "ChangePasswordRequest", "PublicChangePasswordRequest", "ResetPasswordRequest", "EnablePasswordResetRequest", "SetUserPasswordRequest",
     "StudentRead", "StudentCreate", "StudentUpdate",
     "FacultyRead", "FacultyCreate", "FacultyUpdate",
     "DepartmentRead", "DepartmentCreate", "DepartmentUpdate",

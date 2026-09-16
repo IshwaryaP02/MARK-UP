@@ -228,7 +228,18 @@ class Timetable(Base):
     __tablename__ = "timetable"
 
     id = Column(UUIDStr, primary_key=True, default=_gen_uuid)
-    day = Column(Enum("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"), nullable=False)
+    day = Column(
+        Enum(
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            name="timetable_day",
+        ),
+        nullable=False,
+    )
     period_number = Column(Integer, nullable=False)
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)

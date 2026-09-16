@@ -7,10 +7,13 @@ from app.core.security import verify_access_token, hash_password
 from app.models import User
 from app.schemas import (
     LoginResponse, UserRead, LoginRequest,
-    ChangePasswordRequest, ResetPasswordRequest,
+    ChangePasswordRequest, PublicChangePasswordRequest, ResetPasswordRequest,
     EnablePasswordResetRequest, SetUserPasswordRequest,
 )
-from app.services.auth import login_by_username, change_password, reset_password, _format_user
+from app.services.auth import (
+    login_by_username, change_password, change_password_by_username,
+    reset_password, _format_user,
+)
 from datetime import datetime
 
 router = APIRouter()
@@ -25,8 +28,7 @@ async def login(
     """
     Login with username + password.
     Username = reg_no for students, employee_id for faculty/HOD,
-    ADISHWARYAP / ADRICHERD for admins.
-    Default password = username (change on first login).
+    Administrator usernames are loaded from backend environment settings.
     """
     try:
         response = await login_by_username(request.username, request.password, db)
@@ -81,14 +83,29 @@ async def change_user_password(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-# ─── Reset Password (forgot-password flow) ────────────────────────────────────
+@router.post("/change-password-public")
+async def change_password_before_login(
+    request: PublicChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Change a password from the login page after verifying the old password."""
+    try:
+        await change_password_by_username(
+            request.username, request.old_password, request.new_password, db
+        )
+        return {"message": "Password changed successfully. You can now log in."}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+# ─── Reset Password (admin-approved recovery flow) ───────────────────────────
 @router.post("/reset-password")
 async def reset_user_password(
     request: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Forgot-password reset — only works if admin has enabled reset for this user.
+    Recovery reset — only works if admin has enabled reset for this user.
     No auth token required (user is locked out).
     """
     try:

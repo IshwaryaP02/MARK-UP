@@ -512,7 +512,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       logAudit('CREATE_STUDENT', 'Students', `Created student ${newStudent.name} (${newStudent.regNo})`);
       addToast('Student Added', `${newStudent.name} registered successfully`, 'success');
     } catch (error) {
-      addToast('Error', error instanceof Error ? error.message : 'Failed to add student', 'danger');
+      addToast('Student Not Saved', error instanceof Error ? error.message : 'Failed to add student', 'danger');
     }
   }, []);
 
@@ -598,7 +598,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       logAudit('CREATE_FACULTY', 'Faculty', `Added faculty member ${newFac.name}`);
       addToast('Faculty Registered', `${newFac.name} added to faculty roster`, 'success');
     } catch (error) {
-      addToast('Error', error instanceof Error ? error.message : 'Failed to add faculty', 'danger');
+      addToast('Faculty Not Saved', error instanceof Error ? error.message : 'Failed to add faculty', 'danger');
     }
   }, []);
 

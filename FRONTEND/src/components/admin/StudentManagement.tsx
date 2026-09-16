@@ -26,10 +26,7 @@ export const StudentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
 
-  // Admin student directory is scoped to Computer Science only
-  const adminDepartments = departments.filter(
-    (d) => d.id === 'dept-cs' || d.name?.toLowerCase().includes('computer science')
-  );
+  const adminDepartments = departments;
 
   // Modals state
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -43,8 +40,8 @@ export const StudentManagement: React.FC = () => {
     regNo: '',
     rollNo: '',
     email: '',
-    departmentId: departments[0]?.id || 'dept-cs',
-    departmentName: departments[0]?.name || 'Computer Science',
+    departmentId: departments[0]?.id || '',
+    departmentName: departments[0]?.name || '',
     semester: 4,
     section: 'First Shift',
     batch: '2022-2026',
@@ -75,8 +72,8 @@ export const StudentManagement: React.FC = () => {
         regNo: `2024CS${1048 + students.length}`,
         rollNo: `24CS${String(students.length + 1).padStart(2, '0')}`,
         email: '',
-        departmentId: departments[0]?.id || 'dept-cs',
-        departmentName: departments[0]?.name || 'Computer Science',
+        departmentId: departments[0]?.id || '',
+        departmentName: departments[0]?.name || '',
         semester: 4,
         section: 'First Shift',
         batch: '2022-2026',
@@ -90,7 +87,12 @@ export const StudentManagement: React.FC = () => {
 
   const handleSaveStudent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.regNo) return;
+    if (!formData.name || !formData.regNo || !formData.rollNo || !formData.email ||
+        !formData.departmentId || !formData.semester || !formData.section ||
+        !formData.guardianName || !formData.guardianPhone) {
+      addToast('Missing Details', 'Complete every student field before registering.', 'danger');
+      return;
+    }
 
     if (selectedStudent) {
       updateStudent(formData as Student);
@@ -115,8 +117,8 @@ export const StudentManagement: React.FC = () => {
           rollNo: parts[1]?.trim() || '24CS99',
           name: parts[2]?.trim() || 'Imported Student',
           email: parts[3]?.trim() || 'student@university.edu',
-          departmentId: 'dept-cs',
-          departmentName: 'Computer Science',
+          departmentId: departments[0]?.id || '',
+          departmentName: departments[0]?.name || '',
           semester: 4,
           section: 'First Shift',
           batch: '2022-2026',
@@ -361,6 +363,7 @@ export const StudentManagement: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Department</label>
               <select
+                required
                 value={formData.departmentId || ''}
                 onChange={(e) => {
                   const d = departments.find((dept) => dept.id === e.target.value);
@@ -368,6 +371,7 @@ export const StudentManagement: React.FC = () => {
                 }}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
               >
+                <option value="">Select department</option>
                 {adminDepartments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.code}
@@ -381,7 +385,8 @@ export const StudentManagement: React.FC = () => {
                 type="number"
                 min={1}
                 max={10}
-                value={formData.semester || 4}
+                required
+                value={formData.semester || ''}
                 onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
               />
@@ -389,6 +394,7 @@ export const StudentManagement: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Shift</label>
               <select
+                required
                 value={formData.section || 'First Shift'}
                 onChange={(e) => setFormData({ ...formData, section: e.target.value })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
@@ -404,6 +410,7 @@ export const StudentManagement: React.FC = () => {
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Guardian Name</label>
               <input
                 type="text"
+                required
                 value={formData.guardianName || ''}
                 onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
@@ -413,6 +420,7 @@ export const StudentManagement: React.FC = () => {
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Guardian Contact Phone</label>
               <input
                 type="text"
+                required
                 value={formData.guardianPhone || ''}
                 onChange={(e) => setFormData({ ...formData, guardianPhone: e.target.value })}
                 className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"

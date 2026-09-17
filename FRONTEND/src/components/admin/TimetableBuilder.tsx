@@ -1,98 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
-import { TimetableSlot, PeriodTiming } from '../../types';
-import { departmentProgrammes, Programme } from '../../services/academicStructure';
-import { slotForDayOrder, filteredSlotsForDayOrder, availableDayOrders, todayIsDayOrder, slotAppliesToOrder } from '../../services/timetableDayOrder';
-import { Modal } from '../common/Modal';
+import { apiClient } from '../../lib/apiClient';
 import { BackButton } from '../common/BackButton';
-import { academicYearLabel } from '../../services/academicStructure';
-import { TimetableAutomationPanel } from './TimetableAutomationPanel';
 import {
-  Calendar,
-  Plus,
-  AlertTriangle,
-  Trash2,
-  Users,
-  Building2,
-  BookOpen,
-  UserCheck,
-  Image,
-  Clock,
-  GraduationCap,
-  Layers
+  Image, FileSpreadsheet, Layers, Upload, CheckCircle2, AlertTriangle,
+  Download, Eye, Trash2, Building2, Calendar, Users, RefreshCw,
+  BookOpen, UserCheck, ChevronRight, Loader2, GraduationCap, Clock,
 } from 'lucide-react';
 
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface OcrRow { day: string; period: string; subject: string; teacher: string; section: string; }
+interface AllocSlot { day: string; period: number | string; section: string; shift: string; teacher: string; employeeId: string; subject: string; subjectName: string; }
+interface Dept { id: string; code: string; name: string; }
+interface TimetableSlot { id: string; day: string; period: number; startTime: string; endTime: string; subjectCode: string; subjectName: string; facultyName: string; section: string; shift: string; }
+interface FacultyItem { id: string; name: string; employeeId: string; }
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const PERIODS = [1, 2, 3, 4, 5];
 const SHIFTS = ['First Shift', 'Second Shift'];
+const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
-const UG_YEAR_SEMESTERS: Record<string, number[]> = {
-  'First Year': [1, 2],
-  'Second Year': [3, 4],
-  'Third Year': [5, 6]
+const DAY_SHORT: Record<string, string> = {
+  Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed',
+  Thursday: 'Thu', Friday: 'Fri', Saturday: 'Sat',
 };
 
-const MSC_YEAR_SEMESTERS: Record<string, number[]> = {
-  'First Year': [1, 2],
-  'Second Year': [3, 4]
-};
+// ── Sub-components ─────────────────────────────────────────────────────────────
+const TimetableGrid: React.FC<{ slots: TimetableSlot[]; label: string }> = ({ slots, label }) => {
+  const slotFor = (day: string, period: number, section?: string) =>
+    slots.filter(s => s.day === day && s.period === period && (!section || s.section === section));
 
-const getYearSemesters = (programme: Programme): Record<string, number[]> =>
-  programme === 'MSc' ? MSC_YEAR_SEMESTERS : UG_YEAR_SEMESTERS;
+  const sections = [...new Set(slots.map(s => s.section))].sort();
 
-const programmeRequiresShift = (programme: Programme): boolean => programme !== 'MSc';
+  if (slots.length === 0) return (
+    <div className="p-10 text-center text-xs text-zinc-500 dark:text-zinc-400 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl">
+      No timetable data. {label}
+    </div>
+  );
 
-const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-const romanNumeral = (n: number): string => ROMAN[n] || String(n);
-
-const TimetableMatrix: React.FC<{
-  slots: TimetableSlot[];
-  days: readonly string[];
-  periods: Array<{ num: number; start: string; end: string }>;
-  showFaculty: boolean;
-  romanDayLabels?: Record<string, string>;
-}> = ({ slots, days, periods, showFaculty, romanDayLabels }) => {
-  const slotFor = (day: string, period: number) => slots.find((s) => s.day === day && s.periodNumber === period);
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-[#232326]">
-      <table className="w-full text-xs text-center border-collapse min-w-[700px]">
+      <table className="w-full text-xs border-collapse min-w-[600px]">
         <thead>
-          <tr className="bg-zinc-50 dark:bg-[#0A0A0A]/80 border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
-            <th className="p-3 w-24">Day / Period</th>
-            {periods.map((p) => (
-              <React.Fragment key={p.num}>
-                <th className="p-3 border-l border-zinc-200 dark:border-[#232326]">
-                  <div>P{p.num}</div>
-                  <div className="text-[9px] text-zinc-400 normal-case font-normal mt-0.5">{p.start} – {p.end}</div>
-                </th>
-              </React.Fragment>
+          <tr className="bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider border-b border-zinc-200 dark:border-[#232326]">
+            <th className="p-3 text-left w-20">Day</th>
+            {PERIODS.map(p => (
+              <th key={p} className="p-3 border-l border-zinc-200 dark:border-[#232326] text-center">P{p}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-200 dark:divide-[#232326]">
-          {days.map((d) => (
-            <tr key={d}>
-              <td className="p-2 font-bold bg-zinc-50/50 dark:bg-[#0A0A0A]/60 text-zinc-900 dark:text-zinc-100 border-r border-zinc-200 dark:border-[#232326] text-[13px]">
-                {romanDayLabels?.[d] || d}
+        <tbody className="divide-y divide-zinc-100 dark:divide-[#232326]">
+          {DAYS.map(day => (
+            <tr key={day} className="hover:bg-zinc-50/40 dark:hover:bg-zinc-800/10">
+              <td className="p-2 pl-3 font-bold text-zinc-900 dark:text-zinc-100 bg-zinc-50/60 dark:bg-[#0A0A0A]/60 border-r border-zinc-200 dark:border-[#232326]">
+                {DAY_SHORT[day]}
               </td>
-              {periods.map((p) => (
-                <React.Fragment key={p.num}>
-                  <td className="p-1 border-l border-zinc-200 dark:border-[#232326] align-top h-16">
-                    {(() => {
-                      const slot = slotFor(d, p.num);
-                      return slot ? (
-                        <div className="p-1.5 bg-[#1E40AF]/10 dark:bg-[#2563EB]/30 border border-[#1E40AF]/30 dark:border-[#3B82F6]/40 rounded-lg text-left h-full">
-                          <div className="font-bold text-[#1E40AF] dark:text-[#3B82F6] text-[10px] truncate">{slot.subjectCode}</div>
-                          <div className="text-[9px] font-medium text-zinc-600 dark:text-zinc-300 leading-tight mt-0.5 line-clamp-2">{slot.subjectName}</div>
-                          <div className="text-[9px] font-semibold text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
-                            {showFaculty ? (slot.facultyName || '—') : `${academicYearLabel(slot.semester)}${slot.shift && slot.shift !== 'N/A' ? ' · ' + slot.shift : ''}${slot.dayOrder ? ' · DO' + slot.dayOrder : ''}`}
+              {PERIODS.map(p => {
+                const daySlots = slotFor(day, p);
+                return (
+                  <td key={p} className="p-1.5 border-l border-zinc-200 dark:border-[#232326] align-top min-h-[3rem]">
+                    {daySlots.length > 0 ? (
+                      <div className="space-y-1">
+                        {daySlots.map((sl, i) => (
+                          <div key={i} className="p-1.5 bg-[#1E40AF]/10 dark:bg-[#2563EB]/30 border border-[#1E40AF]/25 dark:border-[#3B82F6]/30 rounded-lg text-left">
+                            <div className="font-bold text-[#1E40AF] dark:text-[#3B82F6] text-[10px] truncate">{sl.subjectCode}</div>
+                            {sl.facultyName && <div className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate">{sl.facultyName}</div>}
+                            {sections.length > 1 && <div className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">{sl.section}</div>}
                           </div>
-                        </div>
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-[9px] text-zinc-300 dark:text-zinc-700">—</div>
-                      );
-                    })()}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="h-10 flex items-center justify-center text-zinc-300 dark:text-zinc-700 text-[10px]">—</div>
+                    )}
                   </td>
-                </React.Fragment>
-              ))}
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -101,822 +83,540 @@ const TimetableMatrix: React.FC<{
   );
 };
 
+// ── Main Component ─────────────────────────────────────────────────────────────
 export const TimetableBuilder: React.FC = () => {
-  const {
-    timetable,
-    subjects,
-    facultyList,
-    students,
-    departments,
-    saveTimetableSlot,
-    deleteTimetableSlot,
-    currentUser,
-    addToast,
-    periodTimes,
-    savePeriodTimes,
-    getPeriodTime,
-    staffDayOrders,
-    getCurrentDayOrder
-  } = useApp();
+  const { currentUser, addToast, departments: ctxDepts, facultyList } = useApp();
 
-  const allowedDeptIds = ['dept-cs', 'dept-it'];
-  const builderDepartments = departments.filter((d) => allowedDeptIds.includes(d.id));
+  const [activeTab, setActiveTab] = useState<'ocr' | 'allocator' | 'view'>('view');
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
-  const romanDayLabels: Record<string, string> = {
-    Monday: 'I',
-    Tuesday: 'II',
-    Wednesday: 'III',
-    Thursday: 'IV',
-    Friday: 'V',
-    Saturday: 'VI'
-  };
-  const periods = periodTimes
-    .filter((t) => t.periodNumber !== null)
-    .map((t) => ({ num: t.periodNumber as number, start: t.start, end: t.end }));
-  const interval = periodTimes.find((t) => t.id === 'interval') || null;
+  // Shared
+  const [depts, setDepts] = useState<Dept[]>([]);
+  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedShift, setSelectedShift] = useState('First Shift');
+  const [selectedSemester, setSelectedSemester] = useState(1);
+  const isHod = currentUser.role === 'hod';
 
-  const userDeptId = currentUser.departmentId && allowedDeptIds.includes(currentUser.departmentId)
-    ? currentUser.departmentId
-    : builderDepartments[0]?.id || 'dept-cs';
-  const isDepartmentLocked = currentUser.role === 'hod' || currentUser.role === 'faculty';
+  // OCR tab state
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrResult, setOcrResult] = useState<{ rawText: string; rows: OcrRow[] } | null>(null);
+  const [ocrRows, setOcrRows] = useState<OcrRow[]>([]);
+  const [ocrCommitting, setOcrCommitting] = useState(false);
+  const [ocrDone, setOcrDone] = useState(false);
 
-  const [selectedDeptId, setSelectedDeptId] = useState<string>(userDeptId);
-  const [selectedProgramme, setSelectedProgramme] = useState<Programme>('UG');
-  const [selectedYear, setSelectedYear] = useState<string>('Second Year');
-  const [selectedSemester, setSelectedSemester] = useState<number>(4);
-  const [selectedShift, setSelectedShift] = useState<string>('First Shift');
-  const [selectedSection, setSelectedSection] = useState<string>('A');
+  // Allocator tab state
+  const [allocFile, setAllocFile] = useState<File | null>(null);
+  const [allocSections, setAllocSections] = useState('A, B, C');
+  const [allocLoading, setAllocLoading] = useState(false);
+  const [allocResult, setAllocResult] = useState<AllocSlot[] | null>(null);
+  const [allocCommitting, setAllocCommitting] = useState(false);
+  const [allocDone, setAllocDone] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'build' | 'faculty' | 'students'>('build');
-  const [viewFacultyId, setViewFacultyId] = useState<string>('');
-  const [selectedDayOrder, setSelectedDayOrder] = useState<number | null>(null);
+  // View tab state
+  const [viewSlots, setViewSlots] = useState<TimetableSlot[]>([]);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewFacultyId, setViewFacultyId] = useState('');
+  const [viewMode, setViewMode] = useState<'class' | 'faculty'>('class');
 
-  // Day order variants available from the saved monthly schedules.
-  const currentDayOrder = getCurrentDayOrder();
-  const dayOrderOptions = availableDayOrders(
-    staffDayOrders.flatMap((s) => s.entries.map((e) => ({ dayOrder: e.dayOrder })))
-  );
-  const resolvedDayOrder = selectedDayOrder !== null ? selectedDayOrder : null;
-
-  const [slotModalOpen, setSlotModalOpen] = useState(false);
-  const [editingSlot, setEditingSlot] = useState<Partial<TimetableSlot>>({});
-  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
-
-  const [periodModalOpen, setPeriodModalOpen] = useState(false);
-  const [periodDraft, setPeriodDraft] = useState<PeriodTiming[]>([]);
-  const [periodError, setPeriodError] = useState<string | null>(null);
-
-  const openPeriodModal = () => {
-    setPeriodDraft(periodTimes.map((t) => ({ ...t })));
-    setPeriodError(null);
-    setPeriodModalOpen(true);
-  };
-
-  const toMinutes = (time: string): number | null => {
-    const m = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (!m) return null;
-    let h = parseInt(m[1], 10);
-    const min = parseInt(m[2], 10);
-    const ap = m[3].toUpperCase();
-    if (h < 1 || h > 12 || min < 0 || min > 59) return null;
-    if (ap === 'PM' && h !== 12) h += 12;
-    if (ap === 'AM' && h === 12) h = 0;
-    return h * 60 + min;
-  };
-
-  const handlePeriodFormChange = (id: string, field: 'start' | 'end', value: string) => {
-    setPeriodDraft((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
-    setPeriodError(null);
-  };
-
-  const handleSavePeriodTimes = () => {
-    setPeriodError(null);
-    for (const t of periodDraft) {
-      if (!t.start.trim() || !t.end.trim()) { setPeriodError('All period times are required.'); return; }
-      if (!toMinutes(t.start) || !toMinutes(t.end)) { setPeriodError(`Invalid time format for ${t.label}.`); return; }
-      if (toMinutes(t.start)! >= toMinutes(t.end)!) { setPeriodError(`${t.label} start must be earlier than its end.`); return; }
-    }
-    const byPeriod: Array<{ label: string; start: number; end: number }> = [];
-    const iv = periodDraft.find((t) => t.id === 'interval')!;
-    if (toMinutes(iv.start)! >= toMinutes(iv.end)!) { setPeriodError('Interval start must be earlier than end.'); return; }
-    for (const t of periodDraft) {
-      if (t.periodNumber !== null) byPeriod.push({ label: t.label, start: toMinutes(t.start)!, end: toMinutes(t.end)! });
-    }
-    byPeriod.sort((a, b) => a.start - b.start);
-    const all = [...byPeriod, { label: 'Interval', start: toMinutes(iv.start)!, end: toMinutes(iv.end)! }].sort((a, b) => a.start - b.start);
-    for (let i = 1; i < all.length; i++) {
-      if (all[i].start < all[i - 1].end) { setPeriodError(`Overlapping timings: ${all[i - 1].label} and ${all[i].label}.`); return; }
-    }
-    savePeriodTimes(periodDraft);
-    setPeriodModalOpen(false);
-    addToast('Period timings updated.', 'All timetable views now reflect the new timings.', 'success');
-  };
-
-  const selectedStudents = students.filter(
-    (st) => st.departmentId === selectedDeptId && st.semester === selectedSemester
-  );
-
-  // Timetable slots for the selected shift (and optional section), effective for the selected day order.
-  const selectedSlots = filteredSlotsForDayOrder(
-    timetable.filter((slot) => {
-      if (slot.departmentId !== selectedDeptId || slot.semester !== selectedSemester) return false;
-      if (programmeRequiresShift(selectedProgramme)) {
-        if ((slot.shift || 'First Shift') !== selectedShift) return false;
-      }
-      return true;
-    }),
-    resolvedDayOrder
-  );
-
-  const currentDept = builderDepartments.find((d) => d.id === selectedDeptId) || builderDepartments[0];
-  const currentYearSemesters = getYearSemesters(selectedProgramme);
-
-  const handleCellClick = (day: typeof days[number], periodNum: number) => {
-    const existing = slotForDayOrder(selectedSlots, day, periodNum, resolvedDayOrder);
-    const pInfo = periods.find((p) => p.num === periodNum);
-    const filteredSubjects = subjects.filter((sub) => sub.departmentId === selectedDeptId && sub.semester === selectedSemester);
-    const defaultSubject = filteredSubjects[0] || subjects[0];
-    const deptFaculty = facultyList.filter((f) => f.departmentId === selectedDeptId);
-    const defaultFaculty = deptFaculty[0] || facultyList[0];
-
-    if (existing) {
-      if (resolvedDayOrder !== null && existing.dayOrder == null) {
-        // Selected variant is a specific Day Order and the cell currently uses the base
-        // slot — create a day-order-specific override instead of mutating the base.
-        setEditingSlot({
-          ...existing,
-          id: `tt-${selectedDeptId}-s${selectedSemester}-do${resolvedDayOrder}-${day.toLowerCase()}-p${periodNum}-${Date.now()}`,
-          dayOrder: resolvedDayOrder
-        });
-      } else {
-        setEditingSlot({ ...existing });
-      }
-    } else {
-      const shiftLabel = programmeRequiresShift(selectedProgramme) ? selectedShift : 'N/A';
-      setEditingSlot({
-        id: `tt-${selectedDeptId}-s${selectedSemester}-y${selectedYear}-${selectedProgramme}-${day.toLowerCase()}-p${periodNum}-${Date.now()}`,
-        day,
-        periodNumber: periodNum,
-        startTime: pInfo?.start || '09:00 AM',
-        endTime: pInfo?.end || '09:50 AM',
-        subjectId: defaultSubject?.id || '',
-        subjectCode: defaultSubject?.code || '',
-        subjectName: defaultSubject?.name || '',
-        facultyId: defaultFaculty?.id || '',
-        facultyName: defaultFaculty?.name || '',
-        departmentId: selectedDeptId,
-        semester: selectedSemester,
-        section: selectedSection,
-        shift: shiftLabel,
-        dayOrder: resolvedDayOrder !== null ? resolvedDayOrder : undefined
-      });
-    }
-    setConflictWarning(null);
-    setSlotModalOpen(true);
-  };
-
-  const checkFacultyConflict = (testSlot: Partial<TimetableSlot>) => {
-    const conflict = timetable.find(
-      (s) =>
-        s.id !== testSlot.id &&
-        s.day === testSlot.day &&
-        s.periodNumber === testSlot.periodNumber &&
-        (s.shift || 'First Shift') === (testSlot.shift || 'First Shift') &&
-        s.facultyId === testSlot.facultyId &&
-        slotAppliesToOrder(s, testSlot.dayOrder)
-    );
-    if (conflict) {
-      return `Faculty Conflict: ${conflict.facultyName} is already assigned on ${conflict.day} Period ${conflict.periodNumber} (${conflict.subjectCode})${conflict.dayOrder ? ' for Day Order ' + conflict.dayOrder : ''}.`;
-    }
-    return null;
-  };
-
-  const handleSaveSlot = (e: React.FormEvent) => {
-    e.preventDefault();
-    const conflict = checkFacultyConflict(editingSlot);
-    if (conflict) { setConflictWarning(conflict); return; }
-    if (!editingSlot.subjectId || !editingSlot.facultyId) return;
-
-    const pt = editingSlot.periodNumber ? getPeriodTime(editingSlot.periodNumber) : undefined;
-    const shiftValue = programmeRequiresShift(selectedProgramme) ? (editingSlot.shift || selectedShift) : 'N/A';
-    saveTimetableSlot({
-      ...editingSlot,
-      departmentId: selectedDeptId,
-      semester: selectedSemester,
-      section: selectedSection,
-      shift: shiftValue,
-      startTime: pt ? pt.start : editingSlot.startTime,
-      endTime: pt ? pt.end : editingSlot.endTime,
-      id: editingSlot.id || `tt-${Date.now()}`
-    } as TimetableSlot);
-    setSlotModalOpen(false);
-    addToast('Timetable Updated', `Assigned ${editingSlot.subjectCode} (${selectedProgramme}${programmeRequiresShift(selectedProgramme) ? ' · ' + (editingSlot.shift || selectedShift) : ''})`, 'success');
-  };
-
-  const handleDeleteSlot = () => {
-    if (editingSlot.id) {
-      deleteTimetableSlot(editingSlot.id);
-      setSlotModalOpen(false);
-      addToast('Slot Cleared', 'Removed class slot from timetable', 'info');
-    }
-  };
-
-  const selectedHeader = `${selectedProgramme} · ${currentDept?.code || 'Class'} · ${academicYearLabel(selectedSemester)}${programmeRequiresShift(selectedProgramme) ? ' · ' + selectedShift : ''}`;
-
-  // ------- View Timetable For (Faculty / Students) derived data -------
-  const selectedFaculty = facultyList.find((f) => f.id === viewFacultyId) || null;
-
-  const dayIndex = (d: string) => days.findIndex((x) => x === d);
-
-  const facultySlots = viewFacultyId
-    ? filteredSlotsForDayOrder(
-        timetable
-          .filter((s) => s.facultyId === viewFacultyId)
-          .sort((a, b) => dayIndex(a.day) - dayIndex(b.day) || a.periodNumber - b.periodNumber),
-        resolvedDayOrder
-      )
-    : [];
-
-  const studentSlots = filteredSlotsForDayOrder(
-    timetable
-      .filter((s) => {
-        if (s.departmentId !== selectedDeptId || s.semester !== selectedSemester) return false;
-        if (programmeRequiresShift(selectedProgramme) && (s.shift || 'First Shift') !== selectedShift) return false;
-        return true;
+  // Load departments
+  useEffect(() => {
+    apiClient.timetableDepartments()
+      .then(data => {
+        setDepts(data);
+        if (data.length > 0 && !selectedDept) setSelectedDept(data[0].id);
       })
-      .sort((a, b) => dayIndex(a.day) - dayIndex(b.day) || a.periodNumber - b.periodNumber),
-    resolvedDayOrder
-  );
+      .catch(() => {
+        // Fallback to context departments
+        const fallback = ctxDepts.map(d => ({ id: d.id, code: d.code, name: d.name }));
+        setDepts(fallback);
+        if (fallback.length > 0) setSelectedDept(fallback[0].id);
+      });
+  }, []);
 
+  // Reload view whenever filters change
+  const loadView = useCallback(async () => {
+    if (!selectedDept) return;
+    setViewLoading(true);
+    try {
+      if (viewMode === 'faculty' && viewFacultyId) {
+        const data = await apiClient.getFacultyTimetableById(viewFacultyId);
+        setViewSlots(data.map((s: any) => ({
+          id: s.id, day: s.day, period: s.period, startTime: s.startTime, endTime: s.endTime,
+          subjectCode: s.subjectCode || s.subject || '', subjectName: s.subjectName || '',
+          facultyName: s.facultyName || '', section: s.section, shift: s.shift,
+        })));
+      } else {
+        const res = await apiClient.getDeptTimetable(selectedDept, { shift: selectedShift, semester: selectedSemester });
+        setViewSlots((res.slots || []).map((s: any) => ({
+          id: s.id, day: s.day, period: s.period, startTime: s.startTime, endTime: s.endTime,
+          subjectCode: s.subjectCode || '', subjectName: s.subjectName || '',
+          facultyName: s.facultyName || '', section: s.section, shift: s.shift,
+        })));
+      }
+    } catch (e: any) {
+      addToast('Load Error', e.message || 'Failed to load timetable', 'error');
+    }
+    setViewLoading(false);
+  }, [selectedDept, selectedShift, selectedSemester, viewMode, viewFacultyId]);
+
+  useEffect(() => { if (activeTab === 'view') loadView(); }, [activeTab, loadView]);
+
+  // ── OCR handlers ────────────────────────────────────────────────────────────
+  const handleOcrExtract = async () => {
+    if (!ocrFile) return addToast('No file', 'Please select an image first.', 'warning');
+    if (!selectedDept) return addToast('No department', 'Select a department first.', 'warning');
+    setOcrLoading(true); setOcrResult(null); setOcrDone(false);
+    try {
+      const res = await apiClient.timetableOcr(ocrFile, selectedDept, selectedShift, selectedSemester);
+      setOcrResult(res);
+      setOcrRows(res.rows as unknown as OcrRow[]);
+      addToast('OCR Complete', `Extracted ${res.rowCount} rows from image.`, 'success');
+    } catch (e: any) {
+      addToast('OCR Failed', e.message, 'error');
+    }
+    setOcrLoading(false);
+  };
+
+  const handleOcrCommit = async () => {
+    if (!ocrRows.length) return;
+    setOcrCommitting(true);
+    try {
+      const res = await apiClient.timetableOcrCommit(ocrRows as unknown as Record<string, string>[], selectedDept, selectedShift, selectedSemester);
+      addToast('Timetable Saved', `${res.created} slots committed to department.`, 'success');
+      if (res.warnings?.length) res.warnings.forEach(w => addToast('Warning', w, 'warning'));
+      setOcrDone(true);
+    } catch (e: any) {
+      addToast('Commit Failed', e.message, 'error');
+    }
+    setOcrCommitting(false);
+  };
+
+  const updateOcrRow = (idx: number, field: keyof OcrRow, val: string) => {
+    setOcrRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: val } : r));
+  };
+
+  // ── Allocator handlers ───────────────────────────────────────────────────────
+  const handleAllocGenerate = async () => {
+    if (!allocFile) return addToast('No file', 'Please upload the Excel requirements sheet.', 'warning');
+    if (!selectedDept) return addToast('No department', 'Select a department first.', 'warning');
+    const sections = allocSections.split(',').map(s => s.trim()).filter(Boolean);
+    if (!sections.length) return addToast('No sections', 'Enter section names (e.g. A, B, C)', 'warning');
+    setAllocLoading(true); setAllocResult(null); setAllocDone(false);
+    try {
+      const res = await apiClient.timetableAllocate(allocFile, sections, selectedShift, selectedSemester, selectedDept);
+      setAllocResult(res.allocation as unknown as AllocSlot[]);
+      addToast('Timetable Generated', `${res.totalSlots} slots generated. Review below then publish.`, 'success');
+    } catch (e: any) {
+      addToast('Generation Failed', e.message, 'error');
+    }
+    setAllocLoading(false);
+  };
+
+  const handleAllocCommit = async () => {
+    if (!allocResult) return;
+    setAllocCommitting(true);
+    try {
+      const res = await apiClient.timetableAllocateCommit(allocResult as unknown as Record<string, string | number>[], selectedDept, selectedShift, selectedSemester);
+      addToast('Timetable Published', `${res.created} slots saved to department.`, 'success');
+      if (res.warnings?.length) res.warnings.forEach(w => addToast('Warning', w, 'warning'));
+      setAllocDone(true);
+    } catch (e: any) {
+      addToast('Publish Failed', e.message, 'error');
+    }
+    setAllocCommitting(false);
+  };
+
+  const deptFaculty = facultyList.filter(f => f.departmentId === selectedDept);
+
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       <BackButton />
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 bg-[#1E40AF]/10 text-[#1E40AF] dark:bg-[#2563EB]/50 dark:text-[#3B82F6] text-[10px] font-bold uppercase rounded-md">
-              Academic Timetable
+              Timetable Management
             </span>
-            <span className="text-xs text-zinc-400 font-semibold">• Class, Faculty & Shift Allocation</span>
           </div>
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight mt-1">
             Class Timetable Builder
           </h2>
-
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {currentUser.role === 'admin' && (
-            <button onClick={openPeriodModal} className="flex items-center gap-2 px-3.5 py-2 bg-[#1E40AF]/10 hover:bg-[#1E40AF]/20 dark:bg-[#2563EB]/40 text-[#1E40AF] dark:text-[#3B82F6] border border-[#1E40AF]/20 dark:border-[#3B82F6]/30 rounded-xl text-xs font-bold transition-all">
-              <Clock className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
-              Edit Period Timings
-            </button>
-          )}
-          <span className="text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 px-3 py-1 rounded-full border border-[#1E40AF]/20 dark:border-[#3B82F6]/40">
-            {selectedSlots.length} Scheduled Classes
-          </span>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+            Build via OCR image scan · Auto-allocate via Excel · View & manage slots
+          </p>
         </div>
       </div>
 
-      <TimetableAutomationPanel departments={builderDepartments} />
-
-      {/* View Timetable For — segmented control */}
+      {/* Global Controls */}
       <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm">
-        <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-2.5 flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> View Timetable For
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <button
-            type="button"
-            onClick={() => setViewMode('build')}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-              viewMode === 'build'
-                ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] dark:text-[#FFFFFF] border-[#1E40AF] dark:border-[#2563EB] shadow-md'
-                : 'bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-[#232326] hover:border-[#3B82F6]'
-            }`}
-          >
-            <Layers className="w-4 h-4" /> Build Timetable
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('faculty')}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-              viewMode === 'faculty'
-                ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] dark:text-[#FFFFFF] border-[#1E40AF] dark:border-[#2563EB] shadow-md'
-                : 'bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-[#232326] hover:border-[#3B82F6]'
-            }`}
-          >
-            <UserCheck className="w-4 h-4" /> Faculty
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('students')}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-              viewMode === 'students'
-                ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] dark:text-[#FFFFFF] border-[#1E40AF] dark:border-[#2563EB] shadow-md'
-                : 'bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-[#232326] hover:border-[#3B82F6]'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4" /> Students
-          </button>
-        </div>
-
-        {/* Day Order variant selector */}
-        <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-[#232326] flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" />
-            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Timetable Variant</label>
-            <span className="text-[10px] text-zinc-400 font-semibold">Applies to Build, Faculty & Students views</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setSelectedDayOrder(null)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors border ${
-                resolvedDayOrder === null
-                  ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] border-[#1E40AF]'
-                  : 'bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-[#232326] hover:border-[#3B82F6]'
-              }`}
-            >
-              All Days (Base)
-            </button>
-            {dayOrderOptions.map((doNum) => (
-              <button
-                key={doNum}
-                type="button"
-                onClick={() => setSelectedDayOrder(doNum)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors border ${
-                  resolvedDayOrder === doNum
-                    ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] border-[#1E40AF]'
-                    : 'bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-[#232326] hover:border-[#3B82F6]'
-                }`}
-              >
-                Day Order {doNum}
-                {todayIsDayOrder(currentDayOrder, doNum) && (
-                  <span className="ml-1 text-[9px] font-extrabold uppercase text-emerald-600 dark:text-emerald-400">• Today</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Faculty Timetable View */}
-      {viewMode === 'faculty' && (
-        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Faculty Timetable View
-              </h3>
-            </div>
-            {selectedFaculty && (
-              <div className="flex items-center gap-3">
-                <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs">{selectedFaculty.name}</span>
-                <span className="text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 px-3 py-1 rounded-full border border-[#1E40AF]/20 dark:border-[#3B82F6]/40">
-                  {facultySlots.length} Scheduled Classes
-                </span>
-              </div>
-            )}
-          </div>
-
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Select Faculty</label>
-            <select
-              value={viewFacultyId}
-              onChange={(e) => setViewFacultyId(e.target.value)}
-              className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
-            >
-              <option value="">-- Select Faculty --</option>
-              {facultyList.map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {viewFacultyId ? (
-            facultySlots.length > 0 ? (
-              <TimetableMatrix slots={facultySlots} days={days} periods={periods} showFaculty={false} romanDayLabels={romanDayLabels} />
-            ) : (
-              <div className="p-8 text-center text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-[#0A0A0A]/60 border border-dashed border-zinc-300 dark:border-[#232326] rounded-2xl">
-                No timetable assigned to this faculty member yet.
-              </div>
-            )
-          ) : (
-            <div className="p-8 text-center text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-[#0A0A0A]/60 border border-dashed border-zinc-300 dark:border-[#232326] rounded-2xl">
-              Please select a faculty member to view their timetable.
-            </div>
-          )}
-        </div>
-      )}
-
-      {viewMode !== 'faculty' && (
-        <>
-          {/* Selection Controls */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-4">
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${programmeRequiresShift(selectedProgramme) ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
-          <div>
-            <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Department {isDepartmentLocked && '(Assigned)'}
+            <label className="block text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase mb-1.5 flex items-center gap-1">
+              <Building2 className="w-3 h-3" /> Department
             </label>
             <select
-              value={selectedDeptId}
-              disabled={isDepartmentLocked}
-              onChange={(e) => {
-                const newDept = e.target.value;
-                setSelectedDeptId(newDept);
-                const deptProgrammes = departmentProgrammes(newDept);
-                if (deptProgrammes.length > 0 && !deptProgrammes.includes(selectedProgramme)) {
-                  const prog = deptProgrammes[deptProgrammes.length - 1] as Programme;
-                  setSelectedProgramme(prog);
-                  const yrSem = getYearSemesters(prog);
-                  const firstYear = Object.keys(yrSem)[0];
-                  setSelectedYear(firstYear);
-                  setSelectedSemester(yrSem[firstYear][0]);
-                }
-              }}
-              className={`w-full p-2.5 text-xs font-semibold border rounded-xl ${isDepartmentLocked ? 'bg-zinc-100 dark:bg-[#0A0A0A]/80 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 cursor-not-allowed' : 'bg-zinc-50 dark:bg-[#0A0A0A] border-zinc-200 dark:border-zinc-700'}`}
+              value={selectedDept}
+              disabled={isHod}
+              onChange={e => setSelectedDept(e.target.value)}
+              className={`w-full p-2.5 text-xs font-semibold border rounded-xl ${isHod ? 'bg-zinc-100 dark:bg-zinc-800 cursor-not-allowed' : 'bg-zinc-50 dark:bg-[#0A0A0A]'} border-zinc-200 dark:border-zinc-700`}
             >
-              {builderDepartments.map((dept) => (
-                <option key={dept.id} value={dept.id}>{dept.name} ({dept.code})</option>
-              ))}
+              {depts.map(d => <option key={d.id} value={d.id}>{d.name} ({d.code})</option>)}
             </select>
           </div>
-
           <div>
-            <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center gap-1.5">
-              <GraduationCap className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Programme
+            <label className="block text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase mb-1.5 flex items-center gap-1">
+              <Layers className="w-3 h-3" /> Shift
             </label>
             <select
-              value={selectedProgramme}
-              onChange={(e) => {
-                const prog = e.target.value as Programme;
-                setSelectedProgramme(prog);
-                const yrSem = getYearSemesters(prog);
-                const firstYear = Object.keys(yrSem)[0];
-                setSelectedYear(firstYear);
-                setSelectedSemester(yrSem[firstYear][0]);
-              }}
+              value={selectedShift}
+              onChange={e => setSelectedShift(e.target.value)}
               className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             >
-              {departmentProgrammes(selectedDeptId).map((prog) => (
-                <option key={prog} value={prog}>{prog === 'UG' ? 'UG (Undergraduate)' : 'MSc (Postgraduate)'}</option>
-              ))}
+              {SHIFTS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-
           <div>
-            <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center gap-1.5">
-              <GraduationCap className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Academic Year
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => {
-                const year = e.target.value;
-                setSelectedYear(year);
-                setSelectedSemester(currentYearSemesters[year][0]);
-              }}
-              className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
-            >
-              {Object.keys(currentYearSemesters).map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-
-          {programmeRequiresShift(selectedProgramme) && (
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Shift
-              </label>
-              <select
-                value={selectedShift}
-                onChange={(e) => setSelectedShift(e.target.value)}
-                className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
-              >
-                {SHIFTS.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-[#1E40AF] dark:text-[#3B82F6]" /> Semester
+            <label className="block text-[10px] font-bold text-zinc-600 dark:text-zinc-400 uppercase mb-1.5 flex items-center gap-1">
+              <BookOpen className="w-3 h-3" /> Semester
             </label>
             <select
               value={selectedSemester}
-              onChange={(e) => setSelectedSemester(Number(e.target.value))}
+              onChange={e => setSelectedSemester(Number(e.target.value))}
               className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
             >
-              {currentYearSemesters[selectedYear].map((s) => (
-                <option key={s} value={s}>Semester {s}</option>
-              ))}
+              {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
             </select>
           </div>
-        </div>
-
-        <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Users className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
-            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
-              Enrolled Students: {selectedStudents.length}
-            </span>
+          <div className="flex items-end">
+            <button
+              onClick={loadView}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-[#1E40AF]/10 hover:bg-[#1E40AF]/20 text-[#1E40AF] dark:text-[#3B82F6] border border-[#1E40AF]/20 dark:border-[#3B82F6]/30 rounded-xl text-xs font-bold transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh View
+            </button>
           </div>
-          <span className="text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6]">{selectedHeader}</span>
         </div>
       </div>
 
-      {/* Students Timetable View */}
-      {viewMode === 'students' && (
+      {/* Tab navigation */}
+      <div className="flex gap-2">
+        {([
+          { id: 'view', label: 'View Timetable', icon: Eye },
+          { id: 'ocr', label: 'OCR Builder', icon: Image },
+          { id: 'allocator', label: 'Auto Allocator', icon: FileSpreadsheet },
+        ] as const).map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+              activeTab === id
+                ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] border-[#1E40AF]'
+                : 'bg-white dark:bg-[#0A0A0A] text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-[#232326] hover:border-[#3B82F6]'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" /> {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── View Tab ──────────────────────────────────────────────────────────── */}
+      {activeTab === 'view' && (
         <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Students Timetable
-              </h3>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 px-3 py-1 rounded-full border border-[#1E40AF]/20 dark:border-[#3B82F6]/40">
-                {studentSlots.length} Scheduled Classes
-              </span>
-            </div>
-          </div>
-
-          {studentSlots.length > 0 ? (
-            <TimetableMatrix slots={studentSlots} days={days} periods={periods} showFaculty={true} romanDayLabels={romanDayLabels} />
-          ) : (
-            <div className="p-8 text-center text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-[#0A0A0A]/60 border border-dashed border-zinc-300 dark:border-[#232326] rounded-2xl">
-              No timetable found for the selected class group.
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Timetable Grid */}
-      {viewMode === 'build' && (
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-zinc-100 dark:border-[#232326]">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
-            Weekly Timetable Grid — {selectedHeader}
-            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${resolvedDayOrder !== null ? (todayIsDayOrder(currentDayOrder, resolvedDayOrder) ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400' : 'bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 text-[#1E40AF] dark:text-[#3B82F6]') : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'}`}>
-              {resolvedDayOrder !== null ? `Day Order ${resolvedDayOrder}${todayIsDayOrder(currentDayOrder, resolvedDayOrder) ? ' (Today)' : ''}` : 'All Days (Base)'}
-            </span>
-          </h3>
-          <p className="text-xs text-zinc-500">Click any period box to add or edit a class. Slots created for a specific Day Order override the base timetable for that Day Order only.</p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-center text-xs border-collapse">
-            <thead>
-              <tr className="bg-zinc-50 dark:bg-[#0A0A0A]/80 border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
-                <th className="p-3 w-28 text-left pl-4">Day / Period</th>
-                {periods.map((p) => (
-                  <React.Fragment key={p.num}>
-                    <th className="p-3 border-l border-zinc-200 dark:border-[#232326]">
-                      <div>{romanNumeral(p.num)}</div>
-                      <div className="text-[9px] text-zinc-400 normal-case font-normal mt-0.5">{p.start} – {p.end}</div>
-                    </th>
-                  </React.Fragment>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-[#232326]">
-              {days.map((day) => (
-                <tr key={day} className="hover:bg-zinc-50/40 dark:hover:bg-zinc-800/20">
-                  <td className="p-3 font-bold text-left pl-4 bg-zinc-50/50 dark:bg-[#0A0A0A]/60 text-zinc-900 dark:text-zinc-100 border-r border-zinc-200 dark:border-[#232326]">
-                    {romanDayLabels[day] || day}
-                  </td>
-                  {periods.map((p) => {
-                    const slot = slotForDayOrder(selectedSlots, day, p.num, resolvedDayOrder);
-                    return (
-                      <React.Fragment key={p.num}>
-                        <td
-                          key={p.num}
-                          onClick={() => handleCellClick(day, p.num)}
-                          className={`p-2 border-l border-zinc-200 dark:border-[#232326] cursor-pointer hover:bg-[#1E40AF]/10 dark:hover:bg-[#2563EB]/30 transition-colors h-22 align-top ${resolvedDayOrder !== null && slot && slot.dayOrder == null ? 'bg-amber-50/40 dark:bg-amber-900/10' : ''}`}
-                        >
-                          {slot ? (
-                            <div className="p-2 bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 border border-[#1E40AF]/30 dark:border-[#3B82F6]/40 rounded-xl text-left h-full flex flex-col justify-between group shadow-2xs">
-                              <span className="font-bold text-[#1E40AF] dark:text-[#3B82F6] text-xs truncate">{slot.subjectCode}</span>
-                              <span className="text-[10px] font-medium text-zinc-600 dark:text-zinc-300 truncate block mt-0.5">
-                                Inst: {slot.facultyName}
-                              </span>
-                              <div className="flex items-center justify-between text-[9px] font-mono text-[#1E40AF] dark:text-[#3B82F6] mt-1 pt-1 border-t border-[#1E40AF]/20 dark:border-[#3B82F6]/30">
-                                <span>{romanNumeral(p.num)}{slot.dayOrder ? ` · DO${slot.dayOrder}` : ' · ALL'}</span>
-                                <span className="opacity-60 group-hover:opacity-100 underline">Edit</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="h-full flex items-center justify-center text-zinc-300 dark:text-zinc-700 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] text-[10px] font-semibold border border-dashed border-zinc-200 dark:border-[#232326] rounded-xl transition-colors">
-                              + Add Class
-                            </div>
-                          )}
-                        </td>
-                      </React.Fragment>
-                    );
-                  })}
-                </tr>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Eye className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Timetable View
+            </h3>
+            <div className="flex gap-2">
+              {(['class', 'faculty'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                    viewMode === mode
+                      ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] border-[#1E40AF]'
+                      : 'bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-600 border-zinc-200 dark:border-[#232326]'
+                  }`}
+                >
+                  {mode === 'class' ? <><GraduationCap className="w-3 h-3 inline mr-1" />Class View</> : <><UserCheck className="w-3 h-3 inline mr-1" />Faculty View</>}
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      )}
-
-      {/* Add / Edit Slot Modal — outside click closes, cancel closes */}
-      {viewMode === 'build' && (
-      <Modal
-        isOpen={slotModalOpen}
-        onClose={() => { setSlotModalOpen(false); }}
-        title={editingSlot.id && timetable.some((s) => s.id === editingSlot.id) ? 'Edit Timetable Entry' : 'Add Timetable Entry'}
-        subtitle={`${editingSlot.day || ''} — Period ${editingSlot.periodNumber ? romanNumeral(editingSlot.periodNumber) : ''} (${editingSlot.startTime || ''} - ${editingSlot.endTime || ''})`}
-      >
-        <form onSubmit={handleSaveSlot} className="space-y-4">
-          {conflictWarning && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 rounded-xl text-xs flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-              <div><strong>Conflict Alert!</strong><p className="mt-0.5">{conflictWarning}</p></div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Time / Period
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="text" readOnly value={editingSlot.startTime || ''} className="w-full p-2.5 text-xs font-mono bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl" />
-              <input type="text" readOnly value={editingSlot.endTime || ''} className="w-full p-2.5 text-xs font-mono bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl" />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Subject / Course
-            </label>
-            <select
-              value={editingSlot.subjectId || ''}
-              onChange={(e) => {
-                const sub = subjects.find((s) => s.id === e.target.value);
-                setEditingSlot({ ...editingSlot, subjectId: e.target.value, subjectCode: sub?.code || '', subjectName: sub?.name || '' });
-                setConflictWarning(null);
-              }}
-              className="w-full p-2.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-            >
-              {subjects.filter((sub) => sub.departmentId === selectedDeptId && sub.semester === selectedSemester).map((sub) => (
-                <option key={sub.id} value={sub.id}>{sub.code} — {sub.name} ({sub.credits} Credits)</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          {viewMode === 'faculty' && (
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Programme</label>
-              <input type="text" readOnly value={selectedProgramme} className="w-full p-2.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Year</label>
-              <input type="text" readOnly value={academicYearLabel(selectedSemester)} className="w-full p-2.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl" />
-            </div>
-          </div>
-
-          {programmeRequiresShift(selectedProgramme) && (
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Shift</label>
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">Select Faculty</label>
               <select
-                value={editingSlot.shift || selectedShift}
-                onChange={(e) => setEditingSlot({ ...editingSlot, shift: e.target.value })}
-                className="w-full p-2.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                value={viewFacultyId}
+                onChange={e => { setViewFacultyId(e.target.value); loadView(); }}
+                className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
               >
-                {SHIFTS.map((s) => <option key={s} value={s}>{s}</option>)}
+                <option value="">— Select a faculty member —</option>
+                {deptFaculty.map(f => <option key={f.id} value={f.id}>{f.name} {f.employeeId ? `(${f.employeeId})` : ''}</option>)}
               </select>
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Day Order Variant
-            </label>
-            <select
-              value={editingSlot.dayOrder ?? ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                setEditingSlot({ ...editingSlot, dayOrder: val === '' ? undefined : Number(val) });
-                setConflictWarning(null);
-              }}
-              className="w-full p-2.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-            >
-              <option value="">All Days (Base)</option>
-              {dayOrderOptions.map((doNum) => (
-                <option key={doNum} value={doNum}>
-                  Day Order {doNum}
-                  {todayIsDayOrder(currentDayOrder, doNum) ? ' (Today)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Assign Faculty — separate section */}
-          <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
-            <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
-              <UserCheck className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Assign Faculty
-            </p>
-            <select
-              value={editingSlot.facultyId || ''}
-              onChange={(e) => {
-                const fac = facultyList.find((f) => f.id === e.target.value);
-                setEditingSlot({ ...editingSlot, facultyId: e.target.value, facultyName: fac?.name || '' });
-                setConflictWarning(null);
-              }}
-              className="w-full p-2.5 text-xs font-medium bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-            >
-              <option value="">-- Select Faculty --</option>
-              {facultyList.filter((f) => f.departmentId === selectedDeptId).map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Assign Student / Class — separate section */}
-          <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800">
-            <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-2 flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" /> Assign Student / Class
-            </p>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 p-2.5 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl">
-              Class: {currentDept?.code} · {selectedProgramme} · {academicYearLabel(selectedSemester)}{programmeRequiresShift(selectedProgramme) ? ' · ' + (editingSlot.shift || selectedShift) : ''}
-              <span className="block mt-1">{selectedStudents.length} students enrolled in this class.</span>
+          {viewLoading ? (
+            <div className="flex items-center justify-center py-12 text-zinc-500">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading timetable…
             </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 pt-3">
-            {editingSlot.id && timetable.some((s) => s.id === editingSlot.id) && (
-              <button
-                type="button"
-                onClick={handleDeleteSlot}
-                className="px-3.5 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-semibold flex items-center gap-1.5"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Remove Class
-              </button>
-            )}
-
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                type="button"
-                onClick={() => setSlotModalOpen(false)}
-                className="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 rounded-xl text-xs font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors shadow-md"
-              >
-                {editingSlot.id && timetable.some((s) => s.id === editingSlot.id) ? 'Update Entry' : 'Add Entry'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </Modal>
+          ) : (
+            <TimetableGrid slots={viewSlots} label={viewMode === 'class' ? 'Build timetable via OCR or Allocator tab.' : 'Select a faculty member above.'} />
+          )}
+          <p className="text-[10px] text-zinc-400">{viewSlots.length} slots loaded</p>
+        </div>
       )}
 
-        </>
-      )}
+      {/* ── OCR Tab ───────────────────────────────────────────────────────────── */}
+      {activeTab === 'ocr' && (
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <Image className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+              Step 1 — Upload Timetable Image
+            </h3>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Upload a photo/scan of a handwritten or printed timetable.
+              The system will extract text and parse it into structured rows.
+              <strong className="text-zinc-700 dark:text-zinc-200"> Requires Tesseract OCR installed on the server.</strong>
+            </p>
 
-      {/* Edit Period Timings Modal */}
-      {currentUser.role === 'admin' && (
-        <Modal isOpen={periodModalOpen} onClose={() => setPeriodModalOpen(false)} title="Edit Period Timings">
-          <div className="space-y-4">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Set start/end time for each period. Changes apply across all timetable views.</p>
-            <div className="space-y-3">
-              {periodDraft.map((t) => (
-                <div key={t.id} className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
-                  <div className="w-20 shrink-0">
-                    <div className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{t.label}</div>
-                    {t.id === 'interval' && <div className="text-[10px] text-zinc-400 font-semibold uppercase">Break</div>}
+            {/* File drop zone */}
+            <label className="block cursor-pointer">
+              <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${ocrFile ? 'border-[#1E40AF]/50 bg-[#1E40AF]/5 dark:bg-[#2563EB]/10' : 'border-zinc-300 dark:border-zinc-700 hover:border-[#3B82F6]'}`}>
+                {ocrFile ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <CheckCircle2 className="w-8 h-8 text-[#1E40AF] dark:text-[#3B82F6]" />
+                    <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{ocrFile.name}</span>
+                    <span className="text-xs text-zinc-500">{(ocrFile.size / 1024).toFixed(1)} KB</span>
                   </div>
-                  <div className="flex items-center gap-2 flex-1">
-                    <label className="text-[10px] text-zinc-400 font-semibold">Start</label>
-                    <input type="text" value={t.start} onChange={(e) => handlePeriodFormChange(t.id, 'start', e.target.value)} placeholder="09:00 AM" className="w-full p-2 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl" />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-zinc-400">
+                    <Upload className="w-8 h-8" />
+                    <span className="font-semibold text-sm">Click or drag image here</span>
+                    <span className="text-xs">Supports JPG, PNG, TIFF, BMP</span>
                   </div>
-                  <div className="flex items-center gap-2 flex-1">
-                    <label className="text-[10px] text-zinc-400 font-semibold">End</label>
-                    <input type="text" value={t.end} onChange={(e) => handlePeriodFormChange(t.id, 'end', e.target.value)} placeholder="09:50 AM" className="w-full p-2 text-xs font-medium bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl" />
-                  </div>
-                </div>
-              ))}
-            </div>
-            {periodError && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-xl text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                <AlertTriangle className="w-4 h-4 shrink-0" /> {periodError}
+                )}
               </div>
-            )}
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
-              <button type="button" onClick={() => setPeriodModalOpen(false)} className="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 rounded-xl text-xs font-bold">Cancel</button>
-              <button type="button" onClick={handleSavePeriodTimes} className="px-5 py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors shadow-md">Save Changes</button>
-            </div>
+              <input type="file" accept="image/*" className="hidden" onChange={e => { setOcrFile(e.target.files?.[0] || null); setOcrResult(null); setOcrDone(false); }} />
+            </label>
+
+            <button
+              onClick={handleOcrExtract}
+              disabled={!ocrFile || ocrLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#1E40AF] hover:bg-[#1E3A8A] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {ocrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+              {ocrLoading ? 'Extracting…' : 'Extract Timetable'}
+            </button>
           </div>
-        </Modal>
+
+          {/* OCR Preview & Edit */}
+          {ocrResult && (
+            <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-emerald-500" />
+                  Step 2 — Review & Edit Extracted Rows ({ocrRows.length})
+                </h3>
+                {ocrDone && (
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" /> Committed!
+                  </span>
+                )}
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-[#232326]">
+                <table className="w-full text-xs border-collapse min-w-[700px]">
+                  <thead>
+                    <tr className="bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-500 font-semibold uppercase tracking-wider border-b border-zinc-200 dark:border-[#232326]">
+                      {['Day', 'Period', 'Subject Code', 'Teacher Name', 'Section'].map(h => (
+                        <th key={h} className="p-2.5 text-left border-r border-zinc-200 dark:border-[#232326] last:border-r-0">{h}</th>
+                      ))}
+                      <th className="p-2.5 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-[#232326]">
+                    {ocrRows.map((row, idx) => (
+                      <tr key={idx} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/20">
+                        {(['day', 'period', 'subject', 'teacher', 'section'] as const).map(field => (
+                          <td key={field} className="p-1.5 border-r border-zinc-100 dark:border-[#232326] last:border-r-0">
+                            <input
+                              value={row[field]}
+                              onChange={e => updateOcrRow(idx, field, e.target.value)}
+                              className="w-full p-1.5 text-xs bg-transparent border border-transparent hover:border-zinc-300 dark:hover:border-zinc-600 focus:border-[#3B82F6] rounded-lg outline-none transition-colors"
+                            />
+                          </td>
+                        ))}
+                        <td className="p-1.5 text-center">
+                          <button onClick={() => setOcrRows(prev => prev.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setOcrRows(prev => [...prev, { day: 'Monday', period: '1', subject: '', teacher: '', section: 'A' }])}
+                  className="px-3 py-1.5 text-xs font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
+                >
+                  + Add Row
+                </button>
+                <button
+                  onClick={handleOcrCommit}
+                  disabled={ocrCommitting || ocrRows.length === 0 || ocrDone}
+                  className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {ocrCommitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  {ocrDone ? 'Committed!' : ocrCommitting ? 'Saving…' : `Commit ${ocrRows.length} Slots to DB`}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Allocator Tab ─────────────────────────────────────────────────────── */}
+      {activeTab === 'allocator' && (
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-4">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <FileSpreadsheet className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+              Step 1 — Upload Requirements Excel
+            </h3>
+
+            {/* Template download hint */}
+            <div className="p-3 rounded-xl bg-[#1E40AF]/5 dark:bg-[#2563EB]/10 border border-[#1E40AF]/15 dark:border-[#3B82F6]/20 text-xs text-zinc-600 dark:text-zinc-400">
+              <p className="font-bold text-zinc-800 dark:text-zinc-200 mb-1">Required Excel Columns:</p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1">
+                {['Teacher_Name', 'Faculty_ID', 'Subject', 'Required_Hours', 'Shift_Assigned'].map(col => (
+                  <span key={col} className="px-2 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg font-mono text-[10px]">{col}</span>
+                ))}
+              </div>
+              <p className="mt-2 text-zinc-500">
+                <strong>Faculty_ID</strong> = employee_id in your DB (e.g. FAC001).&nbsp;
+                <strong>Shift_Assigned</strong> = "First Shift" or "Second Shift" (or 1 / 2).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                <Users className="w-3.5 h-3.5 inline mr-1" /> Sections for this shift (comma-separated)
+              </label>
+              <input
+                value={allocSections}
+                onChange={e => setAllocSections(e.target.value)}
+                placeholder="e.g. A, B, C, D, E"
+                className="w-full p-2.5 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              />
+              <p className="text-[10px] text-zinc-400 mt-1">Shift 1 → A–E, Shift 2 → F–J (or define your own)</p>
+            </div>
+
+            <label className="block cursor-pointer">
+              <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${allocFile ? 'border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-900/10' : 'border-zinc-300 dark:border-zinc-700 hover:border-[#3B82F6]'}`}>
+                {allocFile ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                    <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{allocFile.name}</span>
+                    <span className="text-xs text-zinc-500">{(allocFile.size / 1024).toFixed(1)} KB</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-zinc-400">
+                    <FileSpreadsheet className="w-8 h-8" />
+                    <span className="font-semibold text-sm">Click or drag Excel file here</span>
+                    <span className="text-xs">.xlsx or .xls</span>
+                  </div>
+                )}
+              </div>
+              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={e => { setAllocFile(e.target.files?.[0] || null); setAllocResult(null); setAllocDone(false); }} />
+            </label>
+
+            <button
+              onClick={handleAllocGenerate}
+              disabled={!allocFile || allocLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#1E40AF] hover:bg-[#1E3A8A] dark:bg-[#2563EB] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {allocLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronRight className="w-4 h-4" />}
+              {allocLoading ? 'Generating…' : 'Generate Timetable'}
+            </button>
+          </div>
+
+          {/* Allocator Preview */}
+          {allocResult && (
+            <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-emerald-500" />
+                  Step 2 — Preview Generated Timetable ({allocResult.length} slots)
+                </h3>
+                {allocDone && (
+                  <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" /> Published!
+                  </span>
+                )}
+              </div>
+
+              <TimetableGrid
+                slots={allocResult.map(s => ({
+                  id: `${s.day}-${s.period}-${s.section}`,
+                  day: s.day, period: Number(s.period),
+                  startTime: '', endTime: '',
+                  subjectCode: String(s.subject), subjectName: String(s.subjectName || s.subject),
+                  facultyName: String(s.teacher), section: String(s.section), shift: String(s.shift),
+                }))}
+                label="Generated by auto-allocator."
+              />
+
+              <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-[#232326]">
+                <table className="w-full text-xs border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="bg-zinc-50 dark:bg-[#0A0A0A] text-zinc-500 font-semibold uppercase tracking-wider border-b border-zinc-200 dark:border-[#232326]">
+                      {['Day', 'Period', 'Section', 'Subject', 'Teacher', 'Emp ID', 'Shift'].map(h => (
+                        <th key={h} className="p-2.5 text-left">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-[#232326]">
+                    {allocResult.slice(0, 50).map((sl, i) => (
+                      <tr key={i} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/20">
+                        <td className="p-2 font-semibold">{sl.day}</td>
+                        <td className="p-2 text-center">{sl.period}</td>
+                        <td className="p-2 font-bold text-[#1E40AF] dark:text-[#3B82F6]">{sl.section}</td>
+                        <td className="p-2 font-mono text-emerald-700 dark:text-emerald-400">{sl.subject}</td>
+                        <td className="p-2">{sl.teacher}</td>
+                        <td className="p-2 text-zinc-500 font-mono text-[10px]">{sl.employeeId}</td>
+                        <td className="p-2 text-zinc-500">{sl.shift}</td>
+                      </tr>
+                    ))}
+                    {allocResult.length > 50 && (
+                      <tr><td colSpan={7} className="p-2 text-center text-zinc-400 text-[10px]">… {allocResult.length - 50} more slots not shown</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleAllocCommit}
+                  disabled={allocCommitting || allocDone}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {allocCommitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {allocDone ? 'Published!' : allocCommitting ? 'Publishing…' : 'Publish Timetable to DB'}
+                </button>
+                <p className="text-xs text-zinc-500">This will replace existing timetable for {selectedShift}, Semester {selectedSemester}.</p>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

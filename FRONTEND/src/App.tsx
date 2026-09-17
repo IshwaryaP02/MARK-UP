@@ -56,6 +56,7 @@ import { ApproveSubstitutions } from './components/hod/ApproveSubstitutions';
 import { HODCirculars } from './components/hod/HODCirculars';
 import { StudentDetails } from './components/hod/StudentDetails';
 import { HODBonafide } from './components/hod/HODBonafide';
+import { HODTimetable } from './components/hod/HODTimetable';
 
 // Shared Components
 import { NotificationCenter } from './components/common/NotificationCenter';
@@ -134,6 +135,8 @@ const AppContent: React.FC = () => {
       switch (activeScreen) {
         case 'dashboard': return <HODDashboard />;
         case 'hod_all_classes': return <AllClassesView />;
+        case 'hod_timetable': return <HODTimetable />;
+        case 'timetable_builder': return <TimetableBuilder />;  // HOD can also use builder
         case 'student_details': return <StudentDetails />;
         case 'hod_circulars': return <HODCirculars />;
         case 'faculty_monitoring': return <FacultyMonitoring />;

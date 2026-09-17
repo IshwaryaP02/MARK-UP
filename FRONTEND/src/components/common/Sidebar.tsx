@@ -103,6 +103,8 @@ export const Sidebar: React.FC = () => {
             { id: 'dashboard', label: 'HOD Dashboard', icon: LayoutDashboard },
             { id: 'student_details', label: 'Student Details', icon: IdCard },
             { id: 'hod_all_classes', label: 'All Classes View', icon: Eye },
+            { id: 'hod_timetable', label: 'Timetable View', icon: Calendar },
+            { id: 'timetable_builder', label: 'Timetable Builder', icon: FileSpreadsheet },
             { id: 'hod_circulars', label: 'Circulars', icon: FileText }
           ]},
           { group: 'Department Approvals', items: [

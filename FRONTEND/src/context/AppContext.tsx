@@ -352,7 +352,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       targetRole,
       link,
       targetSemesters: filter?.semester !== undefined ? [filter.semester] : undefined,
-      targetClass: filter?.section
+      targetClass: filter?.section ? { semester: filter.semester || 1, section: filter.section } : undefined
     } as AppNotification;
     setNotifications((prev) => [newNotification, ...prev]);
   };
@@ -377,7 +377,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         load(() => apiClient.faculty(), setFacultyList),
         load(() => apiClient.departments(), setDepartments),
         load(() => apiClient.subjects(), setSubjects),
-        load(() => apiClient.timetable(), setTimetable),
+        load(() => apiClient.adminTimetable(), setTimetable),
         load(() => apiClient.calendarEvents(), setCalendarEvents),
         load(() => apiClient.auditLogs(), setAuditLogs),
         load(() => apiClient.backups(), setBackups),
@@ -398,7 +398,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         load(() => apiClient.students(), setStudents),
         load(() => apiClient.faculty(), setFacultyList),
         load(() => apiClient.subjects(), setSubjects),
-        load(() => apiClient.timetable(), setTimetable),
+        load(() => apiClient.adminTimetable(), setTimetable),
         load(() => apiClient.facultyAttendanceHistory(), setAttendanceRecords),
         load(() => apiClient.facultyLeaveQueue(), setLeaveRequests),
         load(() => apiClient.facultySubstitutions(), setSubstitutionRequests),
@@ -411,7 +411,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await Promise.all([
         load(() => apiClient.departments(), setDepartments),
         load(() => apiClient.subjects(), setSubjects),
-        load(() => apiClient.timetable(), setTimetable),
+        load(() => apiClient.adminTimetable(), setTimetable),
         load(() => apiClient.studentLeaves(), setLeaveRequests),
         load(() => apiClient.notifications({ unreadOnly: false }), setNotifications),
         load(() => apiClient.users(), setUsers),
@@ -722,16 +722,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         endTime: slot.endTime,
         subjectId: slot.subjectId,
         facultyId: slot.facultyId,
-        roomNo: slot.roomNo,
         departmentId: slot.departmentId,
         semester: slot.semester,
         section: slot.section,
       };
       let response: any;
       if (slot.id.startsWith('tt-')) {
-        response = await apiClient.saveTimetableSlot(payload);
+        response = await apiClient.adminSaveTimetableSlot(payload);
       } else {
-        response = await apiClient.updateTimetableSlot(slot.id, payload);
+        response = await apiClient.adminUpdateTimetableSlot(slot.id, payload);
       }
       const savedSlot: TimetableSlot = {
         ...slot,
@@ -755,7 +754,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteTimetableSlot = useCallback(async (id: string) => {
     try {
-      await apiClient.deleteTimetableSlot(id);
+      await apiClient.adminDeleteTimetableSlot(id);
       setTimetable((prev) => prev.filter((s) => s.id !== id));
       logAudit('DELETE_TIMETABLE_SLOT', 'Timetable Builder', `Removed slot ID ${id}`);
       addToast('Slot Removed', 'Timetable slot cleared', 'warning');
@@ -782,7 +781,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         periodNumber: record.periodNumber,
         subjectId: record.subjectId,
         facultyId: record.facultyId,
-        roomNo: record.roomNo,
         departmentId: record.departmentId,
         semester: record.semester,
         section: record.section,
@@ -946,7 +944,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     periodNumber: apiSub.periodNumber,
     subjectCode: apiSub.subjectCode,
     subjectName: apiSub.subjectName,
-    roomNo: apiSub.roomNo,
     section: apiSub.section,
     reason: apiSub.reason,
     status: apiSub.status,
@@ -964,7 +961,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         periodNumber: subData.periodNumber,
         subjectCode: subData.subjectCode,
         subjectName: subData.subjectName,
-        roomNo: subData.roomNo,
         section: subData.section,
         reason: subData.reason,
       });
@@ -1015,7 +1011,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       periodNumber: sub.periodNumber,
       subjectCode: sub.subjectCode,
       subjectName: sub.subjectName,
-      roomNo: sub.roomNo,
       section: sub.section,
       reason: sub.reason,
     });

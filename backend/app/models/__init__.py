@@ -25,6 +25,7 @@ from app.models.models import (
     BackupSnapshot,
     BackupType,
     BackupStatus,
+    TimetableVersion,
 )
 
 __all__ = [
@@ -54,4 +55,5 @@ __all__ = [
     "BackupSnapshot",
     "BackupType",
     "BackupStatus",
+    "TimetableVersion",
 ]

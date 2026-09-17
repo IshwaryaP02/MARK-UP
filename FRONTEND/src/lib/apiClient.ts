@@ -114,21 +114,92 @@ async function upload<T>(path: string, formData: FormData): Promise<T> {
 }
 
 export const apiClient = {
-  timetableOcr: (file: File, departmentId?: string) => {
+  // ── Timetable Management System ─────────────────────────────────────────
+  /** List departments accessible to this user (admin = all, hod = own dept) */
+  timetableDepartments: () =>
+    request<Array<{ id: string; code: string; name: string }>>('/timetable/departments'),
+
+  /** OCR: Upload image, extract & preview rows (no DB write) */
+  timetableOcr: (
+    file: File,
+    departmentId?: string,
+    shift = 'First Shift',
+    semester = 1,
+  ) => {
     const form = new FormData();
     form.append('file', file);
     if (departmentId) form.append('department_id', departmentId);
-    return upload<{ departmentId: string; rawText: string; rows: Array<Record<string, string>> }>('/timetable/ocr', form);
+    form.append('shift', shift);
+    form.append('semester', String(semester));
+    return upload<{
+      departmentId: string; shift: string; semester: number;
+      ocrEngine: string; rawText: string; rows: Array<Record<string, string>>; rowCount: number;
+    }>('/timetable/ocr', form);
   },
 
-  timetableAllocate: (file: File, sections: string[], totalClasses: number, departmentId?: string) => {
+  /** OCR: Commit parsed rows to DB */
+  timetableOcrCommit: (rows: Record<string, string>[], departmentId: string, shift: string, semester: number) =>
+    request<{ status: string; created: number; warnings: string[] }>('/timetable/ocr/commit', {
+      method: 'POST',
+      body: { rows, departmentId, shift, semester },
+    }),
+
+  /** Allocator: Upload Excel → generate preview (no DB write) */
+  timetableAllocate: (file: File, sections: string[], shift: string, semester: number, departmentId?: string) => {
     const form = new FormData();
     form.append('file', file);
     form.append('sections', sections.join(','));
-    form.append('total_classes', String(totalClasses));
+    form.append('shift', shift);
+    form.append('semester', String(semester));
     if (departmentId) form.append('department_id', departmentId);
-    return upload<{ allocation: Array<Record<string, string | number>>; totalSlots: number }>('/timetable/allocate', form);
+    return upload<{
+      departmentId: string; shift: string; semester: number;
+      allocation: Array<Record<string, string | number>>; totalSlots: number;
+    }>('/timetable/allocate', form);
   },
+
+  /** Allocator: Commit generated allocation to DB */
+  timetableAllocateCommit: (
+    allocation: Record<string, string | number>[],
+    departmentId: string,
+    shift: string,
+    semester: number,
+  ) =>
+    request<{ status: string; created: number; warnings: string[] }>('/timetable/allocate/commit', {
+      method: 'POST',
+      body: { allocation, departmentId, shift, semester },
+    }),
+
+  /** Get full department timetable (admin/hod) */
+  getDeptTimetable: (
+    deptId: string,
+    params?: { shift?: string; semester?: number; section?: string },
+  ) => request<{ slots: any[]; total: number; departmentName: string }>(`/timetable/${deptId}`, {
+    params: params as any,
+  }),
+
+  /** Get timetable for a specific faculty (admin/hod) */
+  getFacultyTimetableById: (facultyId: string) =>
+    request<any[]>(`/timetable/faculty/${facultyId}`),
+
+  /** Faculty's own timetable */
+  myTimetable: () => request<any[]>('/timetable/me'),
+
+  /** Student's own class timetable */
+  studentMyTimetable: () => request<any[]>('/timetable/student/me'),
+
+  /** Update a single timetable slot */
+  updateTimetableSlot: (slotId: string, data: Record<string, unknown>) =>
+    request<any>(`/timetable/slot/${slotId}`, { method: 'PUT', body: data }),
+
+  /** Delete a single timetable slot */
+  deleteTimetableSlot: (slotId: string) =>
+    request<{ deleted: string }>(`/timetable/slot/${slotId}`, { method: 'DELETE' }),
+
+  /** Timetable version history for a department */
+  timetableVersions: (deptId: string) =>
+    request<any[]>(`/timetable/${deptId}/versions`),
+
 
   // Auth
   login: (username: string, password: string) =>
@@ -268,20 +339,20 @@ export const apiClient = {
       body: data,
     }),
 
-  // Timetable
-  timetable: (params?: Record<string, string | number | boolean>) =>
+  // Legacy admin timetable CRUD (kept for backward compat; prefer new /timetable/* endpoints)
+  adminTimetable: (params?: Record<string, string | number | boolean>) =>
     request<any[]>('/admin/timetable', { params }),
-  saveTimetableSlot: (slot: Record<string, unknown>) =>
+  adminSaveTimetableSlot: (slot: Record<string, unknown>) =>
     request<any>('/admin/timetable', {
       method: 'POST',
       body: slot,
     }),
-  updateTimetableSlot: (id: string, data: Record<string, unknown>) =>
+  adminUpdateTimetableSlot: (id: string, data: Record<string, unknown>) =>
     request<any>(`/admin/timetable/${id}`, {
       method: 'PUT',
       body: data,
     }),
-  deleteTimetableSlot: (id: string) =>
+  adminDeleteTimetableSlot: (id: string) =>
     request<void>(`/admin/timetable/${id}`, {
       method: 'DELETE',
     }),

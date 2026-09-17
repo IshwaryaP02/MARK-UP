@@ -249,6 +249,8 @@ class Timetable(Base):
     department_id = Column(UUIDStr, ForeignKey("departments.id"), nullable=True)
     semester = Column(Integer, nullable=False)
     section = Column(String(20), nullable=False)
+    shift = Column(String(20), nullable=True, default="First Shift")  # "First Shift" | "Second Shift"
+    source = Column(String(20), nullable=True, default="manual")     # "manual" | "ocr" | "allocator"
     created_at = Column(DateTime, default=datetime.utcnow)
 
     subject = relationship("Subject", primaryjoin="Timetable.subject_id == Subject.id", lazy="selectin")
@@ -409,3 +411,19 @@ class BackupSnapshot(Base):
     type = Column(Enum(BackupType), nullable=False)
     status = Column(Enum(BackupStatus), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class TimetableVersion(Base):
+    """Tracks each time a department timetable is published (via OCR or Allocator)."""
+    __tablename__ = "timetable_versions"
+
+    id = Column(UUIDStr, primary_key=True, default=_gen_uuid)
+    department_id = Column(UUIDStr, ForeignKey("departments.id", ondelete="CASCADE"), nullable=False)
+    shift = Column(String(20), nullable=True)          # which shift was updated, None = all
+    source = Column(String(20), nullable=False)        # "ocr" | "allocator" | "manual"
+    published_by = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    published_at = Column(DateTime, default=datetime.utcnow)
+    notes = Column(Text, nullable=True)
+
+    department = relationship("Department", lazy="selectin")
+    publisher = relationship("User", primaryjoin="TimetableVersion.published_by == User.id", lazy="selectin")

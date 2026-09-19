@@ -70,7 +70,7 @@ export const ApplyLeave: React.FC = () => {
       id: `leave-${Date.now()}`,
       studentId: currentUser.id,
       studentName: currentUser.name,
-      studentRegNo: currentUser.regNo || '2024CS01',
+      studentRegNo: currentUser.regNo || '',
       departmentId: currentUser.departmentId || 'dept-cs',
       semester: currentUser.semester || 4,
       section: currentUser.section || 'A',
@@ -79,7 +79,8 @@ export const ApplyLeave: React.FC = () => {
       endDate,
       totalDays,
       reason,
-      attachmentUrl: attachmentPreview || attachmentUrl || 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600',
+      attachmentUrl: attachmentPreview || attachmentUrl || undefined,
+      attachmentName: attachmentPreview ? (attachmentFile?.name || 'Attachment') : (attachmentUrl ? undefined : undefined),
       status: 'pending_faculty',
       createdAt: new Date().toLocaleDateString()
     };
@@ -96,24 +97,24 @@ export const ApplyLeave: React.FC = () => {
       <BackButton label="Back to Dashboard" />
 
       {/* Header */}
-      <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+      <div className="pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
+        <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">
           Apply for Leave & On Duty (OD) Approval
         </h2>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Application Form */}
-        <div className="lg:col-span-2 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Leave / OD Request Form</h3>
+        <div className="lg:col-span-2 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">Leave / OD Request Form</h3>
 
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
-              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Leave Category</label>
+              <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Leave Category</label>
               <select
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value as LeaveType)}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6]"
+                className="w-full p-2.5 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold text-[#2563EB] dark:text-[#3B82F6]"
               >
                 <option value="medical">Medical Leave (Doctor Certificate Required)</option>
                 <option value="casual">Casual Leave</option>
@@ -123,41 +124,41 @@ export const ApplyLeave: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">From Date</label>
+                <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">From Date</label>
                 <input
                   type="date"
                   required
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full p-2.5 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold"
+                  className="w-full p-2.5 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold"
                 />
               </div>
               <div>
-                <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">To Date</label>
+                <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">To Date</label>
                 <input
                   type="date"
                   required
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full p-2.5 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold"
+                  className="w-full p-2.5 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Detailed Reason</label>
+              <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Detailed Reason</label>
               <textarea
                 required
                 rows={3}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Describe reason for leave application..."
-                className="w-full p-2.5 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+                className="w-full p-2.5 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Upload Attachment (Medical Certificate / OD Pass)</label>
+              <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Upload Attachment (Medical Certificate / OD Pass)</label>
               <div
                 onClick={openAttachmentPicker}
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
@@ -165,8 +166,8 @@ export const ApplyLeave: React.FC = () => {
                 onDrop={handleDrop}
                 className={`border-2 border-dashed rounded-2xl p-4 text-center space-y-2 transition-colors cursor-pointer ${
                   isDragging
-                    ? 'border-[#1E40AF] bg-[#1E40AF]/5 dark:border-[#3B82F6] dark:bg-[#2563EB]/10'
-                    : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50/50 dark:bg-[#0A0A0A]/50'
+                    ? 'border-[#2563EB] bg-[#2563EB]/5 dark:border-[#3B82F6] dark:bg-[#2563EB]/10'
+                    : 'border-[#E2E8F0] dark:border-zinc-700 bg-[#F7F9FC]/50 dark:bg-[#0A0A0A]/50'
                 }`}
               >
                 <input
@@ -186,25 +187,25 @@ export const ApplyLeave: React.FC = () => {
                         className="w-16 h-16 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700 shrink-0"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-lg bg-[#1E40AF]/10 text-[#1E40AF] dark:text-[#3B82F6] flex items-center justify-center shrink-0">
+                      <div className="w-16 h-16 rounded-lg bg-[#2563EB]/10 text-[#2563EB] dark:text-[#3B82F6] flex items-center justify-center shrink-0">
                         <FileImage className="w-7 h-7" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1 text-left">
-                      <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-zinc-200 truncate">
                         {attachmentFile?.name || 'Selected file'}
                       </p>
-                      <p className="text-[10px] text-zinc-500">
+                      <p className="text-[10px] text-[#000000] dark:text-[#64748B]">
                         {(attachmentFile ? (attachmentFile.size / 1024).toFixed(1) : '0')} KB • attached
                       </p>
-                      <p className="text-[10px] text-zinc-400">Click to change, or drag & drop a new file</p>
+                      <p className="text-[10px] text-[#000000] dark:text-[#64748B]">Click to change, or drag & drop a new file</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); openAttachmentPicker(); }}
                         title="Change attachment"
-                        className="p-2 text-[#1E40AF] dark:text-[#3B82F6] hover:bg-[#1E40AF]/10 dark:hover:bg-[#2563EB]/20 rounded-lg transition-colors"
+                        className="p-2 text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#2563EB]/10 dark:hover:bg-[#2563EB]/20 rounded-lg transition-colors"
                       >
                         <File className="w-4 h-4" />
                       </button>
@@ -220,19 +221,19 @@ export const ApplyLeave: React.FC = () => {
                   </div>
                 ) : (
                   <>
-                    <Paperclip className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6] mx-auto" />
-                    <span className="text-zinc-500 block">{isDragging ? 'Drop the file here' : 'Drag & drop certificate image or click to select'}</span>
+                    <Paperclip className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6] mx-auto" />
+                    <span className="text-[#000000] dark:text-[#64748B] block">{isDragging ? 'Drop the file here' : 'Drag & drop certificate image or click to select'}</span>
                   </>
                 )}
 
-                <div className="pt-2 border-t border-zinc-200/70 dark:border-zinc-800">
+                <div className="pt-2 border-t border-[#E2E8F0]/70 dark:border-zinc-800">
                   <input
                     type="text"
                     placeholder={attachmentPreview ? 'File attached — or paste a document image URL...' : 'Or paste document image URL...'}
                     value={attachmentUrl}
                     onChange={(e) => setAttachmentUrl(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full p-2 text-[11px] bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                    className="w-full p-2 text-[11px] bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
                   />
                 </div>
               </div>
@@ -240,7 +241,7 @@ export const ApplyLeave: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-3 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" /> Submit Application
             </button>
@@ -248,17 +249,17 @@ export const ApplyLeave: React.FC = () => {
         </div>
 
         {/* My Applications History */}
-        <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">My Leave Applications</h3>
+        <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">My Leave Applications</h3>
 
           <div className="space-y-3">
             {myLeaves.map((l) => (
               <div
                 key={l.id}
-                className="p-3.5 bg-zinc-50 dark:bg-[#0A0A0A]/60 border border-zinc-200/60 dark:border-zinc-800 rounded-xl space-y-2 text-xs"
+                className="p-3.5 bg-[#F7F9FC] dark:bg-[#0A0A0A]/60 border border-[#E2E8F0]/60 dark:border-zinc-800 rounded-xl space-y-2 text-xs"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-[#1E40AF] dark:text-[#3B82F6] uppercase">{l.leaveType}</span>
+                  <span className="font-bold text-[#2563EB] dark:text-[#3B82F6] uppercase">{l.leaveType}</span>
                   <div className="flex items-center gap-2 shrink-0">
                     {(l.status === 'pending_faculty' || l.status === 'pending_hod') && (
                       <button
@@ -272,10 +273,21 @@ export const ApplyLeave: React.FC = () => {
                     <StatusBadge status={l.status} size="sm" />
                   </div>
                 </div>
-                <div className="font-semibold text-zinc-800 dark:text-zinc-200">
+                <div className="font-semibold text-[#0F172A] dark:text-zinc-200">
                   {l.startDate} to {l.endDate}
                 </div>
-                <p className="text-zinc-500 truncate">{l.reason}</p>
+                <p className="text-[#000000] dark:text-[#64748B] truncate">{l.reason}</p>
+                {l.attachmentUrl && (
+                  <a
+                    href={l.attachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[#2563EB] dark:text-[#3B82F6] font-bold text-[11px] hover:underline"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                    {l.attachmentName || 'View Attachment'}
+                  </a>
+                )}
               </div>
             ))}
           </div>

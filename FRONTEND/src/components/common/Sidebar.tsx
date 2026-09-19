@@ -23,7 +23,8 @@ import {
   CheckSquare,
   IdCard,
   LogOut,
-  Award
+  Award,
+  ScanLine
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -56,7 +57,7 @@ export const Sidebar: React.FC = () => {
           { group: 'Academic Engine', items: [
             { id: 'timetable_builder', label: 'Timetable Builder', icon: Calendar },
             { id: 'academic_calendar', label: 'Academic Calendar', icon: CalendarDays },
-            { id: 'monthly_staff_order', label: 'Monthly Staff Order', icon: FileText },
+            { id: 'day_order_ocr', label: 'Day Order OCR', icon: ScanLine },
             { id: 'user_accounts', label: 'User Accounts', icon: UserCheck }
           ]},
           { group: 'Governance & Systems', items: [
@@ -103,8 +104,6 @@ export const Sidebar: React.FC = () => {
             { id: 'dashboard', label: 'HOD Dashboard', icon: LayoutDashboard },
             { id: 'student_details', label: 'Student Details', icon: IdCard },
             { id: 'hod_all_classes', label: 'All Classes View', icon: Eye },
-            { id: 'hod_timetable', label: 'Timetable View', icon: Calendar },
-            { id: 'timetable_builder', label: 'Timetable Builder', icon: FileSpreadsheet },
             { id: 'hod_circulars', label: 'Circulars', icon: FileText }
           ]},
           { group: 'Department Approvals', items: [
@@ -127,12 +126,12 @@ export const Sidebar: React.FC = () => {
   const navGroups = getNavItems();
 
   return (
-    <aside className="w-64 bg-[#161B33] dark:bg-[#0A0F1E]/95 backdrop-blur-md border-r border-white/10 dark:border-zinc-800 flex flex-col justify-between shrink-0 hidden md:flex h-full overflow-hidden">
+    <aside className="w-64 bg-white dark:bg-[#0A0F1E]/95 backdrop-blur-md border-r border-[#E2E8F0] dark:border-zinc-800 flex flex-col justify-between shrink-0 hidden md:flex h-full overflow-hidden">
       <div className="p-4 space-y-5 overflow-y-auto">
         {navGroups.map((group, idx) => (
           <div key={idx}>
             {group.group && (
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 px-3 mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] dark:text-zinc-500 px-3 mb-2">
                 {group.group}
               </p>
             )}
@@ -146,18 +145,18 @@ export const Sidebar: React.FC = () => {
                     onClick={() => setActiveScreen(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                       isActive
-                        ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] dark:text-[#FFFFFF] shadow-md'
-                        : 'text-zinc-300 dark:text-zinc-400 hover:bg-white/10 dark:hover:bg-zinc-800/80 hover:text-white dark:hover:text-zinc-100'
+                        ? 'bg-[#EAF2FF] text-[#2563EB] dark:bg-[#2563EB] dark:text-[#FFFFFF] shadow-sm'
+                        : 'text-[#1E293B] dark:text-zinc-400 hover:bg-[#F7F9FC] dark:hover:bg-zinc-800/80 hover:text-[#0F172A] dark:hover:text-zinc-100'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-white dark:text-[#FFFFFF]' : 'text-zinc-400'}`} />
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-[#2563EB] dark:text-[#FFFFFF]' : 'text-[#000000] dark:text-[#64748B]'}`} />
                       <span>{item.label}</span>
                     </div>
 
                     {item.badgeCount !== undefined && item.badgeCount > 0 && (
                       <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                        isActive ? 'bg-white text-[#1E40AF]' : 'bg-white/15 text-white dark:bg-[#FFFFFF] dark:text-[#3B82F6]'
+                        isActive ? 'bg-[#2563EB] text-white' : 'bg-[#EAF2FF] text-[#2563EB] dark:bg-[#FFFFFF] dark:text-[#3B82F6]'
                       }`}>
                         {item.badgeCount}
                       </span>
@@ -171,10 +170,10 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Footer preferences */}
-      <div className="p-4 border-t border-white/10 dark:border-zinc-800/80 space-y-1">
+      <div className="p-4 border-t border-[#E2E8F0] dark:border-zinc-800/80 space-y-1">
         <button
           onClick={() => logout()}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors text-rose-400 hover:text-rose-300 hover:bg-rose-500/10`}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:text-rose-300 dark:hover:bg-rose-500/10`}
         >
           <LogOut className="w-4 h-4" />
           <span>Logout</span>
@@ -183,8 +182,8 @@ export const Sidebar: React.FC = () => {
           onClick={() => setActiveScreen('notifications')}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
             activeScreen === 'notifications'
-              ? 'bg-[#1E40AF] text-white dark:bg-[#2563EB] dark:text-[#FFFFFF]'
-              : 'text-zinc-300 dark:text-zinc-400 hover:bg-white/10 dark:hover:bg-zinc-800'
+              ? 'bg-[#EAF2FF] text-[#2563EB] dark:bg-[#2563EB] dark:text-[#FFFFFF]'
+              : 'text-[#1E293B] dark:text-zinc-400 hover:bg-[#F7F9FC] dark:hover:bg-zinc-800'
           }`}
         >
           <Bell className="w-4 h-4" />

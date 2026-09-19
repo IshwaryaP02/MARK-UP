@@ -45,26 +45,26 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-16 shrink-0 bg-[#161B33] dark:bg-[#0A0A0A]/95 backdrop-blur-md border-b border-white/10 dark:border-zinc-800 px-4 sm:px-6 flex items-center justify-between transition-colors">
+      <header className="sticky top-0 z-30 h-16 shrink-0 bg-white dark:bg-[#0A0A0A]/95 backdrop-blur-md border-b border-[#E2E8F0] dark:border-zinc-800 px-4 sm:px-6 flex items-center justify-between transition-colors">
         {/* Left branding + Welcome */}
         <div className="flex items-center gap-4">
           <div
             onClick={() => setActiveScreen('dashboard')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-xl bg-white dark:bg-[#2563EB] text-[#1E40AF] dark:text-[#FFFFFF] flex items-center justify-center font-extrabold shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-[#2563EB] dark:bg-[#2563EB] text-white dark:text-[#FFFFFF] flex items-center justify-center font-extrabold shadow-md group-hover:scale-105 transition-transform">
               SA
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-sm font-bold text-white dark:text-zinc-100 leading-tight">SmartAttendance</h1>
-              <p className="text-[10px] text-[#93C5FD] dark:text-[#3B82F6] font-semibold tracking-wide uppercase">
+              <h1 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 leading-tight">SmartAttendance</h1>
+              <p className="text-[10px] text-[#2563EB] dark:text-[#3B82F6] font-semibold tracking-wide uppercase">
                 Enterprise Academic Suite
               </p>
             </div>
           </div>
-          <div className="hidden md:flex items-center ml-3 pl-3 border-l border-white/10 dark:border-zinc-700">
-            <span className="text-xs font-semibold text-zinc-300 dark:text-zinc-400">
-              Welcome, <span className="text-white dark:text-zinc-100 font-bold">{currentUser.name}</span>
+          <div className="hidden md:flex items-center ml-3 pl-3 border-l border-[#E2E8F0] dark:border-zinc-700">
+            <span className="text-xs font-semibold text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
+              Welcome, <span className="text-[#0F172A] dark:text-zinc-100 font-bold">{currentUser.name}</span>
             </span>
           </div>
         </div>
@@ -72,52 +72,52 @@ export const Navbar: React.FC = () => {
         {/* Right controls */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Current Date */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 dark:bg-zinc-800/50 rounded-xl border border-white/10 dark:border-zinc-700">
-            <Calendar className="w-3.5 h-3.5 text-[#93C5FD] dark:text-[#3B82F6]" />
-            <span className="text-[11px] font-semibold text-zinc-300 dark:text-zinc-400">{currentDate}</span>
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-[#F7F9FC] dark:bg-zinc-800/50 rounded-xl border border-[#E2E8F0] dark:border-zinc-700">
+            <Calendar className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" />
+            <span className="text-[11px] font-semibold text-[#000000] dark:text-[#64748B] dark:text-zinc-400">{currentDate}</span>
           </div>
 
           {/* Active Role Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-white/10 dark:bg-[#FFFFFF] text-white dark:text-[#3B82F6] rounded-xl border border-white/20 dark:border-zinc-700 text-xs font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-[#93C5FD] dark:bg-[#2563EB] animate-pulse" />
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-[#EAF2FF] dark:bg-[#FFFFFF] text-[#2563EB] dark:text-[#3B82F6] rounded-xl border border-[#E2E8F0] dark:border-zinc-700 text-xs font-bold uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-[#2563EB] dark:bg-[#2563EB] animate-pulse" />
             <span>{currentUser.role} Portal</span>
           </div>
 
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
-            className="p-2 text-zinc-300 hover:text-white dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-white/10 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+            className="p-2 text-[#000000] dark:text-[#64748B] hover:text-[#0F172A] dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-[#F7F9FC] dark:hover:bg-zinc-800 rounded-xl transition-colors"
             title="Toggle Dark/Light mode"
           >
-            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-white" />}
+            {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#2563EB]" />}
           </button>
 
           {/* Notifications Dropdown */}
           <div className="relative">
             <button
               onClick={() => setNotificationsOpen(!notificationsOpen)}
-              className="p-2 text-zinc-300 hover:text-white dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-white/10 dark:hover:bg-zinc-800 rounded-xl transition-colors relative"
+              className="p-2 text-[#000000] dark:text-[#64748B] hover:text-[#0F172A] dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-[#F7F9FC] dark:hover:bg-zinc-800 rounded-xl transition-colors relative"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#161B33] dark:ring-zinc-900 animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-900 animate-pulse" />
               )}
             </button>
 
             {notificationsOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden">
-                <div className="p-3.5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+                <div className="p-3.5 border-b border-[#E2E8F0] dark:border-zinc-800 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Notifications</h4>
+                    <h4 className="text-xs font-bold text-[#0F172A] dark:text-zinc-100">Notifications</h4>
                     {unreadCount > 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#F3F4F9] dark:bg-[#FFFFFF] text-[#313866] dark:text-[#3B82F6] rounded-full">
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-[#EAF2FF] dark:bg-[#FFFFFF] text-[#2563EB] dark:text-[#3B82F6] rounded-full">
                         {unreadCount} new
                       </span>
                     )}
                   </div>
                   <button
                     onClick={clearAllNotifications}
-                    className="text-[10px] font-semibold text-[#313866] dark:text-[#3B82F6] hover:underline"
+                    className="text-[10px] font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline"
                   >
                     Mark all read
                   </button>
@@ -125,7 +125,7 @@ export const Navbar: React.FC = () => {
 
                 <div className="max-h-64 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/60">
                   {myNotifications.length === 0 ? (
-                    <p className="p-4 text-xs text-center text-zinc-400">No notifications</p>
+                    <p className="p-4 text-xs text-center text-[#000000] dark:text-[#64748B]">No notifications</p>
                   ) : (
                     myNotifications.map((notif) => (
                       <div
@@ -137,27 +137,27 @@ export const Navbar: React.FC = () => {
                             setActiveScreen(notif.link);
                           }
                         }}
-                        className={`p-3 text-xs cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors ${
-                          !notif.read ? 'bg-[#F3F4F9]/60 dark:bg-[#FFFFFF]/60' : ''
+                        className={`p-3 text-xs cursor-pointer hover:bg-[#F7F9FC] dark:hover:bg-zinc-800/50 transition-colors ${
+                          !notif.read ? 'bg-[#EAF2FF]/60 dark:bg-[#FFFFFF]/60' : ''
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold text-zinc-900 dark:text-zinc-100">{notif.title}</span>
-                          <span className="text-[10px] text-zinc-400 shrink-0">{notif.timestamp}</span>
+                          <span className="font-semibold text-[#0F172A] dark:text-zinc-100">{notif.title}</span>
+                          <span className="text-[10px] text-[#000000] dark:text-[#64748B] shrink-0">{notif.timestamp}</span>
                         </div>
-                        <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-[11px] leading-relaxed">{notif.message}</p>
+                        <p className="text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-1 text-[11px] leading-relaxed">{notif.message}</p>
                       </div>
                     ))
                   )}
                 </div>
 
-                <div className="p-2 border-t border-zinc-100 dark:border-zinc-800 text-center">
+                <div className="p-2 border-t border-[#E2E8F0] dark:border-zinc-800 text-center">
                   <button
                     onClick={() => {
                       setNotificationsOpen(false);
                       setActiveScreen('notifications');
                     }}
-                    className="text-xs font-semibold text-[#313866] dark:text-[#3B82F6] hover:underline flex items-center justify-center gap-1 mx-auto"
+                    className="text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center justify-center gap-1 mx-auto"
                   >
                     <span>View Notification Hub</span>
                     <ArrowRight className="w-3 h-3" />
@@ -171,40 +171,42 @@ export const Navbar: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex items-center gap-2 p-1 hover:bg-white/10 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+              className="flex items-center gap-2 p-1 hover:bg-[#F7F9FC] dark:hover:bg-zinc-800 rounded-xl transition-colors"
             >
               <img
                 src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
                 alt={currentUser.name}
-                className="w-8 h-8 rounded-lg object-cover ring-2 ring-white/40"
+                className="w-8 h-8 rounded-lg object-cover ring-2 ring-[#E2E8F0] dark:ring-zinc-700"
               />
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-300 hidden sm:block" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#000000] dark:text-[#64748B] hidden sm:block" />
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 p-2">
-                <div className="p-3 border-b border-zinc-100 dark:border-zinc-800">
-                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{currentUser.name}</p>
-                  <p className="text-[11px] text-zinc-400 truncate">{currentUser.email}</p>
-                  <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#F3F4F9] text-[#313866] dark:bg-[#FFFFFF] dark:text-[#3B82F6] rounded-md">
+              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl shadow-xl z-50 p-2">
+                <div className="p-3 border-b border-[#E2E8F0] dark:border-zinc-800">
+                  <p className="text-xs font-bold text-[#0F172A] dark:text-zinc-100">{currentUser.name}</p>
+                  <p className="text-[11px] text-[#000000] dark:text-[#64748B] truncate">{currentUser.email}</p>
+                  <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#EAF2FF] text-[#2563EB] dark:bg-[#FFFFFF] dark:text-[#3B82F6] rounded-md">
                     Role: {currentUser.role}
                   </span>
                 </div>
 
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setProfileOpen(false);
-                      setEditProfileOpen(true);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-white bg-[#313866] hover:bg-[#161B33] dark:bg-[#2563EB] dark:text-[#FFFFFF] rounded-xl transition-colors my-1 shadow-sm"
-                  >
-                    <User className="w-4 h-4 text-white dark:text-[#FFFFFF]" />
-                    <span className="text-white dark:text-[#FFFFFF]">Edit Profile Details</span>
-                  </button>
-                </div>
+                {currentUser.role === 'admin' && (
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setProfileOpen(false);
+                        setEditProfileOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] dark:bg-[#2563EB] dark:text-[#FFFFFF] rounded-xl transition-colors my-1 shadow-sm"
+                    >
+                      <User className="w-4 h-4 text-white dark:text-[#FFFFFF]" />
+                      <span className="text-white dark:text-[#FFFFFF]">Edit Profile Details</span>
+                    </button>
+                  </div>
+                )}
 
-                <div className="pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                <div className="pt-1 border-t border-[#E2E8F0] dark:border-zinc-800">
                   <button
                     onClick={() => {
                       setProfileOpen(false);

@@ -24,9 +24,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   onClick
 }) => {
   const unifiedTheme = {
-    cardBg: 'bg-[#1E40AF]/20 dark:bg-[#0A0A0A]',
-    border: 'border-[#1E40AF]/40 dark:border-[#232326]',
-    iconBox: 'bg-[#1E40AF] text-[#111827] dark:bg-[#2563EB] dark:text-[#FFFFFF]',
+    cardBg: 'bg-white dark:bg-[#0A0A0A]',
+    border: 'border-[#E2E8F0] dark:border-[#232326]',
+    iconBox: 'bg-[#2563EB] text-white dark:bg-[#2563EB] dark:text-[#FFFFFF]',
   };
 
   const theme = unifiedTheme;
@@ -43,20 +43,20 @@ export const StatCard: React.FC<StatCardProps> = ({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{title}</p>
+          <p className="text-[11px] font-bold text-[#000000] dark:text-[#64748B] dark:text-zinc-400 uppercase tracking-wider">{title}</p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight transition-colors">
+            <span className="text-3xl font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight transition-colors">
               {value}
             </span>
             {change && (
-              <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#1E40AF]/15 dark:bg-[#2563EB]/20 text-[#1E40AF] dark:text-[#3B82F6]">
+              <span className="inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#2563EB]/15 dark:bg-[#2563EB]/20 text-[#2563EB] dark:text-[#3B82F6]">
                 {trend === 'up' && <TrendingUp className="w-3 h-3 mr-1" />}
                 {trend === 'down' && <TrendingDown className="w-3 h-3 mr-1" />}
                 {change}
               </span>
             )}
           </div>
-          {subtitle && <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1.5 font-medium">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[#1E293B] dark:text-zinc-400 mt-1.5 font-medium">{subtitle}</p>}
         </div>
 
         <div className={`p-2.5 rounded-2xl ${theme.iconBox} shadow-sm shrink-0`}>

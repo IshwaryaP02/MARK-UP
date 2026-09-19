@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api').replace(/\/+$/, '');
 
 type FetchOptions = {
   skipAuth?: boolean;
@@ -16,6 +16,7 @@ function getJwt(): string | null {
 }
 
 export function setJwt(token: string): void {
+  if (!token) return;
   localStorage.setItem('smart_att_token', token);
 }
 
@@ -29,6 +30,7 @@ function toCamelCase(str: string): string {
 }
 
 function toSnakeCase(str: string): string {
+  if (str === 'isHOD') return 'is_hod';
   return str.replace(/([A-Z])/g, '_$1').toLowerCase();
 }
 
@@ -203,10 +205,17 @@ export const apiClient = {
 
   // Auth
   login: (username: string, password: string) =>
-    request<{ accessToken: string; tokenType: string; user: any }>('/auth/login', {
+    request<{ access_token?: string; accessToken?: string; token_type?: string; tokenType?: string; user: any }>('/auth/login', {
       method: 'POST',
       body: { username, password },
       skipAuth: true,
+    }).then((response) => {
+      const token = response.access_token ?? response.accessToken;
+      const normalized = { ...response, accessToken: token ?? '', tokenType: response.token_type ?? response.tokenType ?? 'bearer' };
+      if (!normalized.accessToken) {
+        throw new Error('No access token returned by backend');
+      }
+      return normalized;
     }),
 
   // Password management
@@ -364,13 +373,18 @@ export const apiClient = {
       method: 'POST',
       body: data,
     }),
+  updateCalendarEvent: (id: string, data: Record<string, unknown>) =>
+    request<any>(`/admin/calendar/${id}`, {
+      method: 'PUT',
+      body: data,
+    }),
   deleteCalendarEvent: (id: string) =>
     request<void>(`/admin/calendar/${id}`, {
       method: 'DELETE',
     }),
 
   // Audit logs
-  auditLogs: () => request<any[]>('/admin/audit'),
+  auditLogs: () => request<any[]>('/admin/audit-logs'),
 
   // Backups
   backups: () => request<any[]>('/admin/backups'),
@@ -392,7 +406,8 @@ export const apiClient = {
       body: data,
     }),
   facultyStudentSearch: (q?: string) =>
-    request<any[]>('/faculty/students/search', { params: q ? { q } : undefined }),
+    request<any[]>('/faculty/students/search', { params: q ? { query: q } : undefined }),
+  facultySubjects: () => request<any[]>('/faculty/subjects'),
   facultyMyClasses: () => request<any[]>('/faculty/my-classes'),
   facultyTimetable: () => request<any[]>('/faculty/timetable'),
   facultyLeaveQueue: () => request<any[]>('/faculty/leave-queue'),
@@ -421,6 +436,7 @@ export const apiClient = {
 
   // Student endpoints
   studentDashboard: () => request<any>('/student/dashboard'),
+  studentSubjects: () => request<any[]>('/student/subjects'),
   studentAttendanceSummary: () => request<any>('/student/attendance/summary'),
   studentAttendanceHistory: (params?: Record<string, string | number | boolean>) =>
     request<any[]>('/student/attendance/history', { params }),

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
+import { rankedSearch, bestRank } from '../../utils/searchRank';
 import { BackButton } from '../common/BackButton';
 import { Modal } from '../common/Modal';
 import { StudentDetails as StudentDetailsType, PreviousSchoolRecord, StudentScholarship } from '../../types';
@@ -20,15 +21,15 @@ import {
   School,
   Award,
   Accessibility,
-  Eye
+  Eye,
+  Filter
 } from 'lucide-react';
-
 // ---- Small presentational helpers (light, readable typography) ----
 
 const Field: React.FC<{ label: string; value?: string }> = ({ label, value }) => (
   <div>
-    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-0.5">{label}</p>
-    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300 break-words">{value || '—'}</p>
+    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#000000] dark:text-[#64748B] dark:text-zinc-500 mb-0.5">{label}</p>
+    <p className="text-xs font-medium text-[#1E293B] dark:text-zinc-300 break-words">{value || '—'}</p>
   </div>
 );
 
@@ -39,15 +40,15 @@ const SectionCard: React.FC<{
   children: React.ReactNode;
   right?: React.ReactNode;
 }> = ({ icon: Icon, title, subtitle, children, right }) => (
-  <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm">
+  <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm">
     <div className="flex items-start justify-between gap-3 mb-4">
       <div className="flex items-center gap-2.5">
-        <span className="p-2 bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 rounded-xl shrink-0">
-          <Icon className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+        <span className="p-2 bg-[#2563EB]/10 dark:bg-[#2563EB]/40 rounded-xl shrink-0">
+          <Icon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
         </span>
         <div>
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">{title}</h3>
-          {subtitle && <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">{title}</h3>
+          {subtitle && <p className="text-[11px] text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-0.5">{subtitle}</p>}
         </div>
       </div>
       {right}
@@ -67,7 +68,7 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
         active
           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-          : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+          : 'bg-[#F7F9FC] text-[#1E293B] dark:bg-zinc-800 dark:text-zinc-400'
       }`}
     >
       {active ? <CheckCircle2 className="w-3 h-3" /> : <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />}
@@ -296,13 +297,74 @@ export const StudentDetails: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const detailsRef = useRef<HTMLDivElement>(null);
 
+  // Department / Year / Shift filters (draft — applied only on Search / Enter).
+  const [filterDept, setFilterDept] = useState('All');
+  const [filterYear, setFilterYear] = useState('All');
+  const [filterShift, setFilterShift] = useState('All');
+  const [appliedDept, setAppliedDept] = useState('All');
+  const [appliedYear, setAppliedYear] = useState('All');
+  const [appliedShift, setAppliedShift] = useState('All');
+
   const allRecords = useMemo(() => [...mockStudentDetails, ...imported], [imported]);
+
+  const semesterToYear = (semester: number) => {
+    if (semester <= 2) return 'First Year';
+    if (semester <= 4) return 'Second Year';
+    if (semester <= 6) return 'Third Year';
+    return 'Final Year';
+  };
+
+  // Options derived from the full dataset.
+  const filterOptions = useMemo(() => {
+    const depts = new Set<string>();
+    const shifts = new Set<string>();
+    const years = new Set<string>();
+    allRecords.forEach((s) => {
+      if (s.department) depts.add(s.department);
+      if (s.shift) shifts.add(s.shift);
+      years.add(s.yearOfStudy || semesterToYear(s.semester));
+    });
+    return {
+      departments: Array.from(depts).sort(),
+      shifts: Array.from(shifts).sort(),
+      years: Array.from(years).sort()
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allRecords]);
+
+  const applyFilters = () => {
+    setAppliedDept(filterDept);
+    setAppliedYear(filterYear);
+    setAppliedShift(filterShift);
+  };
+
+  const clearFilters = () => {
+    setFilterDept('All');
+    setFilterYear('All');
+    setFilterShift('All');
+    setAppliedDept('All');
+    setAppliedYear('All');
+    setAppliedShift('All');
+  };
+
+  // Roster restricted by the APPLIED Department + Year + Shift filters.
+  const filteredByClass = useMemo(() => {
+    return allRecords.filter((s) => {
+      if (appliedDept !== 'All' && (s.department || '') !== appliedDept) return false;
+      if (appliedShift !== 'All' && (s.shift || '') !== appliedShift) return false;
+      if (appliedYear !== 'All') {
+        const y = s.yearOfStudy || semesterToYear(s.semester);
+        if (y !== appliedYear) return false;
+      }
+      return true;
+    });
+  }, [allRecords, appliedDept, appliedYear, appliedShift]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     const digits = q.replace(/[^0-9]/g, '');
-    return allRecords.filter((s) => {
+    return filteredByClass.filter((s) => {
       const hay = [s.name, s.studentNameEnglish, s.regNo, s.rollNo, s.mobileNumber, s.parentMobileNumber, s.emailId]
         .filter(Boolean)
         .join(' ')
@@ -313,7 +375,7 @@ export const StudentDetails: React.FC = () => {
       }
       return false;
     });
-  }, [query, allRecords]);
+  }, [query, filteredByClass]);
 
   // Auto-open the details when exactly one student matches.
   useEffect(() => {
@@ -379,30 +441,31 @@ export const StudentDetails: React.FC = () => {
   };
 
   const hasSearch = query.trim().length > 0;
-  const showList = hasSearch ? matches : allRecords;
+  const filterActive = appliedDept !== 'All' || appliedYear !== 'All' || appliedShift !== 'All';
+  const showList = hasSearch ? matches : filteredByClass;
 
   return (
     <div className="space-y-6 text-xs">
       <BackButton />
 
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-            <IdCard className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Student Details
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight flex items-center gap-2">
+            <IdCard className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" /> Student Details
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-0.5">
             View-only UMIS record · {allRecords.length} student(s) on record
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 text-[#1E40AF] dark:text-[#3B82F6] text-[10px] font-bold uppercase tracking-wider rounded-full border border-[#1E40AF]/20 dark:border-[#3B82F6]/40 inline-flex items-center gap-1">
+          <span className="px-2.5 py-1 bg-[#2563EB]/10 dark:bg-[#2563EB]/40 text-[#2563EB] dark:text-[#3B82F6] text-[10px] font-bold uppercase tracking-wider rounded-full border border-[#2563EB]/20 dark:border-[#3B82F6]/40 inline-flex items-center gap-1">
             <Eye className="w-3 h-3" /> View Only
           </span>
           <button
             onClick={() => setImportOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#161B33] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] hover:bg-[#161B33] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             <FileUp className="w-4 h-4" />
             Import CSV
@@ -410,11 +473,81 @@ export const StudentDetails: React.FC = () => {
         </div>
       </div>
 
+      {/* Attendance / Student Details Filter */}
+      <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl shadow-sm space-y-3">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-[#000000] dark:text-[#64748B]">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" /> Student Details Filter
+          </span>
+          <span className="flex items-center gap-1">
+            Department
+            <select
+              value={filterDept}
+              onChange={(e) => setFilterDept(e.target.value)}
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            >
+              <option value="All">All</option>
+              {filterOptions.departments.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </span>
+          <span className="flex items-center gap-1">
+            Year
+            <select
+              value={filterYear}
+              onChange={(e) => setFilterYear(e.target.value)}
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            >
+              <option value="All">All</option>
+              {filterOptions.years.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </span>
+          <span className="flex items-center gap-1">
+            Shift
+            <select
+              value={filterShift}
+              onChange={(e) => setFilterShift(e.target.value)}
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+            >
+              <option value="All">All</option>
+              {filterOptions.shifts.map((sh) => (
+                <option key={sh} value={sh}>{sh}</option>
+              ))}
+            </select>
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={applyFilters}
+              className="px-3.5 py-2 text-xs font-bold text-white bg-[#2563EB] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#1D4ED8] rounded-xl transition-colors"
+            >
+              Search / Enter
+            </button>
+            <button
+              onClick={clearFilters}
+              className="px-3.5 py-2 text-xs font-bold text-[#000000] dark:text-[#64748B] bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+        {filterActive && (
+          <p className="text-[11px] font-medium text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
+            {filteredByClass.length} student(s) match Department “
+            {appliedDept !== 'All' ? appliedDept : 'Any'}”, Year “
+            {appliedYear !== 'All' ? appliedYear : 'Any'}”, Shift “
+            {appliedShift !== 'All' ? appliedShift : 'Any'}”.
+          </p>
+        )}
+      </div>
+
       {/* Unified Search */}
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[#000000] dark:text-[#64748B] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={query}
@@ -423,12 +556,12 @@ export const StudentDetails: React.FC = () => {
                 if (e.key === 'Enter') setQuery((e.target as HTMLInputElement).value);
               }}
               placeholder="Search by Name, Registration No, Roll No or Phone Number"
-              className="w-full pl-10 pr-10 py-2.5 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+              className="w-full pl-10 pr-10 py-2.5 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB] placeholder:text-[#000000] dark:text-[#64748B] dark:placeholder:text-[#000000] dark:text-[#64748B]"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#000000] dark:text-[#64748B] hover:text-[#1E293B] dark:hover:text-zinc-200 rounded-lg hover:bg-[#F7F9FC] dark:hover:bg-zinc-800 transition-colors"
                 title="Clear search"
               >
                 <X className="w-4 h-4" />
@@ -437,13 +570,13 @@ export const StudentDetails: React.FC = () => {
           </div>
           <button
             onClick={() => setQuery(query)}
-            className="px-4 py-2.5 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+            className="px-4 py-2.5 text-xs font-bold text-white bg-[#2563EB] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
           >
             Enter
           </button>
         </div>
         {hasSearch && matches.length > 0 && (
-          <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+          <p className="text-[11px] font-medium text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
             {matches.length} matching record(s)
             {matches.length > 1 ? ' — select a student below.' : ' — details shown below.'}
           </p>
@@ -465,24 +598,24 @@ export const StudentDetails: React.FC = () => {
               onClick={() => setSelectedId(s.id)}
               className={`text-left bg-white dark:bg-[#0A0A0A] border rounded-2xl p-3.5 shadow-sm transition-all ${
                 isActive
-                  ? 'border-[#1E40AF] dark:border-[#3B82F6] ring-2 ring-[#1E40AF]/20'
-                  : 'border-zinc-200/80 dark:border-[#232326] hover:border-[#1E40AF]/50'
+                  ? 'border-[#2563EB] dark:border-[#3B82F6] ring-2 ring-[#2563EB]/20'
+                  : 'border-[#E2E8F0]/80 dark:border-[#232326] hover:border-[#2563EB]/50'
               }`}
             >
               <div className="flex items-center gap-3">
                 {s.avatar ? (
                   <img src={s.avatar} alt={s.name} className="w-10 h-10 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-700" />
                 ) : (
-                  <span className="w-10 h-10 rounded-xl bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 flex items-center justify-center text-[#1E40AF] dark:text-[#3B82F6] text-sm font-bold">
+                  <span className="w-10 h-10 rounded-xl bg-[#2563EB]/10 dark:bg-[#2563EB]/40 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6] text-sm font-bold">
                     {s.name.charAt(0)}
                   </span>
                 )}
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{s.name}</p>
-                  <p className="text-[11px] font-mono text-[#1E40AF] dark:text-[#3B82F6] font-semibold">{s.regNo}</p>
+                  <p className="text-xs font-bold text-[#0F172A] dark:text-zinc-100 truncate">{s.name}</p>
+                  <p className="text-[11px] font-mono text-[#2563EB] dark:text-[#3B82F6] font-semibold">{s.regNo}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 pt-2.5 border-t border-zinc-100 dark:border-zinc-800 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 pt-2.5 border-t border-[#E2E8F0] dark:border-zinc-800 text-[10px] font-medium text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
                 <span>Roll: {s.rollNo || '—'}</span>
                 <span>{s.department}</span>
                 <span>Sem {s.semester}</span>
@@ -492,8 +625,8 @@ export const StudentDetails: React.FC = () => {
           );
         })}
         {showList.length === 0 && !hasSearch && (
-          <p className="col-span-full text-center text-xs text-zinc-400 dark:text-zinc-500 py-6">
-            No student records to show.
+          <p className="col-span-full text-center text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-500 py-6">
+            {filterActive ? 'No records found for the selected filters.' : 'No student records to show.'}
           </p>
         )}
       </div>
@@ -502,32 +635,32 @@ export const StudentDetails: React.FC = () => {
       {selected && (
         <div ref={detailsRef} className="space-y-4 scroll-mt-24">
           {/* Profile header */}
-          <div className="bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#1E40AF]/40 dark:border-[#3B82F6]/40 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#2563EB]/40 dark:border-[#3B82F6]/40 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
             {selected.avatar ? (
               <img src={selected.avatar} alt={selected.name} className="w-16 h-16 rounded-2xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-700" />
             ) : (
-              <span className="w-16 h-16 rounded-2xl bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 flex items-center justify-center text-[#1E40AF] dark:text-[#3B82F6] text-2xl font-bold">
+              <span className="w-16 h-16 rounded-2xl bg-[#2563EB]/10 dark:bg-[#2563EB]/40 flex items-center justify-center text-[#2563EB] dark:text-[#3B82F6] text-2xl font-bold">
                 {selected.name.charAt(0)}
               </span>
             )}
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">{selected.name}</h3>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                <span className="font-mono text-[#1E40AF] dark:text-[#3B82F6] font-semibold">{selected.regNo}</span>
+              <h3 className="text-base font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight truncate">{selected.name}</h3>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] font-medium text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
+                <span className="font-mono text-[#2563EB] dark:text-[#3B82F6] font-semibold">{selected.regNo}</span>
                 <span>Roll {selected.rollNo || '—'}</span>
                 {selected.studentNameTamil && <span className="font-medium">{selected.studentNameTamil}</span>}
               </div>
               <div className="flex flex-wrap items-center gap-2 mt-2.5">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 text-[#1E40AF] dark:text-[#3B82F6] border border-[#1E40AF]/20 dark:border-[#3B82F6]/40">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#2563EB]/10 dark:bg-[#2563EB]/40 text-[#2563EB] dark:text-[#3B82F6] border border-[#2563EB]/20 dark:border-[#3B82F6]/40">
                   {selected.courseType} · {selected.course}
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F7F9FC] dark:bg-zinc-800 text-[#1E293B] dark:text-zinc-300">
                   Sem {selected.semester} · {selected.shift}
                 </span>
                 <StatusPill status={selected.currentStudentStatus || 'Active'} />
               </div>
             </div>
-            <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium sm:text-right">
+            <div className="text-[11px] text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-medium sm:text-right">
               <p>{selected.collegeName}</p>
               <p className="font-mono text-[10px] mt-0.5">{selected.collegeCode}</p>
             </div>
@@ -588,7 +721,7 @@ export const StudentDetails: React.FC = () => {
               <Field label="Semester" value={String(selected.semester)} />
               <Field label="Shift" value={selected.shift} />
             </ValueGrid>
-            <p className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 text-[11px] text-zinc-500 dark:text-zinc-400">
+            <p className="mt-4 pt-3 border-t border-[#E2E8F0] dark:border-zinc-800 text-[11px] text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
               Academic limits: UG = Semester 1–6 · PG/MCA = Semester 1–4 (no extra semesters).
             </p>
           </SectionCard>
@@ -662,7 +795,7 @@ export const StudentDetails: React.FC = () => {
             {(selected.previousSchools?.length ?? 0) > 0 ? (
               <div className="overflow-x-auto -mx-1">
                 <table className="w-full text-left text-[11px]">
-                  <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+                  <thead className="bg-[#F7F9FC] dark:bg-zinc-800/60 border-b border-[#E2E8F0] dark:border-zinc-800 text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider">
                     <tr>
                       <th className="p-2.5 pl-1">Class</th>
                       <th className="p-2.5">District</th>
@@ -672,10 +805,10 @@ export const StudentDetails: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {selected.previousSchools!.map((p: PreviousSchoolRecord, i: number) => (
-                      <tr key={i} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30 transition-colors">
-                        <td className="p-2.5 pl-1 font-mono font-semibold text-zinc-700 dark:text-zinc-300">Class {p.className}</td>
-                        <td className="p-2.5 font-medium text-zinc-700 dark:text-zinc-300">{p.district}</td>
-                        <td className="p-2.5 font-medium text-zinc-700 dark:text-zinc-300">{p.schoolName}</td>
+                      <tr key={i} className="hover:bg-[#F7F9FC]/70 dark:hover:bg-zinc-800/30 transition-colors">
+                        <td className="p-2.5 pl-1 font-mono font-semibold text-[#1E293B] dark:text-zinc-300">Class {p.className}</td>
+                        <td className="p-2.5 font-medium text-[#1E293B] dark:text-zinc-300">{p.district}</td>
+                        <td className="p-2.5 font-medium text-[#1E293B] dark:text-zinc-300">{p.schoolName}</td>
                         <td className="p-2.5 pr-1">{p.schoolType}</td>
                       </tr>
                     ))}
@@ -683,7 +816,7 @@ export const StudentDetails: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">No previous school records available.</p>
+              <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-500">No previous school records available.</p>
             )}
           </SectionCard>
 
@@ -703,7 +836,7 @@ export const StudentDetails: React.FC = () => {
             {(selected.scholarships?.length ?? 0) > 0 ? (
               <div className="overflow-x-auto -mx-1">
                 <table className="w-full text-left text-[11px]">
-                  <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+                  <thead className="bg-[#F7F9FC] dark:bg-zinc-800/60 border-b border-[#E2E8F0] dark:border-zinc-800 text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider">
                     <tr>
                       <th className="p-2.5 pl-1">Scholarship Name</th>
                       <th className="p-2.5">Scholarship Availability</th>
@@ -712,9 +845,9 @@ export const StudentDetails: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {(selected.scholarships as StudentScholarship[]).map((sch, i) => (
-                      <tr key={i} className="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30 transition-colors">
-                        <td className="p-2.5 pl-1 font-semibold text-zinc-700 dark:text-zinc-300">{sch.name}</td>
-                        <td className="p-2.5 font-medium text-zinc-700 dark:text-zinc-300">{sch.availability}</td>
+                      <tr key={i} className="hover:bg-[#F7F9FC]/70 dark:hover:bg-zinc-800/30 transition-colors">
+                        <td className="p-2.5 pl-1 font-semibold text-[#1E293B] dark:text-zinc-300">{sch.name}</td>
+                        <td className="p-2.5 font-medium text-[#1E293B] dark:text-zinc-300">{sch.availability}</td>
                         <td className="p-2.5 pr-1">
                           <StatusPill status={sch.status} />
                         </td>
@@ -724,13 +857,13 @@ export const StudentDetails: React.FC = () => {
                 </table>
               </div>
             ) : (
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">No scholarship records available.</p>
+              <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-500">No scholarship records available.</p>
             )}
           </SectionCard>
         </div>
       )}
       {hasSearch && matches.length === 1 && !selected && (
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">Select a student from the list above to view the full record.</p>
+        <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-500">Select a student from the list above to view the full record.</p>
       )}
 
       {/* CSV Import Modal */}
@@ -744,14 +877,14 @@ export const StudentDetails: React.FC = () => {
         <div className="space-y-4">
           <label
             htmlFor="student-csv-input"
-            className="flex flex-col items-center justify-center gap-2 p-6 text-center border border-dashed border-zinc-300 dark:border-[#232326] rounded-2xl cursor-pointer hover:border-[#1E40AF] dark:hover:border-[#3B82F6] transition-colors"
+            className="flex flex-col items-center justify-center gap-2 p-6 text-center border border-dashed border-zinc-300 dark:border-[#232326] rounded-2xl cursor-pointer hover:border-[#2563EB] dark:hover:border-[#3B82F6] transition-colors"
           >
-            <Upload className="w-7 h-7 text-[#1E40AF] dark:text-[#3B82F6]" />
-            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">Choose a CSV file</span>
-            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 max-w-xs leading-relaxed">
+            <Upload className="w-7 h-7 text-[#2563EB] dark:text-[#3B82F6]" />
+            <span className="text-xs font-bold text-[#1E293B] dark:text-zinc-200">Choose a CSV file</span>
+            <span className="text-[11px] text-[#000000] dark:text-[#64748B] dark:text-zinc-500 max-w-xs leading-relaxed">
               Supported columns: Name, RegNo, RollNo, MobileNumber, Email, Semester, CourseType, Course, Department, Shift, YearOfStudy
             </span>
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+            <span className="text-[10px] text-[#000000] dark:text-[#64748B] dark:text-zinc-500">
               {fileName || 'Prefer a header row; positional "Name, RegNo, RollNo, Phone, Email, Semester" is also accepted.'}
             </span>
           </label>
@@ -791,13 +924,13 @@ export const StudentDetails: React.FC = () => {
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               onClick={() => setImportOpen(false)}
-              className="px-3.5 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-colors"
+              className="px-3.5 py-2 bg-[#F7F9FC] dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-[#1E293B] dark:text-zinc-200 text-xs font-semibold rounded-xl transition-colors"
             >
               Close
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#161B33] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] hover:bg-[#161B33] dark:bg-[#2563EB] dark:hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
             >
               <FileUp className="w-4 h-4" />
               Select CSV File

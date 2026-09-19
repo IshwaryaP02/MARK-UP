@@ -3,6 +3,13 @@ import { useApp } from '../../context/AppContext';
 import { Circular } from '../../types';
 import { Modal } from './Modal';
 import {
+  Programme,
+  Shift,
+  departmentsForProgramme,
+  yearsForProgramme,
+  shiftsForProgramme
+} from '../../services/programmeStructure';
+import {
  FileText,
  Plus,
  Eye,
@@ -24,22 +31,22 @@ export const CircularManagement: React.FC = () => {
  const [previewModalOpen, setPreviewModalOpen] = useState(false);
  const [viewingCircular, setViewingCircular] = useState<Circular | null>(null);
 
- const [formData, setFormData] = useState({
- title: '',
- description: '',
- target: 'department' as 'all' | 'department' | 'class' | 'course',
- departmentId: currentUser.departmentId || '',
- departmentName: currentUser.departmentName || '',
- courseCode: '',
- courseType: 'ug' as 'ug' | 'pg',
- year: 2,
- semester: 4,
- section: 'First Shift',
- shift: '',
- attachmentUrl: '',
- validFrom: new Date().toISOString().slice(0, 10),
- validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
- });
+const [formData, setFormData] = useState({
+  title: '',
+  description: '',
+  target: 'department' as 'all' | 'department' | 'class' | 'course',
+  departmentId: currentUser.departmentId || '',
+  departmentName: currentUser.departmentName || '',
+  courseCode: '',
+  programme: 'UG' as Programme,
+  year: 'I YEAR',
+  semester: 4,
+  shift: 'First Shift',
+  attachmentUrl: '',
+  attachmentName: '',
+  validFrom: new Date().toISOString().slice(0, 10),
+  validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+});
 
  const myCirculars = circulars.filter((c) => c.createdBy === currentUser.id);
 
@@ -57,9 +64,18 @@ export const CircularManagement: React.FC = () => {
  resetForm();
  };
 
- const handlePreview = () => {
- setPreviewModalOpen(true);
- };
+  const handlePreview = () => {
+  setPreviewModalOpen(true);
+  };
+
+  const handleAttachmentFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => setFormData((prev) => ({ ...prev, attachmentUrl: reader.result as string, attachmentName: file.name }));
+  reader.readAsDataURL(file);
+  e.target.value = '';
+  };
 
  const handlePublish = (circular: Circular) => {
  updateCircular({
@@ -82,14 +98,15 @@ export const CircularManagement: React.FC = () => {
  departmentId: currentUser.departmentId || '',
  departmentName: currentUser.departmentName || '',
  courseCode: '',
- year: 2,
- semester: 4,
- section: 'First Shift',
- shift: '',
- attachmentUrl: '',
- validFrom: new Date().toISOString().slice(0, 10),
- validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
- });
+  programme: 'UG',
+  year: 'I YEAR',
+  semester: 4,
+  shift: 'First Shift',
+  attachmentUrl: '',
+  attachmentName: '',
+  validFrom: new Date().toISOString().slice(0, 10),
+  validUntil: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+});
  };
 
  return (
@@ -144,13 +161,20 @@ export const CircularManagement: React.FC = () => {
  <div className="flex flex-wrap items-center gap-2 mt-2 text-[10px] text-[#64748B]">
  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Valid: {cirk.validFrom} to {cirk.validUntil}</span>
  <span>â€¢</span>
- <span>Target: {cirk.target === 'all' ? 'All' : cirk.target === 'department' ? cirk.departmentName : cirk.target === 'class' ? `${cirk.courseType === 'pg' ? 'PG' : 'UG'} Year ${cirk.year} · ${cirk.section}` : cirk.courseCode}</span>
- {cirk.attachmentUrl && (
- <>
- <span>â€¢</span>
- <span className="flex items-center gap-1"><Paperclip className="w-3 h-3" /> Attached</span>
- </>
- )}
+ <span>Target: {cirk.target === 'all' ? 'All' : cirk.target === 'department' ? cirk.departmentName : cirk.target === 'class' ? `${cirk.programme || 'UG'} · ${cirk.year || 'I YEAR'} · ${cirk.shift || 'First Shift'}` : cirk.courseCode}</span>
+  {cirk.attachmentUrl && (
+  <>
+  <span>â€¢</span>
+  <a
+  href={cirk.attachmentUrl}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="flex items-center gap-1 text-[#2563EB] hover:underline font-semibold"
+  >
+  <Paperclip className="w-3 h-3" /> {cirk.attachmentName || 'View Attachment'}
+  </a>
+  </>
+  )}
  </div>
  </div>
  </div>
@@ -257,22 +281,26 @@ export const CircularManagement: React.FC = () => {
  {formData.target === 'class' && (
  <div className="space-y-3">
  <div>
- <label className="block text-xs font-bold text-[#111827] mb-1">Course Type</label>
+ <label className="block text-xs font-bold text-[#111827] mb-1">Programme</label>
  <select
- value={formData.courseType}
+ value={formData.programme}
  onChange={(e) => {
- const ct = e.target.value as 'ug' | 'pg';
+ const prog = e.target.value as Programme;
+ const yrOpts = yearsForProgramme(prog);
+ const shiftOpts = shiftsForProgramme(prog);
+ const sems = yrOpts.length > 0 ? [1, 2] : [1];
  setFormData({
  ...formData,
- courseType: ct,
- year: ct === 'pg' ? Math.min(formData.year, 2) : formData.year,
- semester: ct === 'pg' ? Math.min(formData.semester, 4) : formData.semester
+ programme: prog,
+ year: yrOpts[0] || 'I YEAR',
+ semester: sems[0],
+ shift: shiftOpts[0] || 'First Shift'
  });
  }}
  className="w-full px-3 py-2 text-xs font-semibold bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl"
  >
- <option value="ug">UG (Undergraduate) â€” 3 Years, 6 Semesters</option>
- <option value="pg">PG (Postgraduate) â€” 2 Years, 4 Semesters</option>
+ <option value="UG">UG (Undergraduate)</option>
+ <option value="PG">PG (Postgraduate)</option>
  </select>
  </div>
  <div className="grid grid-cols-3 gap-3">
@@ -280,62 +308,54 @@ export const CircularManagement: React.FC = () => {
  <label className="block text-xs font-bold text-[#111827] mb-1">Year</label>
  <select
  value={formData.year}
- onChange={(e) => {
- const yr = Number(e.target.value);
- const sem = formData.courseType === 'pg'
- ? Math.min(formData.semester, yr === 2 ? 4 : 2)
- : Math.min(formData.semester, yr * 2);
- setFormData({ ...formData, year: yr, semester: Math.max(1, sem) });
- }}
+ onChange={(e) => setFormData({ ...formData, year: e.target.value })}
  className="w-full px-3 py-2 text-xs font-semibold bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl"
  >
- {(formData.courseType === 'pg' ? [1, 2] : [1, 2, 3]).map((y) => (
- <option key={y} value={y}>{['I', 'II', 'III'][y - 1]} Year</option>
+ {yearsForProgramme(formData.programme).map((y) => (
+ <option key={y} value={y}>{y}</option>
  ))}
  </select>
  </div>
  <div>
- <label className="block text-xs font-bold text-[#111827] mb-1">Semester</label>
+ <label className="block text-xs font-bold text-[#111827] mb-1">Shift</label>
  <select
- value={formData.semester}
- onChange={(e) => setFormData({ ...formData, semester: Number(e.target.value) })}
+ value={formData.shift}
+ onChange={(e) => setFormData({ ...formData, shift: e.target.value })}
  className="w-full px-3 py-2 text-xs font-semibold bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl"
  >
- {formData.courseType === 'ug'
- ? Array.from({ length: 6 }, (_, i) => i + 1).map((s) => (
- <option key={s} value={s}>Sem {s}</option>
- ))
- : Array.from({ length: 4 }, (_, i) => i + 1).map((s) => (
- <option key={s} value={s}>Sem {s}</option>
- ))
- }
+ {shiftsForProgramme(formData.programme).map((s) => (
+ <option key={s} value={s}>{s}</option>
+ ))}
  </select>
  </div>
-<div>
-  <label className="block text-xs font-bold text-[#111827] mb-1">Shift</label>
-  <select
-  value={formData.section}
-  onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-  className="w-full px-3 py-2 text-xs font-semibold bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl"
-  >
-  <option value="First Shift">First Shift</option>
-  <option value="Second Shift">Second Shift</option>
-  </select>
-  </div>
  </div>
  </div>
  )}
 
- <div>
- <label className="block text-xs font-bold text-[#111827] mb-1">Attachment URL (optional)</label>
- <input
- type="text"
- value={formData.attachmentUrl}
- onChange={(e) => setFormData({ ...formData, attachmentUrl: e.target.value })}
- placeholder="https://..."
- className="w-full px-3 py-2 text-xs font-semibold bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl"
- />
- </div>
+  <div>
+  <label className="block text-xs font-bold text-[#111827] mb-1">Attachment (optional)</label>
+  <div className="flex gap-2">
+  <input
+  type="text"
+  value={formData.attachmentUrl}
+  onChange={(e) => setFormData({ ...formData, attachmentUrl: e.target.value })}
+  placeholder="Paste an image/document URL or upload a file"
+  className="flex-1 px-3 py-2 text-xs font-semibold bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl min-w-0"
+  />
+  <label className="shrink-0 flex items-center gap-1 cursor-pointer px-3 py-2 bg-[#2563EB] hover:bg-[#161B33] text-white text-xs font-bold rounded-xl transition-colors">
+  <Paperclip className="w-3.5 h-3.5" /> Upload
+  <input
+  type="file"
+  accept="image/*,.pdf,.doc,.docx"
+  onChange={handleAttachmentFile}
+  className="hidden"
+  />
+  </label>
+  </div>
+  {formData.attachmentName && (
+  <p className="text-[10px] text-[#2563EB] mt-1">Attached: {formData.attachmentName}</p>
+  )}
+  </div>
 
  <div className="grid grid-cols-2 gap-3">
  <div>
@@ -398,7 +418,18 @@ export const CircularManagement: React.FC = () => {
  <p>Valid: {viewingCircular?.validFrom || formData.validFrom} to {viewingCircular?.validUntil || formData.validUntil}</p>
  <p>Issued by: {viewingCircular?.createdByName || currentUser.name} ({viewingCircular?.createdByRole || currentUser.role})</p>
  {viewingCircular?.attachmentUrl && (
- <p className="flex items-center gap-1"><Paperclip className="w-3 h-3" /> Attachment: {viewingCircular.attachmentUrl}</p>
+ <p className="flex items-center gap-1">
+   <Paperclip className="w-3 h-3" />
+   Attachment:
+   <a
+     href={viewingCircular.attachmentUrl}
+     target="_blank"
+     rel="noopener noreferrer"
+     className="text-[#2563EB] font-semibold hover:underline break-all"
+   >
+     {viewingCircular.attachmentUrl}
+   </a>
+ </p>
  )}
  </div>
  </div>

@@ -84,16 +84,16 @@ export const SubstitutionManager: React.FC = () => {
     <div className="space-y-6 text-xs">
       <BackButton />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-            <Repeat className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Class Substitution Queue
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight flex items-center gap-2">
+            <Repeat className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" /> Class Substitution Queue
           </h2>
         </div>
 
         <button
           onClick={() => setModalOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-bold rounded-xl transition-all shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-bold rounded-xl transition-all shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Request Substitution
@@ -102,12 +102,12 @@ export const SubstitutionManager: React.FC = () => {
 
       {/* Incoming Requests Section */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 flex items-center gap-2">
           Incoming Coverage Requests ({incomingRequests.length})
         </h3>
 
         {incomingRequests.length === 0 ? (
-          <div className="p-6 text-center bg-zinc-50 dark:bg-[#0A0A0A] border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl text-xs text-zinc-400">
+          <div className="p-6 text-center bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-dashed border-[#E2E8F0] dark:border-zinc-800 rounded-2xl text-xs text-[#000000] dark:text-[#64748B]">
             No pending coverage requests from colleagues at this time.
           </div>
         ) : (
@@ -115,21 +115,21 @@ export const SubstitutionManager: React.FC = () => {
             {incomingRequests.map((req) => (
               <div
                 key={req.id}
-                className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm space-y-3"
+                className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl shadow-sm space-y-3"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{req.requestingFacultyName}</h4>
-                    <span className="text-[10px] text-[#1E40AF] dark:text-[#3B82F6] font-mono font-bold">
+                    <h4 className="text-xs font-bold text-[#0F172A] dark:text-zinc-100">{req.requestingFacultyName}</h4>
+                    <span className="text-[10px] text-[#2563EB] dark:text-[#3B82F6] font-mono font-bold">
                       {req.date} · Period {req.periodNumber}
                     </span>
                   </div>
                   <StatusBadge status={req.status} size="sm" />
                 </div>
 
-                <div className="p-2.5 bg-zinc-50 dark:bg-[#0A0A0A] rounded-xl text-xs border border-zinc-100 dark:border-zinc-800">
-                  <span className="font-bold text-zinc-800 dark:text-zinc-200 block">{req.subjectCode} - {req.subjectName}</span>
-                  <p className="text-zinc-500 mt-1 italic">"{req.reason}"</p>
+                <div className="p-2.5 bg-[#F7F9FC] dark:bg-[#0A0A0A] rounded-xl text-xs border border-[#E2E8F0] dark:border-zinc-800">
+                  <span className="font-bold text-[#0F172A] dark:text-zinc-200 block">{req.subjectCode} - {req.subjectName}</span>
+                  <p className="text-[#000000] dark:text-[#64748B] mt-1 italic">"{req.reason}"</p>
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-1">
@@ -153,13 +153,13 @@ export const SubstitutionManager: React.FC = () => {
       </div>
 
       {/* Outgoing Request History */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">My Sent Substitution Requests</h3>
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-[#E2E8F0] dark:border-zinc-800">
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">My Sent Substitution Requests</h3>
         </div>
         <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-zinc-50 dark:bg-[#0A0A0A] border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
+          <thead className="bg-[#F7F9FC] dark:bg-[#0A0A0A] border-b border-[#E2E8F0] dark:border-zinc-800 text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
             <tr>
               <th className="p-3 pl-4">Target Date & Period</th>
               <th className="p-3">Subject</th>
@@ -171,19 +171,19 @@ export const SubstitutionManager: React.FC = () => {
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 font-semibold">
             {mySentRequests.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-6 text-center text-zinc-400">
+                <td colSpan={5} className="p-6 text-center text-[#000000] dark:text-[#64748B]">
                   No substitution requests sent yet.
                 </td>
               </tr>
             ) : (
               mySentRequests.map((req) => (
                 <tr key={req.id}>
-                  <td className="p-3 pl-4 font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                  <td className="p-3 pl-4 font-mono font-bold text-[#0F172A] dark:text-zinc-100">
                     {req.date} · Period {req.periodNumber}
                   </td>
-                  <td className="p-3 font-bold text-[#1E40AF] dark:text-[#3B82F6]">{req.subjectCode}</td>
-                  <td className="p-3 font-semibold text-zinc-800 dark:text-zinc-200">{req.substituteFacultyName}</td>
-                  <td className="p-3 text-zinc-500 truncate max-w-xs">{req.reason}</td>
+                  <td className="p-3 font-bold text-[#2563EB] dark:text-[#3B82F6]">{req.subjectCode}</td>
+                  <td className="p-3 font-semibold text-[#0F172A] dark:text-zinc-200">{req.substituteFacultyName}</td>
+                  <td className="p-3 text-[#000000] dark:text-[#64748B] truncate max-w-xs">{req.reason}</td>
                   <td className="p-3 text-right pr-4">
                     <StatusBadge status={req.status} size="sm" />
                   </td>
@@ -205,11 +205,11 @@ export const SubstitutionManager: React.FC = () => {
         <form onSubmit={handleRequestSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Subject Session</label>
+              <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Subject Session</label>
               <select
                 value={formData.subjectCode}
                 onChange={(e) => handleSubjectChange(e.target.value)}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6]"
+                className="w-full p-2.5 bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold text-[#2563EB] dark:text-[#3B82F6]"
               >
                 {mySubjects.map((s) => (
                   <option key={s.subjectCode} value={s.subjectCode}>
@@ -219,11 +219,11 @@ export const SubstitutionManager: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Period Number</label>
+              <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Period Number</label>
               <select
                 value={formData.periodNumber}
                 onChange={(e) => setFormData({ ...formData, periodNumber: parseInt(e.target.value) })}
-                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6]"
+                className="w-full p-2.5 bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold text-[#2563EB] dark:text-[#3B82F6]"
               >
                 {periodTimes
                   .filter((t) => t.periodNumber !== null)
@@ -237,22 +237,22 @@ export const SubstitutionManager: React.FC = () => {
           </div>
 
           <div>
-            <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Target Date</label>
+            <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Target Date</label>
             <input
               type="date"
               required
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold"
+              className="w-full p-2.5 bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold"
             />
           </div>
 
           <div>
-            <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Choose Substitute Colleague</label>
+            <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Choose Substitute Colleague</label>
             <select
               value={formData.substituteFacultyId}
               onChange={(e) => setFormData({ ...formData, substituteFacultyId: e.target.value })}
-              className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold"
+              className="w-full p-2.5 bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold"
             >
               <option value="open">Open to Any Available Faculty</option>
               {facultyList
@@ -266,20 +266,20 @@ export const SubstitutionManager: React.FC = () => {
           </div>
 
           <div>
-            <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Reason for Absence</label>
+            <label className="block font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Reason for Absence</label>
             <textarea
               required
               rows={2}
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
               placeholder="e.g. Attending Academic Committee session..."
-              className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="w-full p-2.5 bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 bg-[#2563EB] hover:bg-[#FFFFFF] text-white font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
           >
             <Send className="w-4 h-4" /> Send Substitution Request
           </button>

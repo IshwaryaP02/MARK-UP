@@ -65,7 +65,7 @@ export const BottomNav: React.FC = () => {
   const items = getMobileItems();
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0A0F1E]/95 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 md:hidden px-1 py-1 flex items-center shadow-lg overflow-x-auto no-scrollbar">
+    <div className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0A0F1E]/95 backdrop-blur-md border-t border-[#E2E8F0] dark:border-zinc-800 md:hidden px-1 py-1 flex items-center shadow-lg overflow-x-auto no-scrollbar">
       {items.map((item) => {
         const Icon = item.icon;
         const isActive = activeScreen === item.id;
@@ -75,8 +75,8 @@ export const BottomNav: React.FC = () => {
             onClick={() => setActiveScreen(item.id)}
             className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-[10px] font-semibold transition-colors shrink-0 ${
               isActive
-                ? 'text-[#1E40AF] dark:text-[#3B82F6]'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
+                ? 'text-[#2563EB] dark:text-[#3B82F6]'
+                : 'text-[#000000] dark:text-[#64748B] dark:text-zinc-400 hover:text-[#0F172A] dark:hover:text-zinc-200'
             }`}
           >
             <Icon className="w-5 h-5" />

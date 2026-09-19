@@ -75,12 +75,12 @@ export const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({
       <ChartState loading={loading} dataCount={data.length} emptyMessage={emptyMessage} height="h-64">
         <div className="h-64 flex flex-col justify-between">
           <div>
-            <p className="text-xs font-bold text-zinc-700 dark:text-zinc-200 mb-2 text-right">
+            <p className="text-xs font-bold text-[#1E293B] dark:text-zinc-200 mb-2 text-right">
               {new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
             <div className="grid grid-cols-7 gap-1.5">
               {WEEKDAY_HEADERS.map((label, index) => (
-                <div key={`h-${index}`} className="text-center text-[9px] font-bold text-zinc-400 dark:text-zinc-500 uppercase pb-1">
+                <div key={`h-${index}`} className="text-center text-[9px] font-bold text-[#000000] dark:text-[#64748B] dark:text-zinc-500 uppercase pb-1">
                   {label}
                 </div>
               ))}
@@ -107,9 +107,9 @@ export const AttendanceHeatmap: React.FC<AttendanceHeatmapProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-zinc-200/80 dark:border-zinc-800">
+          <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-[#E2E8F0]/80 dark:border-zinc-800">
             {legendStatuses.map((status) => (
-              <span key={status} className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+              <span key={status} className="flex items-center gap-1.5 text-[10px] font-medium text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
                 <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: STATUS_STYLES[status].bg }} />
                 {STATUS_STYLES[status].label}
               </span>

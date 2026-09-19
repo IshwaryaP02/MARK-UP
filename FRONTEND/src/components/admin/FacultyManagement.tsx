@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Faculty } from '../../types';
+import { rankedSearch } from '../../utils/searchRank';
 import { Modal } from '../common/Modal';
 import { BackButton } from '../common/BackButton';
 import { Search, Plus, Edit2, Trash2, BookOpen, Mail, Phone, Building2 } from 'lucide-react';
@@ -19,7 +20,6 @@ export const FacultyManagement: React.FC = () => {
     email: '',
     departmentId: departments[0]?.id || '',
     departmentName: departments[0]?.name || '',
-    designation: '',
     phone: '',
     assignedSubjectIds: [],
     active: true
@@ -27,12 +27,10 @@ export const FacultyManagement: React.FC = () => {
 
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
 
-  const filtered = facultyList.filter(
-    (f) =>
-      (f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const deptScoped = facultyList;
+  const filtered = searchTerm.trim()
+    ? rankedSearch(deptScoped, searchTerm, [(f) => f.name, (f) => f.employeeId, (f) => f.email])
+    : deptScoped;
 
   const handleOpenModal = (fac?: Faculty) => {
     if (fac) {
@@ -46,7 +44,6 @@ export const FacultyManagement: React.FC = () => {
         email: '',
         departmentId: departments[0]?.id || '',
         departmentName: departments[0]?.name || '',
-        designation: '',
         phone: '',
         assignedSubjectIds: [],
         active: true
@@ -57,11 +54,7 @@ export const FacultyManagement: React.FC = () => {
 
   const handleSaveFaculty = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.employeeId || !formData.email || !formData.designation ||
-        !formData.phone || !formData.departmentId) {
-      addToast('Missing Details', 'Complete every faculty/HOD field before registering.', 'danger');
-      return;
-    }
+    if (!formData.name || !formData.employeeId) return;
 
     if (selectedFaculty) {
       updateFaculty(formData as Faculty);
@@ -92,9 +85,9 @@ export const FacultyManagement: React.FC = () => {
     <div className="space-y-6">
       <BackButton />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">
             Faculty Roster & Course Assignments
           </h2>
 
@@ -102,7 +95,7 @@ export const FacultyManagement: React.FC = () => {
 
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Register Faculty
@@ -112,7 +105,7 @@ export const FacultyManagement: React.FC = () => {
       {/* Search */}
       <div className="flex flex-col sm:flex-row items-center gap-2">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[#000000] dark:text-[#64748B] absolute left-3.5 top-3" />
           <input
             type="text"
             value={searchTerm}
@@ -121,12 +114,12 @@ export const FacultyManagement: React.FC = () => {
               if (e.key === 'Enter') setSearchTerm((e.target as HTMLInputElement).value);
             }}
             placeholder="Search faculty by name, Employee ID, or email..."
-            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
         <button
           onClick={() => setSearchTerm(searchTerm)}
-          className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+          className="px-4 py-2 text-xs font-bold text-white bg-[#2563EB] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
         >
           Enter
         </button>
@@ -139,58 +132,58 @@ export const FacultyManagement: React.FC = () => {
           return (
             <div
               key={fac.id}
-              className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm flex flex-col justify-between"
+              className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl p-4 shadow-sm flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center gap-3 mb-3">
                   <img
                     src={fac.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'}
                     alt={fac.name}
-                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#1E40AF]/30"
+                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#2563EB]/30"
                   />
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{fac.name}</h3>
-                    <span className="text-[10px] font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">
+                    <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">{fac.name}</h3>
+                    <span className="text-[10px] font-mono font-bold text-[#2563EB] dark:text-[#3B82F6] block">
                       {fac.employeeId}
                     </span>
-                    <span className="text-[11px] text-zinc-400">{fac.departmentName}</span>
+                    <span className="text-[11px] text-[#000000] dark:text-[#64748B]">{fac.departmentName}</span>
                   </div>
                 </div>
 
-                <div className="space-y-1.5 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-100 dark:border-zinc-800/80 pt-3">
+                <div className="space-y-1.5 text-xs text-[#1E293B] dark:text-zinc-400 border-t border-[#E2E8F0] dark:border-zinc-800/80 pt-3">
                   <div className="flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5 text-zinc-400" />
+                    <Mail className="w-3.5 h-3.5 text-[#000000] dark:text-[#64748B]" />
                     <span className="truncate">{fac.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-zinc-400" />
+                    <Phone className="w-3.5 h-3.5 text-[#000000] dark:text-[#64748B]" />
                     <span>{fac.phone}</span>
                   </div>
                 </div>
 
-                <div className="mt-3 p-2.5 bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 rounded-xl flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-[#1E40AF] dark:text-[#3B82F6]">
+                <div className="mt-3 p-2.5 bg-[#2563EB]/10 dark:bg-[#2563EB]/40 rounded-xl flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-[#2563EB] dark:text-[#3B82F6]">
                     {assignedCount} Assigned Subject(s)
                   </span>
                   <button
                     onClick={() => handleOpenAssign(fac)}
-                    className="text-[10px] font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
+                    className="text-[10px] font-bold text-[#2563EB] dark:text-[#3B82F6] hover:underline flex items-center gap-1"
                   >
                     <BookOpen className="w-3 h-3" /> Assign Courses
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-zinc-100 dark:border-zinc-800/60">
+              <div className="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-[#E2E8F0] dark:border-zinc-800/60">
                 <button
                   onClick={() => handleOpenModal(fac)}
-                  className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
+                  className="p-1.5 text-[#000000] dark:text-[#64748B] hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
                 >
                   <Edit2 className="w-3.5 h-3.5" /> Edit
                 </button>
                 <button
                   onClick={() => deleteFaculty(fac.id)}
-                  className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
+                  className="p-1.5 text-[#000000] dark:text-[#64748B] hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors text-xs font-semibold flex items-center gap-1"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Remove
                 </button>
@@ -210,83 +203,59 @@ export const FacultyManagement: React.FC = () => {
         <form onSubmit={handleSaveFaculty} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Full Name</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Full Name</label>
               <input
                 type="text"
                 required
                 value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Employee ID</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Employee ID</label>
               <input
                 type="text"
                 required
                 value={formData.employeeId || ''}
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                className="w-full p-2 text-xs font-mono bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs font-mono bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Email</label>
               <input
                 type="email"
                 required
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Phone</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Phone</label>
               <input
                 type="text"
-                required
                 value={formData.phone || ''}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Designation</label>
-              <input
-                type="text"
-                required
-                value={formData.designation || ''}
-                onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 mt-6">
-              <input
-                type="checkbox"
-                checked={Boolean(formData.isHOD)}
-                onChange={(e) => setFormData({ ...formData, isHOD: e.target.checked })}
-              />
-              Register as Head of Department
-            </label>
           </div>
 
           <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Department</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Department</label>
               <select
-                required
                 value={formData.departmentId || ''}
                 onChange={(e) => {
                   const d = departments.find((dept) => dept.id === e.target.value);
                   setFormData({ ...formData, departmentId: e.target.value, departmentName: d?.name || '' });
                 }}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               >
-                <option value="">Select department</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
@@ -297,7 +266,7 @@ export const FacultyManagement: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
+            className="w-full py-2.5 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
           >
             {selectedFaculty ? 'Save Changes' : 'Register Faculty'}
           </button>
@@ -320,8 +289,8 @@ export const FacultyManagement: React.FC = () => {
                   key={sub.id}
                   className={`flex items-center justify-between p-3 rounded-xl border text-xs cursor-pointer transition-colors ${
                     isChecked
-                      ? 'bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 border-[#1E40AF]/30 dark:border-[#3B82F6]/40 text-[#1E40AF] dark:text-[#3B82F6] font-semibold'
-                      : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300'
+                      ? 'bg-[#2563EB]/10 dark:bg-[#2563EB]/50 border-[#2563EB]/30 dark:border-[#3B82F6]/40 text-[#2563EB] dark:text-[#3B82F6] font-semibold'
+                      : 'bg-[#F7F9FC] dark:bg-zinc-800/50 border-[#E2E8F0] dark:border-zinc-700 text-[#1E293B] dark:text-zinc-300'
                   }`}
                 >
                   <div>
@@ -338,7 +307,7 @@ export const FacultyManagement: React.FC = () => {
                         setSelectedSubjects(selectedSubjects.filter((id) => id !== sub.id));
                       }
                     }}
-                    className="w-4 h-4 text-[#1E40AF] rounded focus:ring-[#1E40AF]"
+                    className="w-4 h-4 text-[#2563EB] rounded focus:ring-[#2563EB]"
                   />
                 </label>
               );
@@ -347,7 +316,7 @@ export const FacultyManagement: React.FC = () => {
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
+            className="w-full py-2.5 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
           >
             Save Course Assignments
           </button>

@@ -39,9 +39,9 @@ export const DBBackup: React.FC = () => {
     <div className="space-y-6">
       <BackButton />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">
             Monthly Database Backup
           </h2>
         </div>
@@ -51,11 +51,11 @@ export const DBBackup: React.FC = () => {
             type="month"
             value={backupMonth}
             onChange={(e) => setBackupMonth(e.target.value)}
-            className="p-2 text-xs font-semibold bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl"
+            className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
           />
           <button
             onClick={handleCreateMonthlyBackup}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Create Backup
@@ -64,25 +64,25 @@ export const DBBackup: React.FC = () => {
       </div>
 
       {/* Latest Backup Summary */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl p-5 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4">
         {lastBackup ? (
           <>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 text-[#1E40AF] dark:text-[#3B82F6] rounded-2xl">
+              <div className="p-3 bg-[#2563EB]/10 dark:bg-[#2563EB]/50 text-[#2563EB] dark:text-[#3B82F6] rounded-2xl">
                 <HardDrive className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Backup Month</div>
-                <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{backupMonthLabel(lastBackup.createdAt)}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B]">Backup Month</div>
+                <div className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">{backupMonthLabel(lastBackup.createdAt)}</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-[#1E40AF]/10 dark:bg-[#2563EB]/50 text-[#1E40AF] dark:text-[#3B82F6] rounded-2xl">
+              <div className="p-3 bg-[#2563EB]/10 dark:bg-[#2563EB]/50 text-[#2563EB] dark:text-[#3B82F6] rounded-2xl">
                 <CalendarDays className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Backup Date</div>
-                <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-mono">{lastBackup.createdAt}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B]">Backup Date</div>
+                <div className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 font-mono">{lastBackup.createdAt}</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -90,28 +90,28 @@ export const DBBackup: React.FC = () => {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Status</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B]">Status</div>
                 <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase">{lastBackup.status}</div>
               </div>
             </div>
           </>
         ) : (
-          <p className="text-xs text-zinc-400">No backups created yet. Create your first monthly backup.</p>
+          <p className="text-xs text-[#000000] dark:text-[#64748B]">No backups created yet. Create your first monthly backup.</p>
         )}
       </div>
 
       {/* Backup History Table */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-zinc-100 dark:border-[#232326] flex items-center justify-between">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            <Database className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-[#E2E8F0] dark:border-[#232326] flex items-center justify-between">
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 flex items-center gap-2">
+            <Database className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
             Backup History ({backups.length})
           </h3>
         </div>
 
         <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-zinc-50 dark:bg-[#0A0A0A]/80 border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+          <thead className="bg-[#F7F9FC] dark:bg-[#0A0A0A]/80 border-b border-[#E2E8F0] dark:border-[#232326] text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider">
             <tr>
               <th className="p-3.5 pl-4">Backup Month</th>
               <th className="p-3.5">Backup Date</th>
@@ -124,17 +124,17 @@ export const DBBackup: React.FC = () => {
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
             {backups.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-zinc-400">No backup history available.</td>
+                <td colSpan={6} className="p-8 text-center text-[#000000] dark:text-[#64748B]">No backup history available.</td>
               </tr>
             ) : (
               backups.map((b) => (
-                <tr key={b.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors">
-                  <td className="p-3.5 pl-4 font-bold text-[#1E40AF] dark:text-[#3B82F6]">
+                <tr key={b.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
+                  <td className="p-3.5 pl-4 font-bold text-[#2563EB] dark:text-[#3B82F6]">
                     {backupMonthLabel(b.createdAt)}
                   </td>
-                  <td className="p-3.5 text-zinc-500 font-mono">{b.createdAt}</td>
-                  <td className="p-3.5 font-mono font-semibold text-zinc-700 dark:text-zinc-300">{b.filename}</td>
-                  <td className="p-3.5 font-semibold text-zinc-700 dark:text-zinc-300">{b.size}</td>
+                  <td className="p-3.5 text-[#000000] dark:text-[#64748B] font-mono">{b.createdAt}</td>
+                  <td className="p-3.5 font-mono font-semibold text-[#1E293B] dark:text-zinc-300">{b.filename}</td>
+                  <td className="p-3.5 font-semibold text-[#1E293B] dark:text-zinc-300">{b.size}</td>
                   <td className="p-3.5">
                     <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
                       <CheckCircle2 className="w-3.5 h-3.5" /> {b.status}
@@ -143,7 +143,7 @@ export const DBBackup: React.FC = () => {
                   <td className="p-3.5 text-right pr-4">
                     <button
                       onClick={() => handleDownload(b.filename)}
-                      className="p-1.5 text-[#1E40AF] dark:text-[#3B82F6] hover:bg-[#1E40AF]/10 rounded-lg transition-colors font-semibold flex items-center gap-1 ml-auto"
+                      className="p-1.5 text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#2563EB]/10 rounded-lg transition-colors font-semibold flex items-center gap-1 ml-auto"
                     >
                       <Download className="w-3.5 h-3.5" /> Download
                     </button>

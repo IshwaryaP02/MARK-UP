@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { ShieldCheck, AlertTriangle, BookOpen, ChevronRight, ArrowLeft, Calendar, CheckCircle2, XCircle, LayoutGrid } from 'lucide-react';
 import { Subject, AttendanceStatus } from '../../types';
 import { BackButton } from '../common/BackButton';
+import { masterSelectionLabel } from '../../services/programmeStructure';
 
 interface SessionLog {
   id: number;
@@ -81,21 +82,21 @@ export const StudentAttendance: React.FC = () => {
         {/* Navigation back */}
         <button
           onClick={() => setSelectedSubject(null)}
-          className="flex items-center gap-2 text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline"
+          className="flex items-center gap-2 text-xs font-bold text-[#2563EB] dark:text-[#3B82F6] hover:underline"
         >
           <ArrowLeft className="w-4 h-4" /> Back to All Subjects
         </button>
 
         {/* Subject Detail Container */}
-        <div className="bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-3xl p-6 text-zinc-900 dark:text-white shadow-xl space-y-6">
+        <div className="bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-3xl p-6 text-[#0F172A] dark:text-white shadow-xl space-y-6">
           {/* Header Title & Subtitle */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-200 dark:border-[#232326]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0] dark:border-[#232326]">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                <h2 className="text-xl font-bold tracking-tight text-[#0F172A] dark:text-white">
                   {selectedSubject.code} – {selectedSubject.name.toUpperCase()}
                 </h2>
-                <span className="p-1.5 bg-[#1E40AF] rounded-lg text-white dark:bg-[#2563EB] dark:text-[#FFFFFF]">
+                <span className="p-1.5 bg-[#2563EB] rounded-lg text-white dark:bg-[#2563EB] dark:text-[#FFFFFF]">
                   <Calendar className="w-4 h-4" />
                 </span>
               </div>
@@ -105,48 +106,48 @@ export const StudentAttendance: React.FC = () => {
           <>
             {/* Metric Cards Row (Plain backgrounds, matching palette) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-2xl">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-2xl">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] dark:text-zinc-400 block mb-1">
                     TOTAL SESSIONS
                   </span>
-                  <span className="text-2xl font-black text-zinc-900 dark:text-white">{totalSessions}</span>
+                  <span className="text-2xl font-black text-[#0F172A] dark:text-white">{totalSessions}</span>
                 </div>
 
-                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-2xl">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-2xl">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] dark:text-zinc-400 block mb-1">
                     PRESENT
                   </span>
                   <span className="text-2xl font-black text-emerald-400">{presentCount}</span>
                 </div>
 
-                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-2xl">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-2xl">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] dark:text-zinc-400 block mb-1">
                     ABSENT
                   </span>
                   <span className="text-2xl font-black text-rose-400">{absentCount}</span>
                 </div>
 
-                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-2xl">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block mb-1">
+                <div className="p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-2xl">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] dark:text-zinc-400 block mb-1">
                     ATTENDANCE %
                   </span>
-                  <span className="text-2xl font-black text-zinc-900 dark:text-white">{subjectPct}.00%</span>
+                  <span className="text-2xl font-black text-[#0F172A] dark:text-white">{subjectPct}.00%</span>
                 </div>
               </div>
 
               {/* Session-Wise Attendance Table */}
               {sessionLogs.length === 0 ? (
-                <div className="p-8 text-center text-zinc-500 dark:text-zinc-400 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-2xl">
-                  <p className="text-sm font-bold text-zinc-900 dark:text-white">No Attendance Sessions Yet</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                <div className="p-8 text-center text-[#000000] dark:text-[#64748B] dark:text-zinc-400 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-2xl">
+                  <p className="text-sm font-bold text-[#0F172A] dark:text-white">No Attendance Sessions Yet</p>
+                  <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-1">
                     Sessions for {selectedSubject.code} will appear here once faculty mark attendance.
                   </p>
                 </div>
               ) : (
-              <div className="border border-zinc-200 dark:border-[#232326] rounded-2xl overflow-hidden bg-[#FFFFFF] dark:bg-[#0A0A0A]">
+              <div className="border border-[#E2E8F0] dark:border-[#232326] rounded-2xl overflow-hidden bg-[#FFFFFF] dark:bg-[#0A0A0A]">
                 <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-zinc-50 dark:bg-[#0A0A0A] border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
+                  <thead className="bg-[#F7F9FC] dark:bg-[#0A0A0A] border-b border-[#E2E8F0] dark:border-[#232326] text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
                     <tr>
                       <th className="p-3.5 pl-5">S.NO</th>
                       <th className="p-3.5">DATE</th>
@@ -154,12 +155,12 @@ export const StudentAttendance: React.FC = () => {
                       <th className="p-3.5 text-right pr-5">STATUS</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 font-semibold text-zinc-700 dark:text-zinc-200">
+                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 font-semibold text-[#1E293B] dark:text-zinc-200">
                     {sessionLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
-                        <td className="p-3.5 pl-5 font-mono text-zinc-400 dark:text-zinc-500">{log.id}</td>
+                      <tr key={log.id} className="hover:bg-[#F7F9FC] dark:hover:bg-zinc-800/40 transition-colors">
+                        <td className="p-3.5 pl-5 font-mono text-[#000000] dark:text-[#64748B] dark:text-zinc-500">{log.id}</td>
                         <td className="p-3.5 font-bold">{log.date}</td>
-                        <td className="p-3.5 font-mono text-zinc-500 dark:text-zinc-400">{log.sessionNumber}</td>
+                        <td className="p-3.5 font-mono text-[#000000] dark:text-[#64748B] dark:text-zinc-400">{log.sessionNumber}</td>
                         <td className="p-3.5 text-right pr-5">
                           {log.status === 'present' ? (
                             <span className="inline-flex items-center px-3 py-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-bold text-[11px] rounded-lg">
@@ -189,17 +190,22 @@ export const StudentAttendance: React.FC = () => {
     <div className="space-y-6">
       <BackButton label="Back to Dashboard" />
 
-      <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+      <div className="pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
+        <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">
           Subject-Wise Attendance Breakdown
         </h2>
+        {currentUser.programme && currentUser.year && (
+          <span className="mt-1 inline-block px-2.5 py-1 bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/40 dark:text-[#3B82F6] text-xs font-extrabold rounded-xl">
+            {masterSelectionLabel({ programme: currentUser.programme, departmentId: currentUser.departmentId, year: currentUser.year, shift: currentUser.shift as 'First Shift' | 'Second Shift' | undefined })}
+          </span>
+        )}
       </div>
 
       {/* Main Table listing enrolled subjects */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-zinc-50 dark:bg-[#0A0A0A] border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
+          <thead className="bg-[#F7F9FC] dark:bg-[#0A0A0A] border-b border-[#E2E8F0] dark:border-zinc-800 text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
             <tr>
               <th className="p-3.5 pl-4">S.NO</th>
               <th className="p-3.5">Subject Code & Name</th>
@@ -220,21 +226,21 @@ export const StudentAttendance: React.FC = () => {
                 <tr
                   key={sub.id}
                   onClick={() => setSelectedSubject(sub)}
-                  className="hover:bg-zinc-50/80 dark:hover:bg-[#0A0A0A]/60 transition-colors cursor-pointer group"
+                  className="hover:bg-[#F7F9FC]/80 dark:hover:bg-[#0A0A0A]/60 transition-colors cursor-pointer group"
                 >
-                  <td className="p-3.5 pl-4 font-mono font-bold text-zinc-400">{idx + 1}</td>
+                  <td className="p-3.5 pl-4 font-mono font-bold text-[#000000] dark:text-[#64748B]">{idx + 1}</td>
                   <td className="p-3.5 font-bold">
-                    <span className="font-mono text-[#1E40AF] dark:text-[#3B82F6] mr-2">{sub.code}</span>
-                    <span className="text-zinc-900 dark:text-zinc-100 group-hover:text-[#1E40AF] dark:group-hover:text-[#3B82F6] transition-colors">
+                    <span className="font-mono text-[#2563EB] dark:text-[#3B82F6] mr-2">{sub.code}</span>
+                    <span className="text-[#0F172A] dark:text-zinc-100 group-hover:text-[#2563EB] dark:group-hover:text-[#3B82F6] transition-colors">
                       {sub.name}
                     </span>
                   </td>
-                  <td className="p-3.5 text-zinc-600 dark:text-zinc-300 font-medium">{sub.facultyName || 'Faculty'}</td>
-                  <td className="p-3.5 font-mono font-bold text-zinc-800 dark:text-zinc-200">
+                  <td className="p-3.5 text-[#1E293B] dark:text-zinc-300 font-medium">{sub.facultyName || 'Faculty'}</td>
+                  <td className="p-3.5 font-mono font-bold text-[#0F172A] dark:text-zinc-200">
                     {noRecords ? '—' : `${attendedCount} / ${stats.total}`}
                   </td>
                   <td className="p-3.5 font-extrabold text-sm">
-                    <span className={noRecords ? 'text-zinc-400 dark:text-zinc-500' : pct >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                    <span className={noRecords ? 'text-[#000000] dark:text-[#64748B] dark:text-zinc-500' : pct >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
                       {noRecords ? '—' : `${pct}%`}
                     </span>
                   </td>
@@ -245,7 +251,7 @@ export const StudentAttendance: React.FC = () => {
                         e.stopPropagation();
                         setSelectedSubject(sub);
                       }}
-                      className="px-3 py-1.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] text-[#1E40AF] dark:text-[#3B82F6] hover:bg-[#1E40AF] hover:text-white dark:hover:bg-[#2563EB] dark:hover:text-[#0A0A0A] text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1 border border-zinc-200 dark:border-zinc-700"
+                      className="px-3 py-1.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#2563EB] hover:text-white dark:hover:bg-[#2563EB] dark:hover:text-[#0A0A0A] text-xs font-bold rounded-xl transition-all inline-flex items-center gap-1 border border-[#E2E8F0] dark:border-zinc-700"
                     >
                       View Sessions <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -259,28 +265,28 @@ export const StudentAttendance: React.FC = () => {
       </div>
 
       {/* OVERALL EXAM ELIGIBILITY SUMMARY CARD AT END */}
-      <div className="p-5 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-5 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] block mb-1">
             Overall University Exam Eligibility Status
           </span>
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100">
+            <span className="text-2xl font-extrabold text-[#0F172A] dark:text-zinc-100">
               {overallAttendancePct}% Cumulative Attendance
             </span>
-            <span className="text-xs font-mono text-zinc-500">
+            <span className="text-xs font-mono text-[#000000] dark:text-[#64748B]">
               ({totalAttendedAll} / {totalClassesHeldAll} Total Sessions Attended Across All Courses)
             </span>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+          <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-1">
             Official university regulation mandates a minimum overall threshold of 75% for hall ticket issuance.
           </p>
         </div>
 
         <div>
           {totalClassesHeldAll === 0 ? (
-            <div className="px-4 py-2.5 bg-zinc-50 text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 font-bold text-xs rounded-xl flex items-center gap-2 shrink-0">
-              <BookOpen className="w-4 h-4 text-zinc-400" />
+            <div className="px-4 py-2.5 bg-[#F7F9FC] text-[#1E293B] dark:bg-zinc-800/60 dark:text-zinc-300 border border-[#E2E8F0] dark:border-zinc-700 font-bold text-xs rounded-xl flex items-center gap-2 shrink-0">
+              <BookOpen className="w-4 h-4 text-[#000000] dark:text-[#64748B]" />
               No Attendance Data Recorded Yet
             </div>
           ) : isOverallEligible ? (

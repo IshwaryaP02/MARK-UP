@@ -20,6 +20,9 @@ export interface User {
   section?: string;
   rollNo?: string;
   batch?: string;
+  programme?: 'UG' | 'PG';
+  year?: string;
+  shift?: string;
   guardianName?: string;
   guardianPhone?: string;
   phone?: string;
@@ -46,6 +49,10 @@ export interface Student {
   semester: number;
   section: string;
   batch: string;
+  // Master structure (Programme -> Department -> Year -> Shift).
+  programme?: 'UG' | 'PG';
+  year?: string;   // 'I YEAR' | 'II YEAR' | 'III YEAR'
+  shift?: string;  // 'First Shift' | 'Second Shift'
   overallAttendancePct: number;
   guardianName: string;
   guardianPhone: string;
@@ -68,11 +75,11 @@ export interface Faculty {
   avatar?: string;
   departmentId: string;
   departmentName: string;
-  designation: string;
   phone: string;
   assignedSubjectIds: string[];
   isHOD?: boolean;
-  tutorFor?: { semester: number; section: string };
+  // TuTor class uses the master structure too.
+  tutorFor?: { semester: number; section: string; programme?: 'UG' | 'PG'; shift?: string };
   active: boolean;
 }
 
@@ -116,6 +123,9 @@ export interface TimetableSlot {
     departmentId: string;
     semester: number;
     section: string;
+    classroom?: string; // classroom / room label assigned to this slot
+    programme?: 'UG' | 'PG';
+    year?: string; // 'I YEAR' | 'II YEAR' | 'III YEAR'
     shift?: string; // Optional shift label (e.g. First Shift / Second Shift / Morning / Evening)
     dayOrder?: number; // Optional Day Order (1, 2, 3...) this slot belongs to. Undefined = applies to all day orders.
   }
@@ -148,6 +158,9 @@ export interface AttendanceRecord {
   departmentId: string;
   semester: number;
   section: string;
+  programme?: 'UG' | 'PG';
+  year?: string;
+  shift?: string;
   entries: AttendanceEntry[];
   totalStudents: number;
   presentCount: number;
@@ -188,12 +201,16 @@ export interface LeaveRequest {
   departmentId: string;
   semester: number;
   section: string;
+  programme?: 'UG' | 'PG';
+  year?: string;
+  shift?: string;
   leaveType: LeaveType;
   startDate: string;
   endDate: string;
   totalDays: number;
   reason: string;
   attachmentUrl?: string;
+  attachmentName?: string;
   status: LeaveStatus;
   facultyApproval?: {
     facultyId: string;
@@ -221,6 +238,7 @@ export interface SubstitutionRequest {
   subjectCode: string;
   subjectName: string;
   section: string;
+  shift?: string;
   reason: string;
   status: 'pending' | 'accepted' | 'rejected_by_sub' | 'approved_by_hod';
   createdAt: string;
@@ -232,23 +250,16 @@ export interface CalendarEvent {
   type: 'holiday' | 'exam' | 'working' | 'event';
   title: string;
   description?: string;
-}
-
-export interface StaffOrder {
-  id: string;
-  month: string; // YYYY-MM
-  title: string;
-  orderNumber: string;
-  description?: string;
-  issuedDate: string; // YYYY-MM-DD
-  createdAt: string;
-  updatedAt: string;
+  dayOrder?: number; // Day order number for working days, synced from staff day order schedule
 }
 
 // A single date → Day Order mapping extracted from an uploaded monthly schedule image.
+// Also supports holiday/leave entries extracted from the day order.
 export interface DayOrderEntry {
   date: string; // YYYY-MM-DD
-  dayOrder: number; // 1, 2, 3, ...
+  dayOrder?: number; // 1, 2, 3, ... (undefined if holiday/leave)
+  isHoliday?: boolean; // true if this date is a holiday/leave
+  holidayTitle?: string; // e.g. "Weekly Off", "Compensatory Holiday"
 }
 
 // A monthly Staff Day Order schedule uploaded by Admin (image + OCR-extracted entries).
@@ -297,7 +308,8 @@ export interface AppNotification {
   targetClass?: { semester: number; section: string };
   // Extended targeting for circular-driven notifications.
   targetDepartmentIds?: string[]; // students belonging to these departments
-  targetProgrammes?: string[];    // 'UG' | 'MSc' / programme names
+  targetProgrammes?: string[];    // 'UG' | 'PG'
+  targetYears?: string[];         // 'I YEAR' | 'II YEAR' | 'III YEAR'
   targetSemesters?: number[];     // students belonging to these semesters (covers both shifts)
   targetShift?: string;           // optional shift restriction
   circularId?: string;            // id of the source circular (to open/view it)
@@ -429,12 +441,14 @@ export interface StudentDetails {
 export type BonafideStatus =
   | 'submitted'
   | 'faculty_review'
+  | 'faculty_reviewed'
   | 'faculty_recommended'
   | 'hod_review'
   | 'hod_recommended'
   | 'principal_approval'
   | 'returned_to_hod'
-  | 'approved';
+  | 'approved'
+  | 'rejected';
 
 export type BonafidePurpose =
   | 'education'
@@ -461,6 +475,10 @@ export interface BonafideRequest {
   purposeDescription?: string;
   requiredCopies?: number;
   status: BonafideStatus;
+  // Tracks whether the faculty has already opened/reviewed this request.
+  // Once true, the student can no longer delete/cancel the request.
+  facultyReviewed?: boolean;
+  facultyReviewedAt?: string;
   // Approval trail
   facultyId?: string;
   facultyName?: string;
@@ -484,10 +502,12 @@ export interface Circular {
   target: CircularTarget;
   departmentId: string;
   departmentName: string;
+  programme?: 'UG' | 'PG';
   course?: string;
   year?: string;
   shift?: string;
   attachmentUrl?: string;
+  attachmentName?: string;
   validFrom: string;
   validUntil: string;
   status: CircularStatus;

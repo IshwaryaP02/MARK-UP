@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { rankedSearch } from '../../utils/searchRank';
 import {
   Search,
   LayoutDashboard,
@@ -95,12 +96,17 @@ export const CommandPalette: React.FC = () => {
     { label: 'Switch to Student Role', role: 'student' }
   ];
 
-  const filteredNav = navActions.filter((item) => {
-    if (item.roles && !item.roles.includes(currentUser.role)) return false;
-    return item.label.toLowerCase().includes(query.toLowerCase());
-  });
+  const filteredNavRanked = query.trim()
+    ? rankedSearch(
+        navActions.filter((item) => !item.roles || item.roles.includes(currentUser.role)),
+        query,
+        [(i) => i.label]
+      )
+    : navActions.filter((item) => !item.roles || item.roles.includes(currentUser.role));
 
-  const filteredRoles = roleActions.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
+  const filteredRolesRanked = query.trim()
+    ? rankedSearch(roleActions, query, [(i) => i.label])
+    : roleActions;
 
   const handleSelectNav = (screen: string) => {
     const item = navActions.find((n) => n.screen === screen || (n.screens && n.screens[currentUser.role] === screen));
@@ -131,20 +137,20 @@ export const CommandPalette: React.FC = () => {
           initial={{ opacity: 0, scale: 0.95, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -10 }}
-          className="relative w-full max-w-xl bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-2xl shadow-2xl overflow-hidden z-10"
+          className="relative w-full max-w-xl bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-2xl shadow-2xl overflow-hidden z-10"
         >
           {/* Input field */}
-          <div className="flex items-center px-4 py-3.5 border-b border-zinc-200 dark:border-[#232326]">
-            <Search className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6] mr-3 shrink-0" />
+          <div className="flex items-center px-4 py-3.5 border-b border-[#E2E8F0] dark:border-[#232326]">
+            <Search className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6] mr-3 shrink-0" />
             <input
               type="text"
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Type a command, screen name, or role..."
-              className="w-full bg-transparent text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
+              className="w-full bg-transparent text-sm font-medium text-[#0F172A] dark:text-zinc-100 placeholder-zinc-400 focus:outline-none"
             />
-            <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-semibold text-zinc-500 bg-zinc-100 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-md">
+            <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 text-[10px] font-mono font-semibold text-[#000000] dark:text-[#64748B] bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-md">
               ESC
             </kbd>
           </div>
@@ -153,40 +159,40 @@ export const CommandPalette: React.FC = () => {
           <div className="max-h-80 overflow-y-auto p-2 space-y-3">
             {/* Quick Toggle Theme */}
             <div className="px-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Theme Toggle</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">Theme Toggle</p>
               <button
                 onClick={() => {
                   toggleDarkMode();
                   setCommandPaletteOpen(false);
                   addToast('Theme Toggled', `Switched to ${!isDarkMode ? 'Dark' : 'Light'} mode`, 'info');
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#1E293B] dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#2563EB] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
               >
                 <div className="flex items-center gap-2">
                   {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
                   <span>Switch to {isDarkMode ? 'Light' : 'Dark'} Mode</span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#000000] dark:text-[#64748B]" />
               </button>
             </div>
 
             {/* Screens & Actions */}
-            {filteredNav.length > 0 && (
+            {filteredNavRanked.length > 0 && (
               <div className="px-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Screens & Tools</p>
-                {filteredNav.map((item) => {
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">Screens & Tools</p>
+                {filteredNavRanked.map((item) => {
                   const Icon = item.icon;
                   return (
                     <button
                       key={item.screen}
                       onClick={() => handleSelectNav(item.screen)}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-[#1E293B] dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#2563EB] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
                     >
                       <div className="flex items-center gap-2.5">
-                        <Icon className="w-4 h-4 shrink-0 text-zinc-500" />
+                        <Icon className="w-4 h-4 shrink-0 text-[#000000] dark:text-[#64748B]" />
                         <span>{item.label}</span>
                       </div>
-                      <span className="text-[10px] text-zinc-400 bg-zinc-100 dark:bg-[#0A0A0A] px-2 py-0.5 rounded-md">
+                      <span className="text-[10px] text-[#000000] dark:text-[#64748B] bg-[#F7F9FC] dark:bg-[#0A0A0A] px-2 py-0.5 rounded-md">
                         {item.category}
                       </span>
                     </button>
@@ -196,17 +202,17 @@ export const CommandPalette: React.FC = () => {
             )}
 
             {/* Roles switch */}
-            {filteredRoles.length > 0 && (
+            {filteredRolesRanked.length > 0 && (
               <div className="px-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">Switch Role Demo</p>
-                {filteredRoles.map((item) => (
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">Switch Role Demo</p>
+                {filteredRolesRanked.map((item) => (
                   <button
                     key={item.role}
                     onClick={() => handleSelectRole(item.role)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#1E40AF] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-[#1E293B] dark:text-zinc-300 hover:bg-[#FFFFFF] dark:hover:bg-[#2563EB]/40 hover:text-[#2563EB] dark:hover:text-[#3B82F6] rounded-xl transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <UserCheck className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6] shrink-0" />
+                      <UserCheck className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6] shrink-0" />
                       <span>{item.label}</span>
                     </div>
                     {currentUser.role === item.role && (

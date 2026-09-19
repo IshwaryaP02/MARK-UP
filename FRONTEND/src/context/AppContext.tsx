@@ -18,8 +18,8 @@ import {
   Circular,
   CircularStatus,
   PeriodTiming,
-  StaffOrder,
   StaffDayOrder,
+  DayOrderEntry,
   BonafideRequest,
   BonafideStatus
 } from '../types';
@@ -91,6 +91,7 @@ interface AppContextType {
 
   saveTimetableSlot: (slot: TimetableSlot) => Promise<void>;
   deleteTimetableSlot: (id: string) => Promise<void>;
+  replaceFacultyTimetable: (saved: TimetableSlot[], deleted: string[]) => Promise<void>;
   savePeriodTimes: (timings: PeriodTiming[]) => void;
   getPeriodTime: (periodNumber: number) => { start: string; end: string } | undefined;
 
@@ -108,13 +109,9 @@ interface AppContextType {
   respondSubstitution: (id: string, action: 'approved' | 'rejected') => Promise<void>;
 
   addCalendarEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<void>;
-  updateCalendarEvent: (event: CalendarEvent) => void;
+  updateCalendarEvent: (event: CalendarEvent) => Promise<void>;
   deleteCalendarEvent: (id: string) => Promise<void>;
-
-  staffOrders: StaffOrder[];
-  addStaffOrder: (order: Omit<StaffOrder, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateStaffOrder: (order: StaffOrder) => void;
-  deleteStaffOrder: (id: string) => void;
+  syncStaffDayOrderToCalendar: (entries: DayOrderEntry[]) => void;
 
   staffDayOrders: StaffDayOrder[];
   saveStaffDayOrder: (data: Omit<StaffDayOrder, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -139,20 +136,32 @@ interface AppContextType {
   reviewBonafideRequest: (
     id: string,
     stage: 'faculty' | 'hod' | 'principal',
-    status: 'approve' | 'recommend' | 'reject',
+    status: 'approve' | 'recommend' | 'reject' | 'open',
     actorId: string,
     actorName: string,
     comment?: string
   ) => void;
+  deleteBonafideRequest: (id: string) => void;
+  canDeleteBonafideRequest: (request: BonafideRequest) => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+function normalizeTimetableSlot(raw: any): TimetableSlot {
+  return {
+    ...raw,
+    periodNumber: raw.periodNumber ?? raw.period,
+    startTime: raw.startTime ?? raw.start,
+    endTime: raw.endTime ?? raw.end,
+    subjectId: raw.subjectId ?? raw.subject_id ?? '',
+    facultyId: raw.facultyId ?? raw.faculty_id ?? '',
+    departmentId: raw.departmentId ?? raw.department_id ?? '',
+    classroom: raw.classroom ?? raw.room ?? raw.roomNo ?? '',
+  } as TimetableSlot;
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUserState] = useState<User>(() => {
-    const saved = localStorage.getItem('smart_att_user');
-    return saved ? JSON.parse(saved) : {} as User;
-  });
+  const [currentUser, setCurrentUserState] = useState<User>({} as User);
 
   const [users, setUsers] = useState<User[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -173,14 +182,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [correctionRequests, setCorrectionRequests] = useState<CorrectionRequest[]>([]);
   const [substitutionRequests, setSubstitutionRequests] = useState<SubstitutionRequest[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [staffOrders, setStaffOrders] = useState<StaffOrder[]>(() => {
-    try {
-      const saved = localStorage.getItem('smart_att_staff_orders');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
   const [staffDayOrders, setStaffDayOrders] = useState<StaffDayOrder[]>(() => {
     try {
       const saved = localStorage.getItem('smart_att_staff_day_orders');
@@ -218,10 +219,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentTheme, setCurrentTheme] = useState<string>(() => {
     return localStorage.getItem('smart_att_color_palette') || 'palette-classic';
   });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const saved = localStorage.getItem('smart_att_authed');
-    return saved !== null ? saved === 'true' : false;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeScreen, setActiveScreen] = useState<string>('dashboard');
   const [attendanceSubjectId, setAttendanceSubjectId] = useState<string | null>(null);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
@@ -247,6 +245,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.body.classList.remove('dark');
     }
   }, [theme, isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.role) {
+      apiClient.me().then(() => {
+        loadDataForRole(currentUser.role);
+      }).catch(() => {
+        // Token is likely expired or invalid
+        clearJwt();
+        setCurrentUserState({} as User);
+        setIsAuthenticated(false);
+        localStorage.setItem('smart_att_authed', 'false');
+        setActiveScreen('login');
+      });
+    }
+  }, [isAuthenticated, currentUser?.role]);
 
   // Apply color palette theme (accent palettes kept for backwards compatibility)
   useEffect(() => {
@@ -361,7 +374,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUserState(user);
   };
 
-  const loadDataForRole = useCallback(async (role: UserRole) => {
+  const loadDataForRole = useCallback(async (role: UserRole, user: User = currentUser) => {
     async function load<T>(fn: () => Promise<T>, setter: (data: T) => void): Promise<void> {
       try {
         const data = await fn();
@@ -377,7 +390,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         load(() => apiClient.faculty(), setFacultyList),
         load(() => apiClient.departments(), setDepartments),
         load(() => apiClient.subjects(), setSubjects),
-        load(() => apiClient.adminTimetable(), setTimetable),
+        load(async () => (await apiClient.adminTimetable()).map(normalizeTimetableSlot), setTimetable),
         load(() => apiClient.calendarEvents(), setCalendarEvents),
         load(() => apiClient.auditLogs(), setAuditLogs),
         load(() => apiClient.backups(), setBackups),
@@ -385,6 +398,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         load(() => apiClient.users(), setUsers),
       ]);
     } else if (role === 'hod') {
+      const [hodStudents, monitoring, hodClasses] = await Promise.all([
+        apiClient.facultyStudentSearch(),
+        apiClient.hodMonitoring(),
+        apiClient.hodAllClasses(),
+      ]);
+      setStudents(hodStudents);
+      setFacultyList(monitoring.map((item: any) => ({
+        id: item.facultyId,
+        employeeId: '',
+        name: item.facultyName,
+        email: '',
+        departmentId: user.departmentId || '',
+        departmentName: item.departmentName,
+        phone: '',
+        assignedSubjectIds: (item.subjects || []).map((subject: any) => subject.id),
+        active: true,
+      })));
+      setTimetable(hodClasses.map((item: any, index: number) => ({
+        id: `${item.day}-${item.period}-${item.subjectCode}-${index}`,
+        day: item.day,
+        periodNumber: item.period,
+        startTime: item.start,
+        endTime: item.end,
+        subjectId: '',
+        subjectCode: item.subjectCode,
+        subjectName: item.subjectName,
+        facultyId: '',
+        facultyName: item.facultyName,
+        departmentId: user.departmentId || '',
+        semester: item.semester,
+        section: item.section,
+        classroom: item.room,
+      })));
       await Promise.all([
         load(() => apiClient.departments(), setDepartments),
         load(() => apiClient.subjects(), setSubjects),
@@ -395,10 +441,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ]);
     } else if (role === 'faculty') {
       await Promise.all([
-        load(() => apiClient.students(), setStudents),
-        load(() => apiClient.faculty(), setFacultyList),
-        load(() => apiClient.subjects(), setSubjects),
-        load(() => apiClient.adminTimetable(), setTimetable),
+        load(() => apiClient.facultyStudentSearch(), setStudents),
+        load(() => apiClient.facultySubjects(), setSubjects),
+        load(async () => (await apiClient.facultyTimetable()).map(normalizeTimetableSlot), setTimetable),
         load(() => apiClient.facultyAttendanceHistory(), setAttendanceRecords),
         load(() => apiClient.facultyLeaveQueue(), setLeaveRequests),
         load(() => apiClient.facultySubstitutions(), setSubstitutionRequests),
@@ -408,21 +453,68 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         load(() => apiClient.users(), setUsers),
       ]);
     } else if (role === 'student') {
+      const [studentSubjects, studentTimetable] = await Promise.all([
+        apiClient.studentSubjects(),
+        apiClient.studentTimetable(),
+      ]);
+      setSubjects(studentSubjects);
+      setTimetable(studentTimetable.map(normalizeTimetableSlot));
       await Promise.all([
         load(() => apiClient.departments(), setDepartments),
-        load(() => apiClient.subjects(), setSubjects),
-        load(() => apiClient.adminTimetable(), setTimetable),
         load(() => apiClient.studentLeaves(), setLeaveRequests),
         load(() => apiClient.notifications({ unreadOnly: false }), setNotifications),
         load(() => apiClient.users(), setUsers),
       ]);
+      try {
+        const history = await apiClient.studentAttendanceHistory();
+        const subjectByCode = new Map(studentSubjects.map((subject: any) => [subject.code, subject]));
+        const records = history.map((entry: any, index: number) => {
+          const subject = subjectByCode.get(entry.subjectCode);
+          const present = ['present', 'late', 'od'].includes(entry.status);
+          return {
+            id: `${entry.date}-${entry.periodNumber}-${entry.subjectCode}-${index}`,
+            date: entry.date,
+            periodNumber: entry.periodNumber,
+            subjectId: subject?.id || '',
+            subjectCode: entry.subjectCode,
+            subjectName: entry.subjectName,
+            facultyId: '',
+            facultyName: entry.facultyName,
+            departmentId: user.departmentId || '',
+            semester: user.semester || 0,
+            section: user.section || '',
+            entries: [{
+              studentId: user.id,
+              studentRegNo: user.regNo || '',
+              studentName: user.name,
+              status: entry.status,
+              remarks: entry.remarks,
+            }],
+            totalStudents: 1,
+            presentCount: present ? 1 : 0,
+            absentCount: present ? 0 : 1,
+            lateCount: entry.status === 'late' ? 1 : 0,
+            odCount: entry.status === 'od' ? 1 : 0,
+            leaveCount: entry.status === 'leave' ? 1 : 0,
+            submittedAt: entry.markedAt || '',
+          } as AttendanceRecord;
+        });
+        setAttendanceRecords(records);
+      } catch {
+        setAttendanceRecords([]);
+      }
     }
-  }, []);
+  }, [currentUser]);
 
   const login = useCallback(async (username: string, password: string) => {
     try {
       const response = await apiClient.login(username, password);
-      setJwt(response.accessToken);
+      const token = response.accessToken ?? response.access_token;
+      if (!token) {
+        throw new Error('Backend did not return a JWT token');
+      }
+
+      setJwt(token);
       const apiUser = response.user;
       const mappedUser: User = {
         id: apiUser.id,
@@ -448,9 +540,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsAuthenticated(true);
       localStorage.setItem('smart_att_authed', 'true');
       setActiveScreen('dashboard');
-      await loadDataForRole(apiUser.role);
+      await loadDataForRole(apiUser.role, mappedUser);
       addToast('Welcome Back', `Logged in as ${mappedUser.name}`, 'success');
     } catch (error) {
+      clearJwt();
+      setIsAuthenticated(false);
       addToast('Login Failed', error instanceof Error ? error.message : 'Invalid credentials', 'danger');
       throw error;
     }
@@ -503,12 +597,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         guardianName: studentData.guardianName,
         guardianPhone: studentData.guardianPhone,
       });
-      const newStudent: Student = {
-        ...studentData,
-        id: response.id,
-        overallAttendancePct: 100.0,
-      };
-      setStudents((prev) => [newStudent, ...prev]);
+      const newStudent = response as Student;
+      setStudents((prev) => [newStudent, ...prev.filter((student) => student.id !== newStudent.id)]);
       logAudit('CREATE_STUDENT', 'Students', `Created student ${newStudent.name} (${newStudent.regNo})`);
       addToast('Student Added', `${newStudent.name} registered successfully`, 'success');
     } catch (error) {
@@ -584,17 +674,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         email: facData.email,
         employeeId: facData.employeeId,
         departmentId: facData.departmentId,
-        designation: facData.designation,
+        designation: 'Assistant Professor',
         phone: facData.phone,
         assignedSubjectIds: facData.assignedSubjectIds,
         avatar: facData.avatar,
         isHOD: facData.isHOD,
       });
-      const newFac: Faculty = {
-        ...facData,
-        id: response.id,
-      };
-      setFacultyList((prev) => [newFac, ...prev]);
+      const newFac = response as Faculty;
+      setFacultyList((prev) => [newFac, ...prev.filter((faculty) => faculty.id !== newFac.id)]);
       logAudit('CREATE_FACULTY', 'Faculty', `Added faculty member ${newFac.name}`);
       addToast('Faculty Registered', `${newFac.name} added to faculty roster`, 'success');
     } catch (error) {
@@ -609,7 +696,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         email: updated.email,
         employeeId: updated.employeeId,
         departmentId: updated.departmentId,
-        designation: updated.designation,
         phone: updated.phone,
         assignedSubjectIds: updated.assignedSubjectIds,
         avatar: updated.avatar,
@@ -642,12 +728,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: deptData.name,
         hodId: deptData.hodId,
       });
-      const newDept: Department = {
-        ...deptData,
-        id: response.id,
-        avgAttendancePct: 85.0,
-      };
-      setDepartments((prev) => [...prev, newDept]);
+      const newDept = response as Department;
+      setDepartments((prev) => [...prev.filter((department) => department.id !== newDept.id), newDept]);
       logAudit('CREATE_DEPARTMENT', 'Departments', `Created department ${newDept.name}`);
       addToast('Department Created', `${newDept.name} added`, 'success');
     } catch (error) {
@@ -681,12 +763,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         credits: subData.credits,
         minAttendancePct: subData.minAttendancePct,
       });
-      const newSub: Subject = {
-        ...subData,
-        id: response.id,
-        totalClassesHeld: 0,
-      };
-      setSubjects((prev) => [...prev, newSub]);
+      const newSub = response as Subject;
+      setSubjects((prev) => [...prev.filter((subject) => subject.id !== newSub.id), newSub]);
       logAudit('CREATE_SUBJECT', 'Subjects', `Created subject ${newSub.code} - ${newSub.name}`);
       addToast('Subject Created', `${newSub.code} added to curriculum`, 'success');
     } catch (error) {
@@ -725,6 +803,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         departmentId: slot.departmentId,
         semester: slot.semester,
         section: slot.section,
+        roomNo: slot.classroom || '',
       };
       let response: any;
       if (slot.id.startsWith('tt-')) {
@@ -732,10 +811,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         response = await apiClient.adminUpdateTimetableSlot(slot.id, payload);
       }
-      const savedSlot: TimetableSlot = {
-        ...slot,
-        id: response.id,
-      };
+      const savedSlot = response as TimetableSlot;
       setTimetable((prev) => {
         const existingIdx = prev.findIndex((s) => s.id === slot.id);
         if (existingIdx >= 0) {
@@ -760,6 +836,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addToast('Slot Removed', 'Timetable slot cleared', 'warning');
     } catch (error) {
       addToast('Error', error instanceof Error ? error.message : 'Failed to delete timetable slot', 'danger');
+    }
+  }, []);
+
+  const replaceFacultyTimetable = useCallback(async (saved: TimetableSlot[], deleted: string[]) => {
+    const slotPayload = (slot: TimetableSlot) => ({
+      day: slot.day,
+      periodNumber: slot.periodNumber,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      subjectId: slot.subjectId,
+      facultyId: slot.facultyId,
+      departmentId: slot.departmentId,
+      semester: slot.semester,
+      section: slot.section,
+      roomNo: slot.classroom || '',
+    });
+
+    const persisted: TimetableSlot[] = [];
+    try {
+      for (const id of deleted) {
+        if (id && !id.startsWith('tt-')) {
+          await apiClient.adminDeleteTimetableSlot(id);
+        }
+      }
+      for (const slot of saved) {
+        let response: any;
+        if (!slot.id || slot.id.startsWith('tt-')) {
+          response = await apiClient.adminSaveTimetableSlot(slotPayload(slot));
+        } else {
+          response = await apiClient.adminUpdateTimetableSlot(slot.id, slotPayload(slot));
+        }
+        persisted.push(response as TimetableSlot);
+      }
+      setTimetable((prev) => {
+        const deleteSet = new Set(deleted);
+        const savedIds = new Set(saved.map((s) => s.id));
+        const kept = prev.filter((s) => !deleteSet.has(s.id) && !savedIds.has(s.id));
+        return [...kept, ...persisted];
+      });
+      logAudit('SAVE_TIMETABLE', 'Timetable Builder', `Replaced faculty timetable (${persisted.length} saved, ${deleted.length} removed)`);
+      addToast('Timetable Updated', `Faculty timetable saved (${persisted.length} entries).`, 'success');
+    } catch (error) {
+      addToast('Error', error instanceof Error ? error.message : 'Failed to save faculty timetable', 'danger');
     }
   }, []);
 
@@ -871,12 +990,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         reason: leaveData.reason,
         attachmentUrl: leaveData.attachmentUrl,
       });
-      const newLeave: LeaveRequest = {
-        ...leaveData,
-        id: response.id,
-        status: 'pending_faculty',
-        createdAt: response.createdAt,
-      };
+      const newLeave = response as LeaveRequest;
       setLeaveRequests((prev) => [newLeave, ...prev]);
       logAudit('SUBMIT_LEAVE', 'Student Leave', `Leave submitted by ${newLeave.studentName} for ${newLeave.totalDays} day(s)`);
       addToast('Leave Applied', 'Application sent to faculty advisor for review', 'success');
@@ -964,12 +1078,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         section: subData.section,
         reason: subData.reason,
       });
-      const newReq: SubstitutionRequest = {
-        ...subData,
-        id: response.id,
-        status: 'pending',
-        createdAt: response.createdAt,
-      };
+      const newReq = _mapSubstitutionFromApi(response);
       setSubstitutionRequests((prev) => [newReq, ...prev]);
       logAudit('SUBMIT_SUBSTITUTION', 'Faculty Substitution', `Substitution requested with ${newReq.substituteFacultyName}`);
       addToast('Substitution Sent', `Request sent to ${newReq.substituteFacultyName}`, 'info');
@@ -1034,7 +1143,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: event.title,
         description: event.description,
       });
-      const newEv: CalendarEvent = { ...event, id: response.id };
+      const newEv = response as CalendarEvent;
       setCalendarEvents((prev) => [...prev, newEv]);
       addToast('Calendar Updated', `Added ${newEv.title} on ${newEv.date}`, 'success');
     } catch (error) {
@@ -1042,10 +1151,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  const updateCalendarEvent = (event: CalendarEvent) => {
-    setCalendarEvents((prev) => prev.map((e) => (e.id === event.id ? event : e)));
-    addToast('Calendar Updated', `Updated ${event.title} on ${event.date}`, 'success');
-  };
+  const updateCalendarEvent = useCallback(async (event: CalendarEvent) => {
+    try {
+      const response = await apiClient.updateCalendarEvent(event.id, {
+        date: event.date,
+        type: event.type,
+        title: event.title,
+        description: event.description,
+      });
+      setCalendarEvents((prev) => prev.map((e) => (e.id === event.id ? response : e)));
+      addToast('Calendar Updated', `Updated ${event.title} on ${event.date}`, 'success');
+    } catch (error) {
+      addToast('Error', error instanceof Error ? error.message : 'Failed to update calendar event', 'danger');
+    }
+  }, []);
 
   const deleteCalendarEvent = useCallback(async (id: string) => {
     try {
@@ -1057,31 +1176,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Monthly Staff Orders
-  useEffect(() => {
-    localStorage.setItem('smart_att_staff_orders', JSON.stringify(staffOrders));
-  }, [staffOrders]);
+  // Sync staff day order entries → calendar events (local upsert; calendar CRUD stays API-backed).
+  const syncStaffDayOrderToCalendar = (entries: DayOrderEntry[]) => {
+    setCalendarEvents((prev) => {
+      const next = [...prev];
+      const upsert = (date: string, type: 'holiday' | 'working', title: string, description: string, dayOrder?: number) => {
+        const existingIdx = next.findIndex((e) => e.date === date && e.type === type);
+        const ev: CalendarEvent = {
+          id: existingIdx >= 0 ? next[existingIdx].id : 'cal-sync-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+          date,
+          type,
+          title,
+          description,
+          dayOrder,
+        };
+        if (existingIdx >= 0) {
+          next[existingIdx] = ev;
+        } else {
+          next.push(ev);
+        }
+      };
 
-  const addStaffOrder = (order: Omit<StaffOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const now = new Date().toISOString().slice(0, 10);
-    const newOrder: StaffOrder = { ...order, id: 'so-' + Date.now(), createdAt: now, updatedAt: now };
-    setStaffOrders((prev) => [newOrder, ...prev]);
-    addToast('Staff Order Created', `Monthly staff order for ${order.month} created`, 'success');
+      for (const entry of entries) {
+        if (entry.isHoliday) {
+          upsert(entry.date, 'holiday', entry.holidayTitle || 'Holiday', 'Synced from Day Order');
+        }
+        if (entry.dayOrder != null) {
+          upsert(entry.date, 'working', `Day Order ${entry.dayOrder}`, 'Synced from Day Order', entry.dayOrder);
+        }
+      }
+      return next;
+    });
   };
 
-  const updateStaffOrder = (order: StaffOrder) => {
-    const now = new Date().toISOString().slice(0, 10);
-    const updated = { ...order, updatedAt: now };
-    setStaffOrders((prev) => prev.map((o) => (o.id === order.id ? updated : o)));
-    addToast('Staff Order Updated', `Monthly staff order for ${order.month} updated`, 'success');
-  };
-
-  const deleteStaffOrder = (id: string) => {
-    setStaffOrders((prev) => prev.filter((o) => o.id !== id));
-    addToast('Staff Order Deleted', 'Monthly staff order removed', 'info');
-  };
-
-  // Monthly Staff Day Order (OCR-extracted date → day order mapping)
+  // Day Order (OCR-extracted date → day order mapping)
   useEffect(() => {
     localStorage.setItem('smart_att_staff_day_orders', JSON.stringify(staffDayOrders));
   }, [staffDayOrders]);
@@ -1089,7 +1217,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const saveStaffDayOrder = (data: Omit<StaffDayOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const trimmedEntries = data.entries
-      .map((e) => ({ date: e.date, dayOrder: Number(e.dayOrder) || 1 }))
+      .map((e) => ({
+        date: e.date,
+        dayOrder: Number(e.dayOrder) >= 1 ? Number(e.dayOrder) : undefined,
+        isHoliday: !!e.isHoliday,
+        holidayTitle: e.isHoliday ? e.holidayTitle : undefined
+      }))
       .sort((a, b) => (a.date < b.date ? -1 : 1));
     setStaffDayOrders((prev) => {
       const existing = prev.find((o) => o.month === data.month);
@@ -1104,12 +1237,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       return [{ ...record, id: 'sdo-' + Date.now() }, ...prev];
     });
-    logAudit('SAVE_STAFF_DAY_ORDER', 'Monthly Staff Day Order', `Saved ${trimmedEntries.length} day order entries for ${data.month}`);
+    syncStaffDayOrderToCalendar(trimmedEntries);
+    logAudit('SAVE_STAFF_DAY_ORDER', 'Day Order', `Saved ${trimmedEntries.length} day order entries for ${data.month}`);
     addToast('Day Order Saved', `Saved ${trimmedEntries.length} dated day order entries (${data.month})`, 'success');
   };
 
   const updateStaffDayOrder = (data: StaffDayOrder) => {
     setStaffDayOrders((prev) => prev.map((o) => (o.id === data.id ? { ...data, updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 19) } : o)));
+    syncStaffDayOrderToCalendar(data.entries);
     addToast('Day Order Updated', `Updated staff day order for ${data.month}`, 'success');
   };
 
@@ -1121,7 +1256,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getDayOrderForDate = (date: string): number | null => {
     for (const record of staffDayOrders) {
       const entry = record.entries.find((e) => e.date === date);
-      if (entry) return entry.dayOrder;
+      if (entry) return entry.dayOrder ?? null;
     }
     return null;
   };
@@ -1177,12 +1312,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('smart_att_token');
-      const savedUser = localStorage.getItem('smart_att_user');
-      if (token && savedUser && !isAuthenticated) {
-        const user = JSON.parse(savedUser) as User;
-        setCurrentUserState(user);
+      if (!token || isAuthenticated) return;
+
+      try {
+        const me = await apiClient.me();
+        const user = me as User;
+        const mappedUser: User = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          role: user.role,
+          departmentId: user.departmentId,
+          departmentName: user.departmentName,
+          regNo: user.regNo,
+          employeeId: user.employeeId,
+          phone: user.phone,
+          address: user.address,
+          gender: user.gender,
+          dob: user.dob,
+          fatherName: user.fatherName,
+          motherName: user.motherName,
+          parentPhone: user.parentPhone,
+          active: user.active,
+          lastLogin: user.lastLogin,
+        };
+        setCurrentUserState(mappedUser);
         setIsAuthenticated(true);
-        await loadDataForRole(user.role || 'admin');
+        await loadDataForRole(mappedUser.role || 'admin', mappedUser);
+      } catch {
+        clearJwt();
+        setCurrentUserState({} as User);
+        setIsAuthenticated(false);
+        localStorage.setItem('smart_att_authed', 'false');
       }
     };
     initAuth();
@@ -1354,7 +1516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const reviewBonafideRequest = (
     id: string,
     stage: 'faculty' | 'hod' | 'principal',
-    status: 'approve' | 'recommend' | 'reject',
+    status: 'approve' | 'recommend' | 'reject' | 'open',
     actorId: string,
     actorName: string,
     comment?: string
@@ -1368,13 +1530,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         target = b;
 
         if (stage === 'faculty') {
-          if (status === 'reject') {
-            return { ...b, status: 'submitted' as BonafideStatus, updatedAt: now, facultyComment: comment };
+          if (status === 'open') {
+            return {
+              ...b,
+              status: 'faculty_reviewed' as BonafideStatus,
+              facultyReviewed: true,
+              facultyReviewedAt: now,
+              facultyId: actorId,
+              facultyName: actorName,
+              updatedAt: now
+            };
           }
-          // Faculty recommends → forwards to HOD
+          if (status === 'reject') {
+            return {
+              ...b,
+              status: 'rejected' as BonafideStatus,
+              facultyReviewed: true,
+              facultyReviewedAt: now || b.facultyReviewedAt,
+              facultyId: actorId,
+              facultyName: actorName,
+              facultyComment: comment,
+              updatedAt: now
+            };
+          }
           return {
             ...b,
             status: 'faculty_recommended' as BonafideStatus,
+            facultyReviewed: true,
+            facultyReviewedAt: now || b.facultyReviewedAt,
             facultyId: actorId,
             facultyName: actorName,
             facultyRecommendedAt: now,
@@ -1388,7 +1571,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return { ...b, status: 'faculty_review' as BonafideStatus, updatedAt: now, hodComment: comment };
           }
           if (status === 'recommend') {
-            // HOD recommends → forwards to Principal
             return {
               ...b,
               status: 'hod_recommended' as BonafideStatus,
@@ -1399,7 +1581,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               updatedAt: now
             };
           }
-          // HOD approves final (after principal return) → Approved
           return {
             ...b,
             status: 'approved' as BonafideStatus,
@@ -1411,11 +1592,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           };
         }
 
-        // Principal
         if (status === 'reject') {
           return { ...b, status: 'hod_review' as BonafideStatus, updatedAt: now, principalName: actorName };
         }
-        // Principal approves → returned to HOD for final approval
         return {
           ...b,
           status: 'returned_to_hod' as BonafideStatus,
@@ -1428,7 +1607,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (target) {
       if (stage === 'faculty') {
-        if (status === 'recommend') {
+        if (status === 'open') {
+          pushNotification(
+            'Bonafide Under Review',
+            `${actorName} opened your bonafide request for review. The request can no longer be cancelled.`,
+            'student',
+            { semester: target.semester, section: target.section },
+            'info',
+            'student_bonafide'
+          );
+        } else if (status === 'recommend') {
           pushNotification(
             'Bonafide Recommended',
             `${actorName} recommended your bonafide request — forwarded to HOD.`,
@@ -1447,11 +1635,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           );
         } else {
           pushNotification(
-            'Bonafide Returned',
-            `${actorName} returned your bonafide request for corrections.`,
+            'Bonafide Rejected',
+            `${actorName} rejected your bonafide request.`,
             'student',
             { semester: target.semester, section: target.section },
-            'warning',
+            'danger',
             'student_bonafide'
           );
         }
@@ -1506,12 +1694,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       logAudit('REVIEW_BONAFIDE', 'Bonafide Certificate', `Bonafide ${id} ${status} by ${stage.toUpperCase()} (${actorName})`);
-      addToast(
-        'Bonafide Updated',
-        `${stage.charAt(0).toUpperCase() + stage.slice(1)} marked request as ${status}`,
-        status === 'reject' ? 'warning' : 'success'
-      );
+      const toastTitle = status === 'open' ? 'Bonafide Under Review' : 'Bonafide Updated';
+      const toastMsg =
+        status === 'open'
+          ? 'Faculty opened the request for review. The student can no longer cancel it.'
+          : `${stage.charAt(0).toUpperCase() + stage.slice(1)} marked request as ${status}`;
+      addToast(toastTitle, toastMsg, status === 'reject' ? 'warning' : 'success');
     }
+  };
+
+  const canDeleteBonafideRequest = (request: BonafideRequest): boolean =>
+    !!request &&
+    request.status === 'submitted' &&
+    request.facultyReviewed !== true;
+
+  const deleteBonafideRequest = (id: string) => {
+    const target = bonafideRequests.find((r) => r.id === id);
+    if (!target) {
+      addToast('Bonafide Request Not Found', 'The request no longer exists', 'danger');
+      return;
+    }
+    if (!canDeleteBonafideRequest(target)) {
+      addToast(
+        'Cannot Delete Request',
+        'This request has already been reviewed and can no longer be deleted.',
+        'warning'
+      );
+      return;
+    }
+    setBonafideRequests((prev) => prev.filter((r) => r.id !== id));
+    logAudit('DELETE_BONAFIDE', 'Bonafide Certificate', `Bonafide request ${id} deleted by ${target.studentName}`);
+    addToast('Bonafide Request Deleted', 'Bonafide request deleted successfully.', 'success');
   };
 
   return (
@@ -1531,7 +1744,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         correctionRequests,
         substitutionRequests,
         calendarEvents,
-        staffOrders,
         staffDayOrders,
         auditLogs,
         backups,
@@ -1574,6 +1786,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         saveTimetableSlot,
         deleteTimetableSlot,
+        replaceFacultyTimetable,
         savePeriodTimes,
         getPeriodTime,
 
@@ -1593,9 +1806,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addCalendarEvent,
         updateCalendarEvent,
         deleteCalendarEvent,
-        addStaffOrder,
-        updateStaffOrder,
-        deleteStaffOrder,
+        syncStaffDayOrderToCalendar,
         saveStaffDayOrder,
         updateStaffDayOrder,
         deleteStaffDayOrder,
@@ -1615,7 +1826,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         bonafideRequests,
         submitBonafideRequest,
-        reviewBonafideRequest
+        reviewBonafideRequest,
+        deleteBonafideRequest,
+        canDeleteBonafideRequest
       }}
     >
       {children}

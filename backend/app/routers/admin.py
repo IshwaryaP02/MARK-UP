@@ -409,7 +409,7 @@ async def update_department(
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
     update_data = data.dict(exclude_unset=True)
-    hod_id = update_data.get("hod_user_id")
+    hod_id = update_data.get("hod_id")
     if hod_id:
         hod_result = await db.execute(select(User).where(User.id == hod_id))
         hod = hod_result.scalar_one_or_none()

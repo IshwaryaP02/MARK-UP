@@ -236,7 +236,7 @@ class Timetable(Base):
             "Thursday",
             "Friday",
             "Saturday",
-            name="timetable_day",
+            name="day_of_week",
         ),
         nullable=False,
     )

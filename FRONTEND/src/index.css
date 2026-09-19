@@ -8,30 +8,26 @@
     font-family: "Lucida Grande", "Lucida Sans Unicode", Geneva, Verdana, sans-serif !important;
   }
 
-  /* Navy Blue Light theme (default / Sun) */
+  /* University Blue Light theme (default / Sun) */
   :root,
   :root[data-theme='light'] {
-    /* Subtle cool-tinted page canvas so cards read as elevated panels
-       instead of blending into a pure-white background. This is a slight
-       variation of the existing slate-50 (#F8FAFC) surface already used.
-       Card surfaces stay pure white (#FFFFFF) to keep the layered look. */
-    --bg-main: #F1F5F9;
+    --bg-main: #F7F9FC;
     --bg-card: #FFFFFF;
-    --bg-secondary: #F8FAFC;
-    --bg-sidebar: #F8FAFC;
+    --bg-secondary: #FFFFFF;
+    --bg-sidebar: #FFFFFF;
     --border: #E2E8F0;
-    --accent: #1E40AF;
+    --accent: #2563EB;
     --accent-light: #2563EB;
-    --badge-bg: #DBEAFE;
-    --text-primary: #111827;
-    --text-secondary: #64748B;
+    --badge-bg: #EAF2FF;
+    --text-primary: #000000;
+    --text-secondary: #000000;
 
     /* Back-compat aliases */
-    --bg-primary: #F1F5F9;
-    --text-muted: #64748B;
-    --accent-main: #1E40AF;
-    --accent-hover: #2563EB;
-    --accent-soft: #DBEAFE;
+    --bg-primary: #F7F9FC;
+    --text-muted: #000000;
+    --accent-main: #2563EB;
+    --accent-hover: #1D4ED8;
+    --accent-soft: #EAF2FF;
     --border-color: #E2E8F0;
   }
 
@@ -124,13 +120,13 @@
   }
 }
 
-/* Palette utility helper classes (Navy Blue Light) */
+/* Palette utility helper classes (University Blue Light) */
 .bg-palette-dark {
-  background-color: #111827;
+  background-color: #0F172A;
 }
 
 .bg-palette-navy {
-  background-color: #1E40AF;
+  background-color: #2563EB;
 }
 
 .bg-palette-slate {
@@ -147,13 +143,12 @@
 
 /* =========================================================
    LIGHT MODE REFINEMENT
-   Uses ONLY the existing light palette: slate-50 (#F8FAFC),
-   slate-200 border (#E2E8F0), navy accent (#1E40AF / #2563EB).
+   University ERP Professional Theme: White + Navy + Blue
    Scoped to light mode (:root:not(.dark)); Dark Mode is untouched.
    ========================================================= */
 :root:not(.dark) {
   /* Page canvas behind the (<main>) content area */
-  background-color: #F1F5F9;
+  background-color: #F7F9FC;
 }
 
 /* Refined scrollbar to match the light theme (subtle slate) */
@@ -185,15 +180,6 @@
 :root:not(.dark) textarea:focus-visible {
   outline: 2px solid transparent;
   outline-offset: 1px;
-}
-
-/* Keep button interaction states visible on mouse, keyboard, and touch. */
-button:not(:disabled):hover,
-button:not(:disabled):active,
-button:not(:disabled):focus-visible {
-  background-color: #93C5FD !important;
-  border-color: #60A5FA !important;
-  color: #1E3A8A !important;
 }
 
 

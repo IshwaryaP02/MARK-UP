@@ -8,15 +8,22 @@ export function isPgCourse(course?: string): boolean {
   return c !== 'ug' && c !== 'all' && c !== '';
 }
 
-// Year → actual semester batches. UG spans semesters 1-6 (First/Second/Third Year),
-// PG (MSc) spans semesters 7-10 (First/Second Year).
+// Year → actual semester batches. UG spans semesters 1-6 (I/II/III YEAR),
+// PG spans semesters 7-10 (I/II YEAR).
 export const YEAR_SEMESTER_MAP: Record<string, number[]> = {
+  'I YEAR': [1, 2],
+  'II YEAR': [3, 4],
+  'III YEAR': [5, 6],
+  // Legacy labels kept for backwards compatibility.
   'First Year': [1, 2],
   'Second Year': [3, 4],
   'Third Year': [5, 6]
 };
 
 export const PG_YEAR_SEMESTER_MAP: Record<string, number[]> = {
+  'I YEAR': [7, 8],
+  'II YEAR': [9, 10],
+  // Legacy labels.
   'First Year': [7, 8],
   'Second Year': [9, 10]
 };
@@ -178,7 +185,7 @@ export function circularRecipientLabel(c: Circular): string {
       : 'Tutor Class';
   }
   if (c.target === 'all_students') return 'All Students · All Departments';
-  const parts = [c.departmentName || '', c.course || 'UG', c.year ? `Year ${c.year}` : '', c.shift && c.shift !== 'All' && c.shift !== 'All Shifts' ? c.shift : ''].filter(
+  const parts = [c.departmentName || '', c.course || 'UG', c.year ? (typeof c.year === 'number' ? `Year ${c.year}` : c.year) : '', c.shift && c.shift !== 'All' && c.shift !== 'All Shifts' ? c.shift : ''].filter(
     (p) => p && p !== 'All'
   );
   if (parts.length === 0) return 'Specific Students';

@@ -34,17 +34,17 @@ export const ApproveSubstitutions: React.FC = () => {
   return (
     <div className="space-y-6">
       <BackButton />
-      <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-          <Repeat className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Approve Faculty Substitutions
+      <div className="pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
+        <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight flex items-center gap-2">
+          <Repeat className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" /> Approve Faculty Substitutions
         </h2>
 
       </div>
 
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+          <thead className="bg-[#F7F9FC] dark:bg-zinc-800/60 border-b border-[#E2E8F0] dark:border-zinc-800 text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider">
             <tr>
               <th className="p-3.5 pl-4">Date & Period</th>
               <th className="p-3.5">Course</th>
@@ -57,7 +57,7 @@ export const ApproveSubstitutions: React.FC = () => {
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
             {substitutionRequests.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-zinc-400">
+                <td colSpan={6} className="p-6 text-center text-[#000000] dark:text-[#64748B]">
                   No substitution requests have been submitted yet.
                 </td>
               </tr>
@@ -66,19 +66,19 @@ export const ApproveSubstitutions: React.FC = () => {
               const chosenSubId = selectedSubstitutes[s.id]?.id || s.substituteFacultyId;
 
               return (
-                <tr key={s.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors">
+                <tr key={s.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
                   <td className="p-3.5 pl-4">
-                    <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100 block">{s.date}</span>
-                    <span className="text-[10px] font-semibold text-[#1E40AF] dark:text-[#3B82F6]">
+                    <span className="font-mono font-bold text-[#0F172A] dark:text-zinc-100 block">{s.date}</span>
+                    <span className="text-[10px] font-semibold text-[#2563EB] dark:text-[#3B82F6]">
                       Period {s.periodNumber}
                     </span>
                   </td>
                   <td className="p-3.5">
-                    <span className="font-bold text-zinc-900 dark:text-zinc-100 block">
+                    <span className="font-bold text-[#0F172A] dark:text-zinc-100 block">
                       {s.subjectCode} - {s.subjectName}
                     </span>
                   </td>
-                  <td className="p-3.5 font-bold text-zinc-800 dark:text-zinc-200">{s.requestingFacultyName}</td>
+                  <td className="p-3.5 font-bold text-[#0F172A] dark:text-zinc-200">{s.requestingFacultyName}</td>
                   <td className="p-3.5">
                     {s.status === 'approved_by_hod' ? (
                       <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg">
@@ -89,7 +89,7 @@ export const ApproveSubstitutions: React.FC = () => {
                         <select
                           value={chosenSubId}
                           onChange={(e) => handleSelectSubstitute(s.id, e.target.value)}
-                          className="px-2.5 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] focus:ring-2 focus:ring-[#1E40AF]"
+                          className="px-2.5 py-1.5 bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] focus:ring-2 focus:ring-[#2563EB]"
                         >
                           {facultyList
                             .filter((f) => f.id !== s.requestingFacultyId)
@@ -101,7 +101,7 @@ export const ApproveSubstitutions: React.FC = () => {
                         </select>
                       </div>
                     ) : (
-                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">{s.substituteFacultyName}</span>
+                      <span className="font-semibold text-[#1E293B] dark:text-zinc-300">{s.substituteFacultyName}</span>
                     )}
                   </td>
                   <td className="p-3.5">
@@ -128,7 +128,7 @@ export const ApproveSubstitutions: React.FC = () => {
                         </button>
                       </div>
                     ) : (
-                      <span className="text-zinc-400 text-[11px] font-semibold">No action</span>
+                      <span className="text-[#000000] dark:text-[#64748B] text-[11px] font-semibold">No action</span>
                     )}
                   </td>
                 </tr>

@@ -13,7 +13,7 @@ export const BackButton: React.FC<BackButtonProps> = ({ targetScreen = 'dashboar
   return (
     <button
       onClick={() => setActiveScreen(targetScreen)}
-      className="flex items-center gap-2 text-xs font-bold text-[#1E40AF] dark:text-[#3B82F6] hover:underline"
+      className="flex items-center gap-2 text-xs font-bold text-[#2563EB] dark:text-[#3B82F6] hover:underline"
     >
       <ArrowLeft className="w-4 h-4" /> {label}
     </button>

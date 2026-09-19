@@ -7,8 +7,12 @@ const STATUS_CONFIG: Record<BonafideStatus, { label: string; className: string }
     className: 'bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-400 border-sky-200 dark:border-sky-800/60'
   },
   faculty_review: {
-    label: 'Faculty Review',
+    label: 'Pending Faculty Review',
     className: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
+  },
+  faculty_reviewed: {
+    label: 'Faculty Reviewed',
+    className: 'bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400 border-orange-200 dark:border-orange-800/60'
   },
   faculty_recommended: {
     label: 'Faculty Recommended',
@@ -33,6 +37,10 @@ const STATUS_CONFIG: Record<BonafideStatus, { label: string; className: string }
   approved: {
     label: 'Approved',
     className: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
+  },
+  rejected: {
+    label: 'Rejected',
+    className: 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
   }
 };
 

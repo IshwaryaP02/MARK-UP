@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Student } from '../../types';
+import { rankedSearch } from '../../utils/searchRank';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 import { BackButton } from '../common/BackButton';
 import { academicYearLabel } from '../../services/academicStructure';
+import {
+  Programme,
+  Shift,
+  departmentsForProgramme,
+  yearsForProgramme,
+  shiftsForProgramme,
+  semestersForSelection,
+  departmentNameOf
+} from '../../services/programmeStructure';
 import {
   Search,
   Plus,
@@ -24,8 +34,40 @@ export const StudentManagement: React.FC = () => {
   const { students, departments, addStudent, updateStudent, deleteStudent, bulkImportStudents, addToast } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [deptFilter, setDeptFilter] = useState('all');
+  const [filterProgramme, setFilterProgramme] = useState<string>('all');
+  const [filterDept, setFilterDept] = useState('all');
+  const [filterYear, setFilterYear] = useState('all');
+  const [filterShift, setFilterShift] = useState('all');
 
+  // Applied filters — only updated when the user clicks Search / presses Enter.
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [appliedFilterProgramme, setAppliedFilterProgramme] = useState('all');
+  const [appliedFilterDept, setAppliedFilterDept] = useState('all');
+  const [appliedFilterYear, setAppliedFilterYear] = useState('all');
+  const [appliedFilterShift, setAppliedFilterShift] = useState('all');
+
+  const applyFilters = () => {
+    setAppliedSearchTerm(searchTerm);
+    setAppliedFilterProgramme(filterProgramme);
+    setAppliedFilterDept(filterDept);
+    setAppliedFilterYear(filterYear);
+    setAppliedFilterShift(filterShift);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterProgramme('all');
+    setFilterDept('all');
+    setFilterYear('all');
+    setFilterShift('all');
+    setAppliedSearchTerm('');
+    setAppliedFilterProgramme('all');
+    setAppliedFilterDept('all');
+    setAppliedFilterYear('all');
+    setAppliedFilterShift('all');
+  };
+
+  // Admin student directory: show all departments
   const adminDepartments = departments;
 
   // Modals state
@@ -43,6 +85,9 @@ export const StudentManagement: React.FC = () => {
     departmentId: departments[0]?.id || '',
     departmentName: departments[0]?.name || '',
     semester: 4,
+    programme: 'UG',
+    year: 'II YEAR',
+    shift: 'First Shift',
     section: 'First Shift',
     batch: '2022-2026',
     guardianName: '',
@@ -54,11 +99,14 @@ export const StudentManagement: React.FC = () => {
 
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
-      s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.regNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.rollNo.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = deptFilter === 'all' || s.departmentId === deptFilter;
-    return matchesSearch && matchesDept;
+      s.name.toLowerCase().includes(appliedSearchTerm.toLowerCase()) ||
+      s.regNo.toLowerCase().includes(appliedSearchTerm.toLowerCase()) ||
+      s.rollNo.toLowerCase().includes(appliedSearchTerm.toLowerCase());
+    const matchesDept = appliedFilterDept === 'all' || s.departmentId === appliedFilterDept;
+    const matchesProgramme = appliedFilterProgramme === 'all' || s.programme === appliedFilterProgramme;
+    const matchesYear = appliedFilterYear === 'all' || s.year === appliedFilterYear;
+    const matchesShift = appliedFilterShift === 'all' || s.shift === appliedFilterShift;
+    return matchesSearch && matchesDept && matchesProgramme && matchesYear && matchesShift;
   });
 
   const handleOpenAdd = (student?: Student) => {
@@ -75,6 +123,9 @@ export const StudentManagement: React.FC = () => {
         departmentId: departments[0]?.id || '',
         departmentName: departments[0]?.name || '',
         semester: 4,
+        programme: 'UG',
+        year: 'II YEAR',
+        shift: 'First Shift',
         section: 'First Shift',
         batch: '2022-2026',
         guardianName: '',
@@ -87,12 +138,7 @@ export const StudentManagement: React.FC = () => {
 
   const handleSaveStudent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.regNo || !formData.rollNo || !formData.email ||
-        !formData.departmentId || !formData.semester || !formData.section ||
-        !formData.guardianName || !formData.guardianPhone) {
-      addToast('Missing Details', 'Complete every student field before registering.', 'danger');
-      return;
-    }
+    if (!formData.name || !formData.regNo) return;
 
     if (selectedStudent) {
       updateStudent(formData as Student);
@@ -142,9 +188,9 @@ export const StudentManagement: React.FC = () => {
     <div className="space-y-6">
       <BackButton />
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">
             Students Roster Management
           </h2>
 
@@ -153,14 +199,14 @@ export const StudentManagement: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setImportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-semibold rounded-xl transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#F7F9FC] dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-[#0F172A] dark:text-zinc-200 text-xs font-semibold rounded-xl transition-colors"
           >
-            <FileUp className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+            <FileUp className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
             CSV Bulk Import
           </button>
           <button
             onClick={() => handleOpenAdd()}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-semibold rounded-xl transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Register Student
@@ -171,48 +217,98 @@ export const StudentManagement: React.FC = () => {
       {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[#000000] dark:text-[#64748B] absolute left-3.5 top-3" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') setSearchTerm((e.target as HTMLInputElement).value);
+              if (e.key === 'Enter') applyFilters();
             }}
             placeholder="Search by student name, Reg No, or Roll No..."
-            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
-        <button
-          onClick={() => setSearchTerm(searchTerm)}
-          className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
-        >
-          Enter
-        </button>
-
         <select
-          value={deptFilter}
-          onChange={(e) => setDeptFilter(e.target.value)}
-          className="w-full sm:w-56 px-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+          value={filterProgramme}
+          onChange={(e) => {
+            const prog = e.target.value;
+            setFilterProgramme(prog);
+            setFilterDept('all');
+            setFilterYear('all');
+            setFilterShift('all');
+          }}
+          className="w-full sm:w-36 px-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
         >
-          <option value="all">All Departments</option>
-          {adminDepartments.map((d) => (
+          <option value="all">All Programmes</option>
+          <option value="UG">UG</option>
+          <option value="PG">PG</option>
+        </select>
+        <select
+          value={filterDept}
+          disabled={filterProgramme === 'all'}
+          onChange={(e) => {
+            setFilterDept(e.target.value);
+            setFilterYear('all');
+            setFilterShift('all');
+          }}
+          className={`w-full sm:w-56 px-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${filterProgramme === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <option value="all">{filterProgramme !== 'all' ? `Select ${filterProgramme} Department` : 'Select Programme first'}</option>
+          {(filterProgramme !== 'all' ? departmentsForProgramme(filterProgramme as Programme) : []).map((d) => (
             <option key={d.id} value={d.id}>
               {d.name}
             </option>
           ))}
         </select>
+        <select
+          value={filterYear}
+          disabled={filterDept === 'all'}
+          onChange={(e) => {
+            setFilterYear(e.target.value);
+            setFilterShift('all');
+          }}
+          className={`w-full sm:w-36 px-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${filterDept === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <option value="all">{filterDept !== 'all' ? 'All Years' : 'Select Dept first'}</option>
+          {(filterProgramme !== 'all' ? yearsForProgramme(filterProgramme as Programme) : []).map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+        <select
+          value={filterShift}
+          disabled={filterYear === 'all'}
+          onChange={(e) => setFilterShift(e.target.value)}
+          className={`w-full sm:w-36 px-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB] ${filterYear === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <option value="all">{filterYear !== 'all' ? 'All Shifts' : 'Select Year first'}</option>
+          {(filterProgramme !== 'all' ? shiftsForProgramme(filterProgramme as Programme) : []).map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+        <button
+          onClick={clearFilters}
+          className="px-4 py-2 text-xs font-bold text-[#000000] dark:text-[#64748B] bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
+        >
+          Clear
+        </button>
+        <button
+          onClick={applyFilters}
+          className="px-4 py-2 text-xs font-bold text-white bg-[#2563EB] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+        >
+          Search
+        </button>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-zinc-50 dark:bg-zinc-800/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+            <thead className="bg-[#F7F9FC] dark:bg-zinc-800/60 border-b border-[#E2E8F0] dark:border-zinc-800 text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider">
               <tr>
                 <th className="p-3.5 pl-4">Student</th>
                 <th className="p-3.5">Reg No & Roll</th>
-                <th className="p-3.5">Department & Year</th>
+                <th className="p-3.5">Programme & Year</th>
                 <th className="p-3.5">Attendance %</th>
                 <th className="p-3.5">Guardian</th>
                 <th className="p-3.5 text-right pr-4">Actions</th>
@@ -221,15 +317,15 @@ export const StudentManagement: React.FC = () => {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-zinc-400">
-                    No students match the search criteria.
+                  <td colSpan={6} className="p-8 text-center text-[#000000] dark:text-[#64748B]">
+                    No records found for the selected filters.
                   </td>
                 </tr>
               ) : (
                 filteredStudents.map((s) => {
                   const isLow = s.overallAttendancePct < 75;
                   return (
-                    <tr key={s.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors">
+                    <tr key={s.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
                       <td className="p-3.5 pl-4">
                         <div className="flex items-center gap-3">
                           <img
@@ -238,19 +334,19 @@ export const StudentManagement: React.FC = () => {
                             className="w-9 h-9 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
                           />
                           <div>
-                            <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{s.name}</span>
-                            <span className="text-[11px] text-zinc-400">{s.email}</span>
+                            <span className="font-bold text-[#0F172A] dark:text-zinc-100 block">{s.name}</span>
+                            <span className="text-[11px] text-[#000000] dark:text-[#64748B]">{s.email}</span>
                           </div>
                         </div>
                       </td>
                       <td className="p-3.5 font-medium">
-                        <span className="block font-mono text-[#1E40AF] dark:text-[#3B82F6] font-bold">{s.regNo}</span>
-                        <span className="block text-[10px] text-zinc-600 dark:text-zinc-300 font-mono font-semibold">🐱 {s.phone || '+91 98765 43210'}</span>
-                        <span className="text-[10px] text-zinc-400">Roll: {s.rollNo}</span>
+                        <span className="block font-mono text-[#2563EB] dark:text-[#3B82F6] font-bold">{s.regNo}</span>
+                        <span className="block text-[10px] text-[#1E293B] dark:text-zinc-300 font-mono font-semibold">🐱 {s.phone || '+91 98765 43210'}</span>
+                        <span className="text-[10px] text-[#000000] dark:text-[#64748B]">Roll: {s.rollNo}</span>
                       </td>
                       <td className="p-3.5">
-                        <span className="block font-semibold text-zinc-800 dark:text-zinc-200">{s.departmentName}</span>
-                        <span className="text-[10px] text-zinc-400">{academicYearLabel(s.semester)}</span>
+                        <span className="block font-semibold text-[#0F172A] dark:text-zinc-200">{s.programme || 'UG'} · {s.departmentName}</span>
+                        <span className="text-[10px] text-[#000000] dark:text-[#64748B]">{s.year || academicYearLabel(s.semester)}{s.shift ? ' · ' + s.shift : ''}</span>
                       </td>
                       <td className="p-3.5">
                         <div className="flex items-center gap-2">
@@ -265,8 +361,8 @@ export const StudentManagement: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-3.5">
-                        <span className="block text-zinc-800 dark:text-zinc-200">{s.guardianName}</span>
-                        <span className="text-[10px] text-zinc-400">{s.guardianPhone}</span>
+                        <span className="block text-[#0F172A] dark:text-zinc-200">{s.guardianName}</span>
+                        <span className="text-[10px] text-[#000000] dark:text-[#64748B]">{s.guardianPhone}</span>
                       </td>
                       <td className="p-3.5 text-right pr-4">
                         <div className="flex items-center justify-end gap-1">
@@ -275,21 +371,21 @@ export const StudentManagement: React.FC = () => {
                               setSelectedStudent(s);
                               setDetailModalOpen(true);
                             }}
-                            className="p-1.5 text-zinc-400 hover:text-[#1E40AF] hover:bg-[#1E40AF]/10 rounded-lg transition-colors"
+                            className="p-1.5 text-[#000000] dark:text-[#64748B] hover:text-[#2563EB] hover:bg-[#2563EB]/10 rounded-lg transition-colors"
                             title="View Profile"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleOpenAdd(s)}
-                            className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
+                            className="p-1.5 text-[#000000] dark:text-[#64748B] hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition-colors"
                             title="Edit Record"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => deleteStudent(s.id)}
-                            className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
+                            className="p-1.5 text-[#000000] dark:text-[#64748B] hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors"
                             title="Delete Record"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -315,122 +411,162 @@ export const StudentManagement: React.FC = () => {
         <form onSubmit={handleSaveStudent} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Full Name</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Full Name</label>
               <input
                 type="text"
                 required
                 value={formData.name || ''}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Registration No</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Registration No</label>
               <input
                 type="text"
                 required
                 value={formData.regNo || ''}
                 onChange={(e) => setFormData({ ...formData, regNo: e.target.value })}
-                className="w-full p-2 text-xs font-mono bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs font-mono bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Roll Number</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Roll Number</label>
               <input
                 type="text"
                 required
                 value={formData.rollNo || ''}
                 onChange={(e) => setFormData({ ...formData, rollNo: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Student Email</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Student Email</label>
               <input
                 type="email"
                 required
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Department</label>
-              <select
-                required
-                value={formData.departmentId || ''}
-                onChange={(e) => {
-                  const d = departments.find((dept) => dept.id === e.target.value);
-                  setFormData({ ...formData, departmentId: e.target.value, departmentName: d?.name || '' });
-                }}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-              >
-                <option value="">Select department</option>
-                {adminDepartments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.code}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Semester</label>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                required
-                value={formData.semester || ''}
-                onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Shift</label>
-              <select
-                required
-                value={formData.section || 'First Shift'}
-                onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
-              >
-                <option value="First Shift">First Shift</option>
-                <option value="Second Shift">Second Shift</option>
-              </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Guardian Name</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Programme</label>
+              <select
+                value={formData.programme || 'UG'}
+                onChange={(e) => {
+                  const prog = e.target.value as Programme;
+                  const deptOpts = departmentsForProgramme(prog);
+                  const newDept = deptOpts[0];
+                  const yrOpts = yearsForProgramme(prog);
+                  const firstYear = yrOpts[0] || 'I YEAR';
+                  const sems = semestersForSelection({ programme: prog, departmentId: newDept?.id || 'dept-cs', year: firstYear });
+                  const shiftOpts = shiftsForProgramme(prog);
+                  setFormData({
+                    ...formData,
+                    programme: prog,
+                    departmentId: newDept?.id || 'dept-cs',
+                    departmentName: newDept?.name || '',
+                    year: firstYear,
+                    shift: shiftOpts[0] || 'First Shift',
+                    semester: sems[0] || 1
+                  });
+                }}
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
+              >
+                <option value="UG">UG</option>
+                <option value="PG">PG</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Department</label>
+              <select
+                value={formData.departmentId || ''}
+                onChange={(e) => {
+                  const d = departmentsForProgramme(formData.programme as Programme || 'UG').find((dept) => dept.id === e.target.value);
+                  setFormData({ ...formData, departmentId: e.target.value, departmentName: d?.name || '' });
+                }}
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
+              >
+                {departmentsForProgramme(formData.programme as Programme || 'UG').map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Year</label>
+              <select
+                value={formData.year || 'I YEAR'}
+                onChange={(e) => {
+                  const yr = e.target.value;
+                  const sems = semestersForSelection({ programme: formData.programme as Programme || 'UG', departmentId: formData.departmentId || 'dept-cs', year: yr });
+                  setFormData({ ...formData, year: yr, semester: sems[0] || 1 });
+                }}
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
+              >
+                {yearsForProgramme(formData.programme as Programme || 'UG').map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Shift</label>
+              <select
+                value={formData.shift || 'First Shift'}
+                onChange={(e) => setFormData({ ...formData, shift: e.target.value, section: e.target.value })}
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
+              >
+                {shiftsForProgramme(formData.programme as Programme || 'UG').map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Batch</label>
               <input
                 type="text"
-                required
+                value={formData.batch || ''}
+                onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Guardian Name</label>
+              <input
+                type="text"
                 value={formData.guardianName || ''}
                 onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Guardian Contact Phone</label>
+              <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">Guardian Contact Phone</label>
               <input
                 type="text"
-                required
                 value={formData.guardianPhone || ''}
                 onChange={(e) => setFormData({ ...formData, guardianPhone: e.target.value })}
-                className="w-full p-2 text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+                className="w-full p-2 text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
               />
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
+            className="w-full py-2.5 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors mt-2"
           >
             {selectedStudent ? 'Save Changes' : 'Register Student'}
           </button>
@@ -446,7 +582,7 @@ export const StudentManagement: React.FC = () => {
       >
         <form onSubmit={handleImportCSV} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+            <label className="block text-xs font-semibold text-[#1E293B] dark:text-zinc-300 mb-1">
               CSV Data Rows
             </label>
             <textarea
@@ -454,12 +590,12 @@ export const StudentManagement: React.FC = () => {
               value={csvText}
               onChange={(e) => setCsvText(e.target.value)}
               placeholder={`2024CS1050, 24CS10, Michael Scott, michael.s@student.edu\n2024CS1051, 24CS11, Pam Beesly, pam.b@student.edu`}
-              className="w-full p-3 font-mono text-xs bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+              className="w-full p-3 font-mono text-xs bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
+            className="w-full py-2.5 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] dark:hover:bg-white text-white text-xs font-bold rounded-xl transition-colors"
           >
             Parse & Add Students
           </button>
@@ -475,17 +611,17 @@ export const StudentManagement: React.FC = () => {
           subtitle={`Reg No: ${selectedStudent.regNo}`}
         >
           <div className="space-y-4 text-xs">
-            <div className="flex items-center gap-4 p-4 bg-zinc-50 dark:bg-[#0A0A0A]/80 rounded-2xl">
+            <div className="flex items-center gap-4 p-4 bg-[#F7F9FC] dark:bg-[#0A0A0A]/80 rounded-2xl">
               <img
                 src={selectedStudent.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
                 alt={selectedStudent.name}
-                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#1E40AF]"
+                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#2563EB]"
               />
               <div>
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{selectedStudent.name}</h4>
-                <p className="text-zinc-400">{selectedStudent.email}</p>
+                <h4 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">{selectedStudent.name}</h4>
+                <p className="text-[#000000] dark:text-[#64748B]">{selectedStudent.email}</p>
                 <div className="flex gap-2 mt-2">
-                  <span className="px-2 py-0.5 bg-[#1E40AF]/10 text-[#1E40AF] dark:bg-[#2563EB]/50 dark:text-[#3B82F6] font-semibold rounded-md">
+                  <span className="px-2 py-0.5 bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/50 dark:text-[#3B82F6] font-semibold rounded-md">
                     {selectedStudent.departmentName}
                   </span>
                   <span className="px-2 py-0.5 bg-zinc-200 dark:bg-zinc-700 font-semibold rounded-md">
@@ -496,24 +632,24 @@ export const StudentManagement: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-zinc-50 dark:bg-[#0A0A0A]/60 rounded-xl">
-                <span className="text-zinc-400 block text-[10px] uppercase font-bold">Overall Attendance</span>
-                <span className="text-xl font-bold text-[#1E40AF] dark:text-[#3B82F6]">
+              <div className="p-3 bg-[#F7F9FC] dark:bg-[#0A0A0A]/60 rounded-xl">
+                <span className="text-[#000000] dark:text-[#64748B] block text-[10px] uppercase font-bold">Overall Attendance</span>
+                <span className="text-xl font-bold text-[#2563EB] dark:text-[#3B82F6]">
                   {selectedStudent.overallAttendancePct}%
                 </span>
               </div>
-              <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-xl">
-                <span className="text-zinc-400 block text-[10px] uppercase font-bold">Eligibility Status</span>
+              <div className="p-3 bg-[#F7F9FC] dark:bg-zinc-800/40 rounded-xl">
+                <span className="text-[#000000] dark:text-[#64748B] block text-[10px] uppercase font-bold">Eligibility Status</span>
                 <span className={`text-sm font-bold ${selectedStudent.overallAttendancePct >= 75 ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {selectedStudent.overallAttendancePct >= 75 ? 'Eligible for Exams' : 'Flagged (Below 75%)'}
                 </span>
               </div>
             </div>
 
-            <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3">
-              <h5 className="font-bold text-zinc-900 dark:text-zinc-100 mb-2">Guardian Contact Information</h5>
-              <p className="text-zinc-600 dark:text-zinc-300">Name: {selectedStudent.guardianName}</p>
-              <p className="text-zinc-600 dark:text-zinc-300">Phone: {selectedStudent.guardianPhone}</p>
+            <div className="border-t border-[#E2E8F0] dark:border-zinc-800 pt-3">
+              <h5 className="font-bold text-[#0F172A] dark:text-zinc-100 mb-2">Guardian Contact Information</h5>
+              <p className="text-[#1E293B] dark:text-zinc-300">Name: {selectedStudent.guardianName}</p>
+              <p className="text-[#1E293B] dark:text-zinc-300">Phone: {selectedStudent.guardianPhone}</p>
             </div>
           </div>
         </Modal>

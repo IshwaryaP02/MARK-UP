@@ -1,10 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { rankedSearch } from '../../utils/searchRank';
 import { academicYearLabel } from '../../services/academicStructure';
 import { Student } from '../../types';
 import { Modal } from '../common/Modal';
 import { StudentDetailModal } from '../common/StudentDetailModal';
 import { BackButton } from '../common/BackButton';
+import { MasterFilter } from '../common/MasterFilter';
+import { semestersForSelection, masterSelectionLabel, MasterSelection } from '../../services/programmeStructure';
 import {
   GraduationCap,
   Users,
@@ -40,45 +43,119 @@ export const TutorClassStudents: React.FC = () => {
   const [toDate, setToDate] = useState('');
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
 
-  const dateInWindow = (date: string) => {
-    if (dateFilterMode === 'all') return true;
-    if (dateFilterMode === 'date') return singleDate ? date === singleDate : true;
-    if (dateFilterMode === 'range') {
-      if (!fromDate && !toDate) return true;
-      if (fromDate && toDate) return date >= fromDate && date <= toDate;
-      if (fromDate) return date >= fromDate;
-      return date <= toDate;
-    }
-    if (dateFilterMode === 'monthly') return monthFilter ? date.startsWith(monthFilter) : true;
-    return true;
+  // Master selection filter (draft — applied only on MasterFilter Search).
+  const [appliedMaster, setAppliedMaster] = useState<MasterSelection | null>(null);
+
+  // Subject filter (draft — applied only on Search / Enter).
+  const [filterSubject, setFilterSubject] = useState('All');
+
+  // Applied filters — only updated when the user clicks Search / presses Enter.
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
+  const [appliedAttendanceFilter, setAppliedAttendanceFilter] = useState<'all' | 'low'>('all');
+  const [appliedDateMode, setAppliedDateMode] = useState<'all' | 'date' | 'range' | 'monthly'>('all');
+  const [appliedSingleDate, setAppliedSingleDate] = useState('');
+  const [appliedFromDate, setAppliedFromDate] = useState('');
+  const [appliedToDate, setAppliedToDate] = useState('');
+  const [appliedMonthFilter, setAppliedMonthFilter] = useState(new Date().toISOString().slice(0, 7));
+  const [appliedFilterSubject, setAppliedFilterSubject] = useState('All');
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const applyFilters = () => {
+    setIsLoading(true);
+    setAppliedSearchQuery(searchQuery);
+    setAppliedAttendanceFilter(attendanceFilter);
+    setAppliedDateMode(dateFilterMode);
+    setAppliedSingleDate(singleDate);
+    setAppliedFromDate(fromDate);
+    setAppliedToDate(toDate);
+    setAppliedMonthFilter(monthFilter);
+    setAppliedFilterSubject(filterSubject);
+    setTimeout(() => setIsLoading(false), 450);
   };
 
   const clearDateFilter = () => {
+    setDateFilterMode('all');
     setSingleDate('');
     setFromDate('');
     setToDate('');
     setMonthFilter(new Date().toISOString().slice(0, 7));
+    setAppliedDateMode('all');
+    setAppliedSingleDate('');
+    setAppliedFromDate('');
+    setAppliedToDate('');
+    setAppliedMonthFilter(new Date().toISOString().slice(0, 7));
   };
 
-  const filterActive = dateFilterMode !== 'all';
+  const clearFilters = () => {
+    clearDateFilter();
+    setSearchQuery('');
+    setAttendanceFilter('all');
+    setAppliedSearchQuery('');
+    setAppliedAttendanceFilter('all');
+    setFilterSubject('All');
+    setAppliedFilterSubject('All');
+    setIsLoading(false);
+  };
 
-  const windowedRecords = useMemo(
-    () => attendanceRecords.filter((rec) => dateInWindow(rec.date)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [attendanceRecords, dateFilterMode, singleDate, fromDate, toDate, monthFilter]
-  );
+  const dateInWindow = (date: string) => {
+    if (appliedDateMode === 'all') return true;
+    if (appliedDateMode === 'date') return appliedSingleDate ? date === appliedSingleDate : true;
+    if (appliedDateMode === 'range') {
+      if (!appliedFromDate && !appliedToDate) return true;
+      if (appliedFromDate && appliedToDate) return date >= appliedFromDate && date <= appliedToDate;
+      if (appliedFromDate) return date >= appliedFromDate;
+      return date <= appliedToDate;
+    }
+    if (appliedDateMode === 'monthly') return appliedMonthFilter ? date.startsWith(appliedMonthFilter) : true;
+    return true;
+  };
+
+  const filterActive =
+    appliedDateMode !== 'all' ||
+    appliedFilterSubject !== 'All';
 
   const tutorClassStudents = useMemo(() => {
     if (!tutorFor) return [];
+    const targetSems = appliedMaster ? semestersForSelection({ ...appliedMaster, shift: undefined }) : null;
     return students.filter(
-      (s) => s.active && s.semester === tutorFor.semester && s.section === tutorFor.section
+      (s) =>
+        s.active &&
+        s.semester === tutorFor.semester &&
+        s.section === tutorFor.section &&
+        (!targetSems || targetSems.includes(s.semester))
     );
-  }, [students, tutorFor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [students, tutorFor, appliedMaster]);
+
+  const tutorSubjectOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    const tutorIds = new Set(tutorClassStudents.map((s) => s.id));
+    attendanceRecords.forEach((r) => {
+      if (r.semester !== tutorFor?.semester) return;
+      if (!r.entries.some((e) => tutorIds.has(e.studentId))) return;
+      if (!r.subjectCode) return;
+      seen.set(r.subjectCode, r.subjectName || r.subjectCode);
+    });
+    return Array.from(seen, ([code, name]) => ({ code, name }));
+  }, [attendanceRecords, tutorClassStudents, tutorFor]);
+
+  // Attendance records filtered by the APPLIED date + subject filters only.
+  const appliedRecords = useMemo(
+    () =>
+      attendanceRecords.filter((rec) => {
+        if (!dateInWindow(rec.date)) return false;
+        if (appliedFilterSubject !== 'All' && rec.subjectCode !== appliedFilterSubject) return false;
+        return true;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [attendanceRecords, appliedDateMode, appliedSingleDate, appliedFromDate, appliedToDate, appliedMonthFilter, appliedFilterSubject]
+  );
 
   const enrichedStudents = useMemo(() => {
     if (filterActive) {
       return tutorClassStudents.map((st) => {
-        const entries = windowedRecords.flatMap((r) =>
+        const entries = appliedRecords.flatMap((r) =>
           r.entries.filter((e) => e.studentId === st.id)
         );
         const presentDays = entries.filter((e) => e.status === 'present').length;
@@ -107,10 +184,10 @@ export const TutorClassStudents: React.FC = () => {
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorClassStudents, filterActive, windowedRecords]);
+  }, [tutorClassStudents, filterActive, appliedRecords]);
 
   const filteredStudents = useMemo(() => {
-    const q = searchQuery.toLowerCase();
+    const q = appliedSearchQuery.toLowerCase();
     return enrichedStudents
       .filter(
         (s) =>
@@ -118,8 +195,8 @@ export const TutorClassStudents: React.FC = () => {
           s.regNo.toLowerCase().includes(q) ||
           s.rollNo.toLowerCase().includes(q)
       )
-      .filter((s) => attendanceFilter === 'all' || s.pct < LOW_ATTENDANCE_THRESHOLD);
-  }, [enrichedStudents, searchQuery, attendanceFilter]);
+      .filter((s) => appliedAttendanceFilter === 'all' || s.pct < LOW_ATTENDANCE_THRESHOLD);
+  }, [enrichedStudents, appliedSearchQuery, appliedAttendanceFilter]);
 
   const avgAttendance = useMemo(() => {
     const withRecords = enrichedStudents.filter((s) => s.hasRecords);
@@ -169,7 +246,7 @@ export const TutorClassStudents: React.FC = () => {
     link.href = url;
     link.setAttribute(
       'download',
-      `TutorClass_Sem${tutorFor?.semester}_${(tutorFor?.section || 'FirstShift').replace(/\s/g, '')}_${attendanceFilter === 'low' ? 'LowAttendance_' : ''}Attendance.csv`
+      `TutorClass_Sem${tutorFor?.semester}_${(tutorFor?.section || 'FirstShift').replace(/\s/g, '')}_${appliedAttendanceFilter === 'low' ? 'LowAttendance_' : ''}Attendance.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -178,7 +255,7 @@ export const TutorClassStudents: React.FC = () => {
     addToast(
       'Report Exported',
       `Downloaded CSV for Semester ${tutorFor?.semester} ${tutorFor ? academicYearLabel(tutorFor.semester) : ''}${
-        attendanceFilter === 'low' ? ' (Low Attendance Only)' : ''
+        appliedAttendanceFilter === 'low' ? ' (Low Attendance Only)' : ''
       }`,
       'success'
     );
@@ -187,18 +264,18 @@ export const TutorClassStudents: React.FC = () => {
   if (!tutorFor) {
     return (
       <div className="space-y-6">
-        <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
+        <div className="pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             Tutor Class Students
           </h2>
         </div>
-        <div className="p-8 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center">
+        <div className="p-8 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl text-center">
           <ShieldCheck className="w-10 h-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
-          <p className="text-sm font-bold text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm font-bold text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
             No Tutor Assignment Found
           </p>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+          <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-500 mt-1">
             You have not been assigned as a Tutor for any class. Contact your administrator.
           </p>
         </div>
@@ -210,23 +287,28 @@ export const TutorClassStudents: React.FC = () => {
     <div className="space-y-6">
       <BackButton />
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight flex items-center gap-2">
             <GraduationCap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             Tutor Class Students
           </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
             Students in your assigned Tutor class — Semester {tutorFor.semester},{' '}
             {academicYearLabel(tutorFor.semester)} ({tutorFor.section === 'Second Shift' ? 'Second' : 'First'} Shift)
           </p>
+          {appliedMaster && (
+            <span className="mt-1 inline-block px-2.5 py-1 bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/40 dark:text-[#3B82F6] text-xs font-extrabold rounded-xl">
+              {masterSelectionLabel(appliedMaster)}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Attendance Date Filter */}
-      <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shadow-sm space-y-3">
+      <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl shadow-sm space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] flex items-center gap-1">
             <Filter className="w-3 h-3" /> Attendance Filter
           </span>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -241,63 +323,86 @@ export const TutorClassStudents: React.FC = () => {
                 onClick={() => setDateFilterMode(mode)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-colors ${
                   dateFilterMode === mode
-                    ? 'bg-[#1E40AF] dark:bg-[#2563EB] text-white'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    ? 'bg-[#2563EB] dark:bg-[#2563EB] text-white'
+                    : 'bg-[#F7F9FC] dark:bg-zinc-800 text-[#1E293B] dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
-          {filterActive && (
-            <button
-              onClick={clearDateFilter}
-              className="ml-auto px-2.5 py-1.5 text-[11px] font-bold text-zinc-500 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center gap-1"
-            >
-              <X className="w-3 h-3" /> Clear
-            </button>
-          )}
+          <button
+            onClick={clearFilters}
+            className="ml-auto px-2.5 py-1.5 text-[11px] font-bold text-[#000000] dark:text-[#64748B] hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center gap-1"
+          >
+            <X className="w-3 h-3" /> Clear
+          </button>
+        </div>
+
+        {/* Master Selection + Subject filter */}
+        <div className="flex flex-wrap items-center gap-2">
+          <MasterFilter
+            lockedDepartmentId={currentUser.departmentId}
+            showProgramme={true}
+            showClear={false}
+            compact={true}
+            onSearch={(sel) => setAppliedMaster(sel)}
+            onClear={() => setAppliedMaster(null)}
+          />
+          <span className="flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-[#2563EB] dark:text-[#3B82F6]" /> Subject
+          </span>
+          <select
+            value={filterSubject}
+            onChange={(e) => setFilterSubject(e.target.value)}
+            className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
+          >
+            <option value="All">All Subjects</option>
+            {tutorSubjectOptions.map((sub) => (
+              <option key={sub.code} value={sub.code}>{sub.name}</option>
+            ))}
+          </select>
         </div>
 
         {dateFilterMode === 'date' && (
           <div className="flex flex-wrap items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+            <Calendar className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
             <input
               type="date"
               value={singleDate}
               onChange={(e) => setSingleDate(e.target.value)}
-              className="p-2 text-xs font-semibold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
             />
           </div>
         )}
 
         {dateFilterMode === 'range' && (
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-500">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#000000] dark:text-[#64748B]">
             From
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="p-2 text-xs font-semibold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
             />
             To
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="p-2 text-xs font-semibold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
             />
           </div>
         )}
 
         {dateFilterMode === 'monthly' && (
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-500">
-            <Calendar className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#000000] dark:text-[#64748B]">
+            <Calendar className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />
             Month
             <select
               value={(monthFilter).split('-')[1]}
               onChange={(e) => setMonthFilter(`${monthFilter.split('-')[0]}-${e.target.value}`)}
-              className="p-2 text-xs font-semibold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
             >
               {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((m) => (
                 <option key={m} value={m}>{new Date(2000, parseInt(m, 10) - 1, 1).toLocaleString('default', { month: 'long' })}</option>
@@ -307,7 +412,7 @@ export const TutorClassStudents: React.FC = () => {
             <select
               value={(monthFilter).split('-')[0]}
               onChange={(e) => setMonthFilter(`${e.target.value}-${monthFilter.split('-')[1]}`)}
-              className="p-2 text-xs font-semibold bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl"
+              className="p-2 text-xs font-semibold bg-[#F7F9FC] dark:bg-zinc-800 border border-[#E2E8F0] dark:border-zinc-700 rounded-xl"
             >
               {Array.from({ length: 6 }, (_, i) => String(new Date().getFullYear() - 2 + i)).map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -317,78 +422,37 @@ export const TutorClassStudents: React.FC = () => {
         )}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl shadow-sm">
-          <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
-            Total Students
-          </span>
-          <span className="text-2xl font-extrabold text-zinc-900 dark:text-zinc-100">
-            {enrichedStudents.length}
-          </span>
-        </div>
-        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl shadow-sm">
-          <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
-            Avg Attendance
-          </span>
-          <span
-            className={`text-2xl font-extrabold ${
-              !filterActive || enrichedStudents.some((s) => s.hasRecords)
-                ? avgAttendance < LOW_ATTENDANCE_THRESHOLD
-                  ? 'text-rose-600 dark:text-rose-400'
-                  : 'text-emerald-600 dark:text-emerald-400'
-                : 'text-zinc-400 dark:text-zinc-500'
-            }`}
-          >
-            {filterActive && !enrichedStudents.some((s) => s.hasRecords)
-              ? '--'
-              : `${avgAttendance}%`}
-          </span>
-        </div>
-        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl shadow-sm">
-          <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
-            Class
-          </span>
-          <span className="text-2xl font-extrabold text-[#1E40AF] dark:text-[#3B82F6]">
-            Sem {tutorFor.semester} · {academicYearLabel(tutorFor.semester)}
-          </span>
-        </div>
-        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl shadow-sm">
-          <span className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">
-            Low Attendance
-          </span>
-          <span className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-            {lowAttendanceCount > 0 && <AlertTriangle className="w-5 h-5" />}
-            {lowAttendanceCount}
-          </span>
-        </div>
-      </div>
-
       {/* Search + Filter + Export */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl">
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-400" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#000000] dark:text-[#64748B]" />
           <input
             type="text"
             placeholder="Search by Student Name, Register No, or Roll No..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') setSearchQuery((e.target as HTMLInputElement).value);
+              if (e.key === 'Enter') applyFilters();
             }}
-            className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+            className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
         <button
-          onClick={() => setSearchQuery(searchQuery)}
-          className="px-3 py-1.5 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+          onClick={applyFilters}
+          className="px-3 py-1.5 text-xs font-bold text-white bg-[#2563EB] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
         >
-          Enter
+          Search
+        </button>
+        <button
+          onClick={clearFilters}
+          className="px-3 py-1.5 text-xs font-bold text-[#000000] dark:text-[#64748B] bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
+        >
+          Clear
         </button>
         <select
           value={attendanceFilter}
           onChange={(e) => setAttendanceFilter(e.target.value as 'all' | 'low')}
-          className="px-3 py-1.5 bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#1E40AF] shrink-0"
+          className="px-3 py-1.5 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#2563EB] shrink-0"
           title="Filter students by attendance"
         >
           <option value="all">All Students</option>
@@ -402,11 +466,58 @@ export const TutorClassStudents: React.FC = () => {
         </button>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl shadow-sm">
+          <span className="text-[10px] font-bold uppercase text-[#000000] dark:text-[#64748B] block mb-1">
+            Total Students
+          </span>
+          <span className="text-2xl font-extrabold text-[#0F172A] dark:text-zinc-100">
+            {enrichedStudents.length}
+          </span>
+        </div>
+        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl shadow-sm">
+          <span className="text-[10px] font-bold uppercase text-[#000000] dark:text-[#64748B] block mb-1">
+            Avg Attendance
+          </span>
+          <span
+            className={`text-2xl font-extrabold ${
+              !filterActive || enrichedStudents.some((s) => s.hasRecords)
+                ? avgAttendance < LOW_ATTENDANCE_THRESHOLD
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-emerald-600 dark:text-emerald-400'
+                : 'text-[#000000] dark:text-[#64748B] dark:text-zinc-500'
+            }`}
+          >
+            {filterActive && !enrichedStudents.some((s) => s.hasRecords)
+              ? '--'
+              : `${avgAttendance}%`}
+          </span>
+        </div>
+        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl shadow-sm">
+          <span className="text-[10px] font-bold uppercase text-[#000000] dark:text-[#64748B] block mb-1">
+            Class
+          </span>
+          <span className="text-2xl font-extrabold text-[#2563EB] dark:text-[#3B82F6]">
+            Sem {tutorFor.semester} · {academicYearLabel(tutorFor.semester)}
+          </span>
+        </div>
+        <div className="p-4 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl shadow-sm">
+          <span className="text-[10px] font-bold uppercase text-[#000000] dark:text-[#64748B] block mb-1">
+            Low Attendance
+          </span>
+          <span className="text-2xl font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+            {lowAttendanceCount > 0 && <AlertTriangle className="w-5 h-5" />}
+            {lowAttendanceCount}
+          </span>
+        </div>
+      </div>
+
       {/* Student Roster Table */}
-      <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden">
-        <div className="p-3 bg-zinc-50 dark:bg-[#0A0A0A] border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs font-bold text-zinc-700 dark:text-zinc-300">
+      <div className="border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl overflow-hidden">
+        <div className="p-3 bg-[#F7F9FC] dark:bg-[#0A0A0A] border-b border-[#E2E8F0] dark:border-zinc-800 flex items-center justify-between text-xs font-bold text-[#1E293B] dark:text-zinc-300">
           <span>Class Roster ({filteredStudents.length} Students)</span>
-          <span className="text-[#1E40AF] dark:text-[#3B82F6]">
+          <span className="text-[#2563EB] dark:text-[#3B82F6]">
             Semester {tutorFor.semester} · {academicYearLabel(tutorFor.semester)}
           </span>
         </div>
@@ -414,7 +525,7 @@ export const TutorClassStudents: React.FC = () => {
         <div className="max-h-[32rem] overflow-y-auto">
           <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-zinc-100 dark:bg-[#0A0A0A] text-zinc-400 font-semibold uppercase tracking-wider text-[10px]">
+            <thead className="bg-[#F7F9FC] dark:bg-[#0A0A0A] text-[#000000] dark:text-[#64748B] font-semibold uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="p-2.5 pl-3">Reg No & Name</th>
                 <th className="p-2.5">Roll No</th>
@@ -428,37 +539,37 @@ export const TutorClassStudents: React.FC = () => {
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 font-semibold">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-zinc-400 text-xs">
-                    {searchQuery || attendanceFilter === 'low' || filterActive
-                      ? 'No students match the current search or attendance filter.'
+                  <td colSpan={7} className="p-6 text-center text-[#000000] dark:text-[#64748B] text-xs">
+                    {appliedSearchQuery || appliedAttendanceFilter === 'low' || filterActive
+                      ? 'No records found for the selected filters.'
                       : 'No students found in this tutor class.'}
                   </td>
                 </tr>
               ) : (
                 filteredStudents.map((st) => (
-                  <tr key={st.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+                  <tr key={st.id} className="hover:bg-[#F7F9FC] dark:hover:bg-zinc-800/50">
                     <td className="p-2.5 pl-3">
                       <button
                         type="button"
                         onClick={() => setSelectedStudentForModal(st)}
-                        className="font-bold text-zinc-900 dark:text-zinc-100 block hover:text-[#1E40AF] dark:hover:text-[#3B82F6] hover:underline text-left"
+                        className="font-bold text-[#0F172A] dark:text-zinc-100 block hover:text-[#2563EB] dark:hover:text-[#3B82F6] hover:underline text-left"
                       >
                         {st.name}
                       </button>
-                      <span className="text-[10px] font-mono font-bold text-[#1E40AF] dark:text-[#3B82F6] block">
+                      <span className="text-[10px] font-mono font-bold text-[#2563EB] dark:text-[#3B82F6] block">
                         {st.regNo}
                       </span>
-                      <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 block">
+                      <span className="text-[10px] font-mono text-[#000000] dark:text-[#64748B] dark:text-zinc-400 block">
                         {'🐱 '}
                         {st.phone || '+91 98765 43210'}
                       </span>
                     </td>
-                    <td className="p-2.5 font-mono text-zinc-500">{st.rollNo}</td>
-                    <td className="p-2.5 font-mono text-zinc-600 dark:text-zinc-300">{st.totalDays} Days</td>
+                    <td className="p-2.5 font-mono text-[#000000] dark:text-[#64748B]">{st.rollNo}</td>
+                    <td className="p-2.5 font-mono text-[#1E293B] dark:text-zinc-300">{st.totalDays} Days</td>
                     <td className="p-2.5 text-emerald-600 font-bold">{st.presentDays} Days</td>
                     <td className="p-2.5 text-rose-600 font-bold">{st.absentDays} Days</td>
                     <td className="p-2.5 font-mono">{st.hasRecords ? (filterActive ? `${st.pct}%` : `${st.weeklyPct}%`) : '--'}</td>
-                    <td className="p-2.5 text-right pr-3 font-mono font-extrabold text-[#1E40AF] dark:text-[#3B82F6]">
+                    <td className="p-2.5 text-right pr-3 font-mono font-extrabold text-[#2563EB] dark:text-[#3B82F6]">
                       {st.hasRecords ? `${st.pct}%` : '--'}
                     </td>
                   </tr>

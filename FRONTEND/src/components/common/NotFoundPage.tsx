@@ -7,16 +7,16 @@ export const NotFoundPage: React.FC = () => {
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 space-y-4">
-      <div className="w-16 h-16 bg-[#1E40AF]/10 dark:bg-[#2563EB]/40 text-[#1E40AF] dark:text-[#3B82F6] rounded-3xl flex items-center justify-center">
+      <div className="w-16 h-16 bg-[#2563EB]/10 dark:bg-[#2563EB]/40 text-[#2563EB] dark:text-[#3B82F6] rounded-3xl flex items-center justify-center">
         <FileQuestion className="w-8 h-8" />
       </div>
-      <h2 className="text-xl font-black text-zinc-900 dark:text-zinc-100">404 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Screen Not Found</h2>
-      <p className="text-xs text-zinc-500 max-w-sm">
+      <h2 className="text-xl font-black text-[#0F172A] dark:text-zinc-100">404 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Screen Not Found</h2>
+      <p className="text-xs text-[#000000] dark:text-[#64748B] max-w-sm">
         The requested screen location could not be located in the application router.
       </p>
       <button
         onClick={() => setActiveScreen('dashboard')}
-        className="px-4 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-1.5"
+        className="px-4 py-2 bg-[#2563EB] hover:bg-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-1.5"
       >
         <ArrowLeft className="w-4 h-4" /> Return to Dashboard
       </button>

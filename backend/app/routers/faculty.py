@@ -6,7 +6,7 @@ from sqlalchemy import select, func, or_
 from app.core.database import get_db
 from app.dependencies.auth import require_role
 from app.models import (
-    User, Department, Subject, Timetable, AttendanceSession, AttendanceEntry,
+    User, Department, Subject, FacultySubject, Timetable, AttendanceSession, AttendanceEntry,
     Correction, LeaveRequest, LeaveApproval, Substitution, Notification,
     NotificationType, AttendanceStatus, UserRole, LeaveStatus,
     SubstitutionStatus, CorrectionStatus,
@@ -23,6 +23,7 @@ from app.services.notifications import send_notification_email, send_sms
 from app.core.formatters import (
     format_student, format_attendance_record, format_leave,
     format_substitution, format_correction, format_timetable_slot_simple,
+    format_subject,
 )
 from app.core.utils import _fmt_datetime, _fmt_time
 from app.core.config import settings
@@ -230,6 +231,17 @@ async def student_search(
     result = await db.execute(stmt)
     users = result.scalars().all()
     return [await format_student(u, db) for u in users]
+
+
+@router.get("/subjects", response_model=list[dict])
+async def faculty_subjects(
+    current_user: User = Depends(require_role("faculty", "hod")),
+    db: AsyncSession = Depends(get_db),
+):
+    subject_ids = select(FacultySubject.subject_id).where(FacultySubject.faculty_id == current_user.id)
+    stmt = select(Subject).where(Subject.id.in_(subject_ids))
+    subjects = (await db.execute(stmt)).scalars().all()
+    return [await format_subject(subject, db) for subject in subjects]
 
 
 @router.get("/my-classes", response_model=list[dict])

@@ -29,11 +29,11 @@ export const ChartCard: React.FC<ChartCardProps> = ({
     >
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-            {Icon && <Icon className="w-4 h-4 text-[#1E40AF] dark:text-[#3B82F6]" />}
+          <h3 className="text-base font-bold text-[#0F172A] dark:text-zinc-100 flex items-center gap-2">
+            {Icon && <Icon className="w-4 h-4 text-[#2563EB] dark:text-[#3B82F6]" />}
             {title}
           </h3>
-          {subtitle && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-0.5">{subtitle}</p>}
         </div>
         {badge}
       </div>
@@ -67,9 +67,9 @@ export interface ChartStateProps {
 
 export const ChartLoading: React.FC<ChartStateProps> = ({ height = 'h-64' }) => (
   <div
-    className={`${height} flex items-center justify-center gap-2 text-xs text-zinc-400 dark:text-zinc-500 text-center px-4`}
+    className={`${height} flex items-center justify-center gap-2 text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-500 text-center px-4`}
   >
-    <span className="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 dark:border-zinc-600 border-t-[#1E40AF] dark:border-t-[#3B82F6] animate-spin" />
+    <span className="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 dark:border-zinc-600 border-t-[#2563EB] dark:border-t-[#3B82F6] animate-spin" />
     Loading attendance data&hellip;
   </div>
 );
@@ -78,7 +78,7 @@ export const ChartEmpty: React.FC<ChartStateProps> = ({
   height = 'h-64',
   message = 'Attendance data will appear here once data is available.'
 }) => (
-  <div className={`${height} flex items-center justify-center text-xs text-zinc-400 dark:text-zinc-500 text-center px-4`}>
+  <div className={`${height} flex items-center justify-center text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-500 text-center px-4`}>
     {message}
   </div>
 );

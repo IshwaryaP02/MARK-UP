@@ -236,33 +236,35 @@ export const MarkAttendance: React.FC = () => {
       const fullName = entry.studentName.toLowerCase();
       const regNo = entry.studentRegNo.toLowerCase();
       if (fullName === q) return 0;
-      if (firstName === q || firstName.startsWith(q)) return 1;
-      if (fullName.startsWith(q) || fullName.includes(q) || regNo.includes(q)) return 2;
-      return 3;
+      if (firstName === q) return 1;
+      if (firstName.startsWith(q)) return 2;
+      if (fullName.startsWith(q) || regNo.startsWith(q)) return 3;
+      if (fullName.includes(q) || regNo.includes(q)) return 4;
+      return 5;
     };
 
-    return [...entries].sort((a, b) => relevance(a) - relevance(b));
+    return [...entries].filter((e) => relevance(e) < 5).sort((a, b) => relevance(a) - relevance(b));
   }, [entries, searchQuery]);
 
   if (!attendanceSubjectId || !selectedSubject) {
     return (
       <div className="space-y-6">
-        <div className="pb-2 border-b border-zinc-200 dark:border-zinc-800">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Mark Attendance
+        <div className="pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" /> Mark Attendance
           </h2>
         </div>
-        <div className="p-8 bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl text-center space-y-4">
+        <div className="p-8 bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl text-center space-y-4">
           <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto" />
           <div>
-            <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">No class selected</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            <p className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">No class selected</p>
+            <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-1">
               Please select a class from <strong>My Classes</strong> to mark attendance.
             </p>
           </div>
           <button
             onClick={() => setActiveScreen('my_classes')}
-            className="px-5 py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 mx-auto"
+            className="px-5 py-2.5 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center gap-2 mx-auto"
           >
             <ArrowLeft className="w-4 h-4" /> Go to My Classes
           </button>
@@ -274,17 +276,17 @@ export const MarkAttendance: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-[#1E40AF] dark:text-[#3B82F6]" /> Mark Attendance
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-[#2563EB] dark:text-[#3B82F6]" /> Mark Attendance
           </h2>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveScreen('my_classes')}
-            className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center gap-1"
+            className="px-3 py-2 bg-[#F7F9FC] dark:bg-zinc-800 text-[#1E293B] dark:text-zinc-300 text-xs font-bold rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center gap-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
@@ -319,7 +321,7 @@ export const MarkAttendance: React.FC = () => {
           </div>
           <button
             onClick={() => setIsEditMode(true)}
-            className="px-4 py-2 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0"
+            className="px-4 py-2 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0"
           >
             <Edit3 className="w-3.5 h-3.5" /> Edit Attendance
           </button>
@@ -327,30 +329,30 @@ export const MarkAttendance: React.FC = () => {
       )}
 
       {/* Read-only Info Controls */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
-            <Lock className="w-3 h-3 text-zinc-400" /> Today's Date
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1 flex items-center gap-1">
+            <Lock className="w-3 h-3 text-[#000000] dark:text-[#64748B]" /> Today's Date
           </label>
-          <div className="p-2.5 bg-zinc-100 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-zinc-700 dark:text-zinc-300 text-xs">
+          <div className="p-2.5 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold text-[#1E293B] dark:text-zinc-300 text-xs">
             {todayStr}
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
-            <Clock className="w-3 h-3 text-zinc-400" /> Active Period
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1 flex items-center gap-1">
+            <Clock className="w-3 h-3 text-[#000000] dark:text-[#64748B]" /> Active Period
           </label>
-          <div className="p-2.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6] text-xs">
+          <div className="p-2.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold text-[#2563EB] dark:text-[#3B82F6] text-xs">
             Period {currentPeriod} ({getPeriodTimeLabel(currentPeriod, periodTimes)})
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1 flex items-center gap-1">
-            <BookOpen className="w-3 h-3 text-zinc-400" /> Assigned Subject
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1 flex items-center gap-1">
+            <BookOpen className="w-3 h-3 text-[#000000] dark:text-[#64748B]" /> Assigned Subject
           </label>
-          <div className="p-2.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-[#1E40AF] dark:text-[#3B82F6] text-xs">
+          <div className="p-2.5 bg-[#FFFFFF] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-bold text-[#2563EB] dark:text-[#3B82F6] text-xs">
             {selectedSubject.code} — {selectedSubject.name}
           </div>
         </div>
@@ -370,10 +372,10 @@ export const MarkAttendance: React.FC = () => {
       </div>
 
       {/* Search Input */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-3 shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl p-3 shadow-sm">
         <div className="flex flex-col sm:flex-row items-center gap-2">
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+            <Search className="w-4 h-4 text-[#000000] dark:text-[#64748B] absolute left-3.5 top-3" />
             <input
               type="text"
               placeholder="Search students by name or registration number..."
@@ -382,12 +384,12 @@ export const MarkAttendance: React.FC = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') setSearchQuery((e.target as HTMLInputElement).value);
               }}
-              className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-xl"
+              className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-xl"
             />
           </div>
           <button
             onClick={() => setSearchQuery(searchQuery)}
-            className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+            className="px-4 py-2 text-xs font-bold text-white bg-[#2563EB] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
           >
             Enter
           </button>
@@ -395,12 +397,12 @@ export const MarkAttendance: React.FC = () => {
       </div>
 
       {/* Roster Cards List */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">
             Class Roster ({filteredEntries.length} Students)
           </h3>
-          <span className="text-[10px] text-zinc-400 font-bold uppercase">
+          <span className="text-[10px] text-[#000000] dark:text-[#64748B] font-bold uppercase">
             Click name to view student profile
           </span>
         </div>
@@ -413,7 +415,7 @@ export const MarkAttendance: React.FC = () => {
             return (
               <div
                 key={entry.studentId}
-                className="p-3 bg-zinc-50/80 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="p-3 bg-[#F7F9FC]/80 dark:bg-zinc-800/50 border border-[#E2E8F0]/60 dark:border-zinc-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3">
                   <img
@@ -426,12 +428,12 @@ export const MarkAttendance: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => studentObj && setSelectedStudentForModal(studentObj)}
-                      className="font-bold text-zinc-900 dark:text-zinc-100 text-xs block hover:text-[#1E40AF] dark:hover:text-[#3B82F6] hover:underline text-left"
+                      className="font-bold text-[#0F172A] dark:text-zinc-100 text-xs block hover:text-[#2563EB] dark:hover:text-[#3B82F6] hover:underline text-left"
                     >
                       {entry.studentName}
                     </button>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] font-mono text-zinc-500 font-bold">
+                      <span className="text-[11px] font-mono text-[#000000] dark:text-[#64748B] font-bold">
                         Reg: {entry.studentRegNo} | Roll: {studentObj?.rollNo}
                       </span>
                       <span
@@ -461,7 +463,7 @@ export const MarkAttendance: React.FC = () => {
                         className={`px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
                           entry.status === 'present'
                             ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-600'
+                            : 'bg-[#F7F9FC] dark:bg-zinc-800 text-[#000000] dark:text-[#64748B] hover:bg-emerald-50 hover:text-emerald-600'
                         }`}
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Present
@@ -473,7 +475,7 @@ export const MarkAttendance: React.FC = () => {
                         className={`px-3 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 ${
                           entry.status === 'absent'
                             ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
-                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-rose-50 hover:text-rose-600'
+                            : 'bg-[#F7F9FC] dark:bg-zinc-800 text-[#000000] dark:text-[#64748B] hover:bg-rose-50 hover:text-rose-600'
                         }`}
                       >
                         <XCircle className="w-3.5 h-3.5" /> Absent
@@ -488,19 +490,19 @@ export const MarkAttendance: React.FC = () => {
       </div>
 
       {/* Submit / Resubmit Bar */}
-      <div className="sticky bottom-4 z-20 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-4 rounded-2xl shadow-xl flex items-center justify-between">
+      <div className="sticky bottom-4 z-20 bg-white/95 dark:bg-[#0A0A0A]/95 backdrop-blur-md border border-[#E2E8F0] dark:border-zinc-800 p-4 rounded-2xl shadow-xl flex items-center justify-between">
         <div>
-          <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 block">
+          <span className="text-xs font-bold text-[#0F172A] dark:text-zinc-100 block">
             {isEditMode ? 'Resubmit Attendance Record' : 'Submit Class Attendance Record'}
           </span>
-          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+          <span className="text-[11px] text-[#000000] dark:text-[#64748B] dark:text-zinc-400">
             {counts.present} Present, {counts.absent} Absent, {counts.od} OD (Total: {entries.length})
           </span>
         </div>
 
         <button
           onClick={() => setSummaryModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-bold rounded-xl transition-all shadow-md"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:hover:bg-[#2563EB] text-white dark:text-[#FFFFFF] text-xs font-bold rounded-xl transition-all shadow-md"
         >
           {isEditMode ? <RefreshCw className="w-4 h-4" /> : <Send className="w-4 h-4" />}
           {isEditMode ? 'Resubmit Attendance' : 'Submit Attendance'}
@@ -515,7 +517,7 @@ export const MarkAttendance: React.FC = () => {
         subtitle={`${selectedSubject.code} · Period ${currentPeriod} · ${todayStr}`}
       >
         <div className="space-y-4 text-xs">
-          <div className="p-4 bg-zinc-50 dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-2">
+          <div className="p-4 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl space-y-2">
             <div className="flex justify-between font-bold text-sm">
               <span>Present Students:</span>
               <span className="text-emerald-600 dark:text-emerald-400">{counts.present}</span>
@@ -530,13 +532,13 @@ export const MarkAttendance: React.FC = () => {
             </div>
           </div>
 
-          <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed">
+          <p className="text-[#000000] dark:text-[#64748B] dark:text-zinc-400 leading-relaxed">
             Saving this record updates student attendance percentages directly.
           </p>
 
           <button
             onClick={handleConfirmSubmit}
-            className="w-full py-3 bg-[#1E40AF] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white font-bold rounded-xl transition-all shadow-md"
+            className="w-full py-3 bg-[#2563EB] hover:bg-[#FFFFFF] dark:bg-[#2563EB] dark:text-[#FFFFFF] text-white font-bold rounded-xl transition-all shadow-md"
           >
             {isEditMode ? 'Resubmit Attendance' : 'Finalize & Save Record'}
           </button>

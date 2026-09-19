@@ -22,9 +22,9 @@ export const AuditLogs: React.FC = () => {
     <div className="space-y-6">
       <BackButton />
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#E2E8F0] dark:border-zinc-800">
         <div>
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+          <h2 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">
             Security Audit Trail & Payload Inspector
           </h2>
         </div>
@@ -32,7 +32,7 @@ export const AuditLogs: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row items-center gap-2">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-[#000000] dark:text-[#64748B] absolute left-3.5 top-3" />
           <input
             type="text"
             value={searchTerm}
@@ -41,21 +41,21 @@ export const AuditLogs: React.FC = () => {
               if (e.key === 'Enter') setSearchTerm((e.target as HTMLInputElement).value);
             }}
             placeholder="Filter audit logs by action, user name, module, or details..."
-            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+            className="w-full pl-10 pr-3 py-2 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-[#232326] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
           />
         </div>
         <button
           onClick={() => setSearchTerm(searchTerm)}
-          className="px-4 py-2 text-xs font-bold text-white bg-[#1E40AF] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
+          className="px-4 py-2 text-xs font-bold text-white bg-[#2563EB] dark:bg-[#2563EB] hover:bg-[#161B33] dark:hover:bg-[#2563EB] rounded-xl transition-colors shrink-0"
         >
           Enter
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#0A0A0A] border border-zinc-200/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-[#232326] rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-zinc-50 dark:bg-[#0A0A0A]/80 border-b border-zinc-200 dark:border-[#232326] text-zinc-500 dark:text-zinc-400 font-semibold uppercase tracking-wider">
+          <thead className="bg-[#F7F9FC] dark:bg-[#0A0A0A]/80 border-b border-[#E2E8F0] dark:border-[#232326] text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-semibold uppercase tracking-wider">
             <tr>
               <th className="p-3.5 pl-4">Timestamp</th>
               <th className="p-3.5">User</th>
@@ -67,25 +67,25 @@ export const AuditLogs: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60 font-mono">
             {filtered.map((log) => (
-              <tr key={log.id} className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors">
-                <td className="p-3.5 pl-4 text-zinc-500 text-[11px]">{log.timestamp}</td>
-                <td className="p-3.5 font-sans font-semibold text-zinc-900 dark:text-zinc-100">
+              <tr key={log.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
+                <td className="p-3.5 pl-4 text-[#000000] dark:text-[#64748B] text-[11px]">{log.timestamp}</td>
+                <td className="p-3.5 font-sans font-semibold text-[#0F172A] dark:text-zinc-100">
                   {log.userName}
-                  <span className="block text-[10px] text-zinc-400 uppercase font-mono">{log.role}</span>
+                  <span className="block text-[10px] text-[#000000] dark:text-[#64748B] uppercase font-mono">{log.role}</span>
                 </td>
-                <td className="p-3.5 font-bold text-[#1E40AF] dark:text-[#3B82F6]">{log.action}</td>
-                <td className="p-3.5 text-zinc-600 dark:text-zinc-300 font-sans">{log.module}</td>
-                <td className="p-3.5 text-zinc-500 font-sans truncate max-w-xs">{log.details}</td>
+                <td className="p-3.5 font-bold text-[#2563EB] dark:text-[#3B82F6]">{log.action}</td>
+                <td className="p-3.5 text-[#1E293B] dark:text-zinc-300 font-sans">{log.module}</td>
+                <td className="p-3.5 text-[#000000] dark:text-[#64748B] font-sans truncate max-w-xs">{log.details}</td>
                 <td className="p-3.5 text-right pr-4">
                   {log.payloadDiff ? (
                     <button
                       onClick={() => setSelectedLog(log)}
-                      className="p-1.5 text-xs font-semibold text-[#1E40AF] dark:text-[#3B82F6] hover:bg-[#1E40AF]/10 rounded-lg transition-colors inline-flex items-center gap-1 font-sans"
+                      className="p-1.5 text-xs font-semibold text-[#2563EB] dark:text-[#3B82F6] hover:bg-[#2563EB]/10 rounded-lg transition-colors inline-flex items-center gap-1 font-sans"
                     >
                       <Code className="w-3.5 h-3.5" /> Inspect JSON
                     </button>
                   ) : (
-                    <span className="text-[10px] text-zinc-400 font-sans font-normal">—</span>
+                    <span className="text-[10px] text-[#000000] dark:text-[#64748B] font-sans font-normal">—</span>
                   )}
                 </td>
               </tr>
@@ -107,7 +107,7 @@ export const AuditLogs: React.FC = () => {
             <div className="p-3 bg-[#FFFFFF] text-emerald-400 font-mono text-xs rounded-xl overflow-x-auto border border-[#E2E8F0]">
               <pre>{JSON.stringify(JSON.parse(selectedLog.payloadDiff || '{}'), null, 2)}</pre>
             </div>
-            <p className="text-xs text-zinc-500">Origin IP: {selectedLog.ipAddress}</p>
+            <p className="text-xs text-[#000000] dark:text-[#64748B]">Origin IP: {selectedLog.ipAddress}</p>
           </div>
         </Modal>
       )}

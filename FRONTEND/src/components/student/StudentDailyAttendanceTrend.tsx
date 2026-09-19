@@ -57,7 +57,7 @@ const ChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload }) => {
     <div className="bg-[#080C14] dark:bg-[#0A0A0A] border border-zinc-700 rounded-2xl px-3.5 py-2.5 text-xs shadow-xl">
       <p className="font-bold text-white mb-1">{point.name}</p>
       {point.pct === null ? (
-        <p className="text-zinc-400 font-mono">No attendance recorded</p>
+        <p className="text-[#000000] dark:text-[#64748B] font-mono">No attendance recorded</p>
       ) : (
         <>
           <p className="text-white font-mono font-bold">{point.pct}%</p>

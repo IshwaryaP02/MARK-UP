@@ -45,17 +45,17 @@ export const Modal: React.FC<ModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className={`relative w-full ${widthClasses[maxWidth]} bg-white dark:bg-[#0A0A0A] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-[9999] my-8`}
+            className={`relative w-full ${widthClasses[maxWidth]} bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-[9999] my-8`}
           >
             {/* Header */}
-            <div className="flex items-start justify-between p-5 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-[#0A0A0A]/50">
+            <div className="flex items-start justify-between p-5 border-b border-[#E2E8F0] dark:border-zinc-800/80 bg-[#F7F9FC]/50 dark:bg-[#0A0A0A]/50">
               <div>
-                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">{title}</h3>
-                {subtitle && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
+                <h3 className="text-base font-bold text-[#0F172A] dark:text-zinc-100 tracking-tight">{title}</h3>
+                {subtitle && <p className="text-xs text-[#000000] dark:text-[#64748B] dark:text-zinc-400 mt-0.5">{subtitle}</p>}
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                className="p-1.5 text-[#000000] dark:text-[#64748B] hover:text-[#1E293B] dark:hover:text-zinc-200 hover:bg-[#F7F9FC] dark:hover:bg-zinc-800 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>

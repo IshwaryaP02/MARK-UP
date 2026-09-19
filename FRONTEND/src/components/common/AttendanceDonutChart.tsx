@@ -67,10 +67,10 @@ export const AttendanceDonutChart: React.FC<AttendanceDonutChartProps> = ({
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-black text-zinc-800 dark:text-zinc-100">
+              <span className="text-2xl font-black text-[#0F172A] dark:text-zinc-100">
                 {hasValue ? total : '—'}
               </span>
-              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{centerLabel}</span>
+              <span className="text-[10px] text-[#000000] dark:text-[#64748B] font-bold uppercase tracking-widest">{centerLabel}</span>
             </div>
           </div>
 
@@ -78,12 +78,12 @@ export const AttendanceDonutChart: React.FC<AttendanceDonutChartProps> = ({
             {data.map((slice) => (
               <div
                 key={slice.name}
-                className="p-3 rounded-2xl flex items-center gap-2 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-800"
+                className="p-3 rounded-2xl flex items-center gap-2 bg-[#F7F9FC] dark:bg-zinc-800/50 border border-[#E2E8F0]/60 dark:border-zinc-800"
               >
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }} />
                 <div className="min-w-0">
-                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-100">{slice.value}</div>
-                  <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">{slice.name}</div>
+                  <div className="text-xs font-bold text-[#0F172A] dark:text-zinc-100">{slice.value}</div>
+                  <div className="text-[10px] text-[#000000] dark:text-[#64748B] dark:text-zinc-400 font-medium">{slice.name}</div>
                 </div>
               </div>
             ))}

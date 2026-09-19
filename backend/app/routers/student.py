@@ -21,6 +21,7 @@ from app.core.formatters import (
     format_student, format_attendance_record, format_leave,
     format_notification, format_timetable_slot, get_student_attendance_summary,
     get_student_attendance_history,
+    format_subject,
 )
 from app.core.utils import _fmt_datetime, _fmt_date, _fmt_time
 from app.services.audit import create_audit_log
@@ -88,6 +89,19 @@ async def attendance_summary(
     db: AsyncSession = Depends(get_db),
 ):
     return await get_student_attendance_summary(str(current_user.id), db)
+
+
+@router.get("/subjects", response_model=list[dict])
+async def student_subjects(
+    current_user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(Subject).where(
+        Subject.department_id == current_user.department_id,
+        Subject.semester == current_user.semester,
+    )
+    subjects = (await db.execute(stmt)).scalars().all()
+    return [await format_subject(subject, db) for subject in subjects]
 
 
 @router.get("/attendance/history", response_model=list[AttendanceHistoryEntry])

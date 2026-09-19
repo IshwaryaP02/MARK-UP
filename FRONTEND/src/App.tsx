@@ -15,7 +15,7 @@ import { DepartmentManagement } from './components/admin/DepartmentManagement';
 import { SubjectManagement } from './components/admin/SubjectManagement';
 import { TimetableBuilder } from './components/admin/TimetableBuilder';
 import { AcademicCalendar } from './components/admin/AcademicCalendar';
-import { MonthlyStaffOrder } from './components/admin/MonthlyStaffOrder';
+import { DayOrderOCR } from './components/admin/DayOrderOCR';
 import { UserAccounts } from './components/admin/UserAccounts';
 import { ReportsHub } from './components/admin/ReportsHub';
 import { DBBackup } from './components/admin/DBBackup';
@@ -56,7 +56,6 @@ import { ApproveSubstitutions } from './components/hod/ApproveSubstitutions';
 import { HODCirculars } from './components/hod/HODCirculars';
 import { StudentDetails } from './components/hod/StudentDetails';
 import { HODBonafide } from './components/hod/HODBonafide';
-import { HODTimetable } from './components/hod/HODTimetable';
 
 // Shared Components
 import { NotificationCenter } from './components/common/NotificationCenter';
@@ -88,7 +87,7 @@ const AppContent: React.FC = () => {
         case 'subjects': return <SubjectManagement />;
         case 'timetable_builder': return <TimetableBuilder />;
         case 'academic_calendar': return <AcademicCalendar />;
-        case 'monthly_staff_order': return <MonthlyStaffOrder />;
+        case 'day_order_ocr': return <DayOrderOCR />;
         case 'user_accounts': return <UserAccounts />;
         case 'reports_hub':
         case 'reports': return <ReportsHub />;
@@ -135,8 +134,6 @@ const AppContent: React.FC = () => {
       switch (activeScreen) {
         case 'dashboard': return <HODDashboard />;
         case 'hod_all_classes': return <AllClassesView />;
-        case 'hod_timetable': return <HODTimetable />;
-        case 'timetable_builder': return <TimetableBuilder />;  // HOD can also use builder
         case 'student_details': return <StudentDetails />;
         case 'hod_circulars': return <HODCirculars />;
         case 'faculty_monitoring': return <FacultyMonitoring />;
@@ -155,7 +152,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#F1F5F9] dark:bg-[#000000] text-zinc-900 dark:text-zinc-100 font-sans antialiased selection:bg-[#1E40AF] selection:text-white transition-colors duration-200">
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#F7F9FC] dark:bg-[#000000] text-[#1E293B] dark:text-zinc-100 font-sans antialiased selection:bg-[#2563EB] selection:text-white transition-colors duration-200">
       {/* Top Navbar */}
       <Navbar />
 

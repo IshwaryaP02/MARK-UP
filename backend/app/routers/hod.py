@@ -6,7 +6,7 @@ from sqlalchemy import select, func, or_
 from app.core.database import get_db
 from app.dependencies.auth import require_role
 from app.models import (
-    User, Department, Subject, Timetable, AttendanceSession, AttendanceEntry,
+    User, Department, Subject, FacultySubject, Timetable, AttendanceSession, AttendanceEntry,
     Correction, LeaveRequest, LeaveApproval, Substitution, Notification,
     NotificationType, AttendanceStatus, UserRole, LeaveStatus,
     CorrectionStatus, SubstitutionStatus, CalendarEvent, AcademicSession,

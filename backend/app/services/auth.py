@@ -88,8 +88,7 @@ async def login_by_username(username: str, password: str, db: AsyncSession) -> L
         raise ValueError("Invalid username or password")
 
     user.last_login = datetime.utcnow()
-    await db.commit()
-    await db.refresh(user)
+    await db.commit()  # expire_on_commit=False keeps user object valid — no refresh needed
 
     token = create_access_token({
         "user_id": str(user.id),

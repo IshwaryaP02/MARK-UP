@@ -229,3 +229,71 @@ body:has(.login-page) #root {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* =========================================================
+   GLOBAL MOBILE-FIRST UTILITIES
+   Production-grade responsive helpers used app-wide.
+   All portal pages are mobile-first: these classes ensure
+   nothing overflows and all content is touch-friendly.
+   ========================================================= */
+
+/* Horizontal scroll wrapper for tables on small screens */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+/* Minimum touch-target size per WCAG 2.5.8 */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Responsive card — tighter padding on mobile */
+.card-responsive {
+  padding: 1rem;
+}
+@media (min-width: 640px) {
+  .card-responsive {
+    padding: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .card-responsive {
+    padding: 2rem;
+  }
+}
+
+/* Prevent any element from overflowing horizontally on mobile */
+* {
+  max-width: 100%;
+}
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+table {
+  min-width: 0;     /* tables inside .table-scroll can overflow their parent */
+}
+
+/* Safe-area inset for notched phones (iPhone X+) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Mobile typography scale — slightly smaller text on tiny screens */
+@media (max-width: 380px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* Smooth momentum scrolling for iOS on all scroll containers */
+.overflow-y-auto,
+.overflow-auto,
+main,
+aside {
+  -webkit-overflow-scrolling: touch;
+}
+

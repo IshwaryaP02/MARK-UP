@@ -242,3 +242,100 @@ async def _timetable_to_dict(slot: Timetable, db: AsyncSession) -> dict:
         "semester": slot.semester,
         "section": slot.section,
     }
+
+from app.models.models import OdRequest, OdRequestStatus
+from app.schemas.entities import OdRequestRead, OdRequestCreate
+
+@router.get("/od", response_model=list[OdRequestRead])
+async def my_od_requests(
+    current_user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(OdRequest).where(
+        OdRequest.student_id == current_user.id
+    ).order_by(OdRequest.created_at.desc())
+    result = await db.execute(stmt)
+    ods = result.scalars().all()
+    out = []
+    for od in ods:
+        out.append({
+            "id": str(od.id),
+            "student_id": str(od.student_id),
+            "student_name": current_user.name,
+            "student_reg_no": current_user.reg_no or "",
+            "department_id": str(current_user.department_id),
+            "semester": current_user.semester or 0,
+            "section": current_user.section or "",
+            "from_date": _fmt_date(od.from_date),
+            "to_date": _fmt_date(od.to_date),
+            "from_period": od.from_period,
+            "to_period": od.to_period,
+            "reason": od.reason,
+            "proof_url": od.proof_url,
+            "status": str(od.status.value),
+            "class_adviser_id": str(od.class_adviser_id) if od.class_adviser_id else None,
+            "hod_id": str(od.hod_id) if od.hod_id else None,
+            "adviser_comment": od.adviser_comment,
+            "hod_comment": od.hod_comment,
+            "created_at": _fmt_datetime(od.created_at),
+        })
+    return out
+
+
+@router.post("/od", response_model=OdRequestRead)
+async def apply_od(
+    data: OdRequestCreate,
+    current_user: User = Depends(require_role("student")),
+    db: AsyncSession = Depends(get_db),
+):
+    # Find the class adviser for this student's class
+    adv_stmt = select(User).where(
+        User.role == UserRole.faculty,
+        User.is_class_adviser == True,
+        User.advising_department_id == current_user.department_id,
+        User.advising_year == current_user.year,
+        User.advising_shift == current_user.shift,
+        User.advising_programme == current_user.programme
+    ).limit(1)
+    adviser = (await db.execute(adv_stmt)).scalar_one_or_none()
+    
+    if not adviser:
+        raise HTTPException(status_code=400, detail="No Class Adviser found for your class to review this request.")
+
+    od = OdRequest(
+        id=str(uuid.uuid4()),
+        student_id=current_user.id,
+        from_date=datetime.strptime(data.from_date, "%Y-%m-%d").date(),
+        to_date=datetime.strptime(data.to_date, "%Y-%m-%d").date(),
+        from_period=data.from_period,
+        to_period=data.to_period,
+        reason=data.reason,
+        proof_url=data.proof_url,
+        status=OdRequestStatus.pending,
+        class_adviser_id=adviser.id,
+    )
+    db.add(od)
+    await db.commit()
+    await db.refresh(od)
+    
+    return {
+        "id": str(od.id),
+        "student_id": str(od.student_id),
+        "student_name": current_user.name,
+        "student_reg_no": current_user.reg_no or "",
+        "department_id": str(current_user.department_id),
+        "semester": current_user.semester or 0,
+        "section": current_user.section or "",
+        "from_date": _fmt_date(od.from_date),
+        "to_date": _fmt_date(od.to_date),
+        "from_period": od.from_period,
+        "to_period": od.to_period,
+        "reason": od.reason,
+        "proof_url": od.proof_url,
+        "status": str(od.status.value),
+        "class_adviser_id": str(od.class_adviser_id) if od.class_adviser_id else None,
+        "hod_id": str(od.hod_id) if od.hod_id else None,
+        "adviser_comment": od.adviser_comment,
+        "hod_comment": od.hod_comment,
+        "created_at": _fmt_datetime(od.created_at),
+    }

@@ -26,6 +26,11 @@ from app.models.models import (
     BackupType,
     BackupStatus,
     TimetableVersion,
+    Circular,
+    CircularStatus,
+    BonafideRequest,
+    BonafideStage,
+    StaffDayOrder,
 )
 
 __all__ = [
@@ -56,4 +61,9 @@ __all__ = [
     "BackupType",
     "BackupStatus",
     "TimetableVersion",
+    "Circular",
+    "CircularStatus",
+    "BonafideRequest",
+    "BonafideStage",
+    "StaffDayOrder",
 ]

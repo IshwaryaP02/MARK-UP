@@ -73,7 +73,11 @@ export const Sidebar: React.FC = () => {
             { id: 'dashboard', label: 'Faculty Dashboard', icon: LayoutDashboard },
             { id: 'my_classes', label: 'My Classes', icon: BookOpen },
             { id: 'faculty_timetable', label: 'Today\'s Timetable', icon: Calendar },
-            ...(isTutor ? [{ id: 'tutor_class_students', label: 'Tutor Class Students', icon: Eye }, { id: 'tutor_circular', label: 'Tutor Circular', icon: Send }] : [])
+            ...(isTutor ? [
+              { id: 'tutor_class_students', label: 'Tutor Class Students', icon: Eye },
+              { id: 'tutor_od_requests', label: 'OD Approvals', icon: Award },
+              { id: 'tutor_circular', label: 'Tutor Circular', icon: Send }
+            ] : [])
           ]},
           { group: 'Approvals & Tracking', items: [
             { id: 'mark_attendance', label: 'Mark Attendance', icon: CheckSquare },
@@ -92,6 +96,7 @@ export const Sidebar: React.FC = () => {
             { id: 'dashboard', label: 'Student Dashboard', icon: LayoutDashboard },
             { id: 'student_attendance', label: 'My Attendance & Heatmap', icon: PieChart },
             { id: 'student_apply_leave', label: 'Apply Leave', icon: FileText },
+            { id: 'student_apply_od', label: 'Apply OD', icon: Award },
             { id: 'student_timetable', label: 'Timetable', icon: Calendar },
             { id: 'student_circulars', label: 'Circulars', icon: FileText },
             { id: 'student_bonafide', label: 'Bonafide Certificate', icon: Award }
@@ -108,6 +113,7 @@ export const Sidebar: React.FC = () => {
           ]},
           { group: 'Department Approvals', items: [
             { id: 'hod_leaves', label: 'Approve Leaves', icon: FileText, badgeCount: pendingLeaves },
+            { id: 'hod_od_requests', label: 'Approve OD', icon: Award },
             { id: 'hod_substitutions', label: 'Approve Substitutions', icon: Repeat, badgeCount: pendingSubs },
             { id: 'hod_corrections', label: 'Approve Corrections', icon: CheckSquare, badgeCount: pendingCorrections },
             { id: 'hod_bonafide', label: 'Bonafide Certificates', icon: Award }

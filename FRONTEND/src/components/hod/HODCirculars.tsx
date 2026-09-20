@@ -12,6 +12,7 @@ import {
   yearsForProgramme,
   shiftsForProgramme
 } from '../../services/programmeStructure';
+import { Avatar } from '../common/Avatar';
 import {
   FileText,
   Plus,
@@ -439,11 +440,7 @@ export const HODCirculars: React.FC = () => {
                         onChange={() => toggleFacultySelection(fac.id)}
                         className="w-3.5 h-3.5 rounded border-zinc-300 text-[#2563EB] focus:ring-[#2563EB]"
                       />
-                      <img
-                        src={fac.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'}
-                        alt={fac.name}
-                        className="w-6 h-6 rounded-lg object-cover"
-                      />
+                      <Avatar name={fac.name} src={fac.avatar} size="sm" />
                       <div>
                         <span className="text-xs font-bold text-[#0F172A] dark:text-zinc-100">{fac.name}</span>
                         <span className="text-[10px] text-[#000000] dark:text-[#64748B] ml-1">{fac.employeeId}</span>

@@ -5,6 +5,7 @@ import { academicYearLabel } from '../../services/academicStructure';
 import { StudentDetailModal } from '../common/StudentDetailModal';
 import { BackButton } from '../common/BackButton';
 import { Search, UserCheck, Phone, Mail, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Avatar } from '../common/Avatar';
 
 export const StudentSearch: React.FC = () => {
   const { students } = useApp();
@@ -57,11 +58,7 @@ export const StudentSearch: React.FC = () => {
             className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all cursor-pointer group space-y-3"
           >
             <div className="flex items-center gap-3">
-              <img
-                src={s.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
-                alt={s.name}
-                className="w-12 h-12 rounded-2xl object-cover ring-2 ring-[#2563EB]/20 dark:ring-[#3B82F6]/30"
-              />
+              <Avatar name={s.name} src={s.avatar} size="lg" className="ring-2 ring-[#2563EB]/20 dark:ring-[#3B82F6]/30" />
               <div>
                 <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 group-hover:text-[#2563EB] dark:group-hover:text-[#3B82F6] transition-colors">
                   {s.name}

@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, delete
 from app.core.database import get_db
 from app.dependencies.auth import require_role
 from app.models import (
@@ -108,23 +108,29 @@ async def mark_attendance(
         AttendanceSession.subject_id == uuid.UUID(data.subject_id) if data.subject_id else None,
         AttendanceSession.section == data.section,
     ))).scalar_one_or_none()
-    if existing:
-        raise HTTPException(status_code=400, detail="Attendance already marked for this session")
 
-    session_obj = AttendanceSession(
-        id=uuid.uuid4(),
-        subject_id=uuid.UUID(data.subject_id) if data.subject_id else None,
-        faculty_id=uuid.UUID(data.faculty_id) if data.faculty_id else None,
-        date=parsed_date,
-        period_number=data.period_number,
-        room_no=data.room_no,
-        department_id=uuid.UUID(data.department_id) if data.department_id else None,
-        semester=data.semester,
-        section=data.section,
-        marked_at=now,
-        marked_by=current_user.id,
-    )
-    db.add(session_obj)
+    if existing:
+        session_obj = existing
+        # Delete existing entries so we can insert new ones
+        await db.execute(delete(AttendanceEntry).where(AttendanceEntry.session_id == session_obj.id))
+        session_obj.marked_at = now
+        session_obj.marked_by = current_user.id
+    else:
+        session_obj = AttendanceSession(
+            id=uuid.uuid4(),
+            subject_id=uuid.UUID(data.subject_id) if data.subject_id else None,
+            faculty_id=uuid.UUID(data.faculty_id) if data.faculty_id else None,
+            date=parsed_date,
+            period_number=data.period_number,
+            room_no=data.room_no,
+            department_id=uuid.UUID(data.department_id) if data.department_id else None,
+            semester=data.semester,
+            section=data.section,
+            marked_at=now,
+            marked_by=current_user.id,
+        )
+        db.add(session_obj)
+
     await db.commit()
     await db.refresh(session_obj)
 
@@ -462,3 +468,114 @@ async def faculty_corrections(
     result = await db.execute(stmt)
     corrections = result.scalars().all()
     return [await format_correction(c, db) for c in corrections]
+
+
+from app.models.models import OdRequest, OdRequestStatus
+from app.schemas.entities import OdRequestRead, OdReview
+
+@router.get("/od/class-adviser", response_model=list[OdRequestRead])
+async def list_od_requests_for_adviser(
+    current_user: User = Depends(require_role("faculty")),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current_user.is_class_adviser:
+        raise HTTPException(status_code=403, detail="You are not assigned as a Class Adviser")
+
+    stmt = select(OdRequest).where(
+        OdRequest.class_adviser_id == current_user.id,
+        OdRequest.status == OdRequestStatus.pending
+    ).order_by(OdRequest.created_at.desc())
+    result = await db.execute(stmt)
+    ods = result.scalars().all()
+    
+    out = []
+    for od in ods:
+        student = (await db.execute(select(User).where(User.id == od.student_id))).scalar_one_or_none()
+        if not student: continue
+        out.append({
+            "id": str(od.id),
+            "student_id": str(od.student_id),
+            "student_name": student.name,
+            "student_reg_no": student.reg_no or "",
+            "department_id": str(student.department_id),
+            "semester": student.semester or 0,
+            "section": student.section or "",
+            "from_date": _fmt_date(od.from_date),
+            "to_date": _fmt_date(od.to_date),
+            "from_period": od.from_period,
+            "to_period": od.to_period,
+            "reason": od.reason,
+            "proof_url": od.proof_url,
+            "status": str(od.status.value),
+            "class_adviser_id": str(od.class_adviser_id) if od.class_adviser_id else None,
+            "hod_id": str(od.hod_id) if od.hod_id else None,
+            "adviser_comment": od.adviser_comment,
+            "hod_comment": od.hod_comment,
+            "created_at": _fmt_datetime(od.created_at),
+        })
+    return out
+
+
+@router.put("/od/{od_id}/review", response_model=OdRequestRead)
+async def review_od_adviser(
+    od_id: str,
+    review: OdReview,
+    current_user: User = Depends(require_role("faculty")),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current_user.is_class_adviser:
+        raise HTTPException(status_code=403, detail="You are not a Class Adviser")
+
+    result = await db.execute(select(OdRequest).where(OdRequest.id == od_id))
+    od = result.scalar_one_or_none()
+    if not od:
+        raise HTTPException(status_code=404, detail="OD Request not found")
+
+    if od.class_adviser_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You are not the class adviser for this request")
+
+    if review.action == "recommend":
+        od.status = OdRequestStatus.recommended
+    elif review.action == "reject":
+        od.status = OdRequestStatus.rejected
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action. Use 'recommend' or 'reject'.")
+
+    od.adviser_comment = review.comment
+    db.add(od)
+    await db.commit()
+    await db.refresh(od)
+
+    student = (await db.execute(select(User).where(User.id == od.student_id))).scalar_one_or_none()
+    
+    notif = Notification(
+        title="OD Request Updated",
+        message=f"Your OD request has been {od.status.value} by your Class Adviser.",
+        type=NotificationType.info,
+        user_id=od.student_id,
+        target_role=UserRole.student,
+    )
+    db.add(notif)
+    await db.commit()
+
+    return {
+        "id": str(od.id),
+        "student_id": str(od.student_id),
+        "student_name": student.name if student else "",
+        "student_reg_no": student.reg_no if student else "",
+        "department_id": str(student.department_id) if student else "",
+        "semester": student.semester or 0,
+        "section": student.section or "",
+        "from_date": _fmt_date(od.from_date),
+        "to_date": _fmt_date(od.to_date),
+        "from_period": od.from_period,
+        "to_period": od.to_period,
+        "reason": od.reason,
+        "proof_url": od.proof_url,
+        "status": str(od.status.value),
+        "class_adviser_id": str(od.class_adviser_id) if od.class_adviser_id else None,
+        "hod_id": str(od.hod_id) if od.hod_id else None,
+        "adviser_comment": od.adviser_comment,
+        "hod_comment": od.hod_comment,
+        "created_at": _fmt_datetime(od.created_at),
+    }

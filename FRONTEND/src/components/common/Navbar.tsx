@@ -13,6 +13,8 @@ import {
   Calendar
 } from 'lucide-react';
 
+import { Avatar } from './Avatar';
+
 export const Navbar: React.FC = () => {
   const {
     currentUser,
@@ -52,14 +54,11 @@ export const Navbar: React.FC = () => {
             onClick={() => setActiveScreen('dashboard')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-xl bg-[#2563EB] dark:bg-[#2563EB] text-white dark:text-[#FFFFFF] flex items-center justify-center font-extrabold shadow-md group-hover:scale-105 transition-transform">
-              SA
+            <div className="w-10 h-10 flex items-center justify-center font-extrabold group-hover:scale-105 transition-transform">
+              <img src="/assets/tn-emblem.png" alt="Emblem" className="w-full h-full object-contain" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 leading-tight">SmartAttendance</h1>
-              <p className="text-[10px] text-[#2563EB] dark:text-[#3B82F6] font-semibold tracking-wide uppercase">
-                Enterprise Academic Suite
-              </p>
+              <h1 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100 leading-tight uppercase">markup</h1>
             </div>
           </div>
           <div className="hidden md:flex items-center ml-3 pl-3 border-l border-[#E2E8F0] dark:border-zinc-700">
@@ -173,10 +172,10 @@ export const Navbar: React.FC = () => {
               onClick={() => setProfileOpen(!profileOpen)}
               className="flex items-center gap-2 p-1 hover:bg-[#F7F9FC] dark:hover:bg-zinc-800 rounded-xl transition-colors"
             >
-              <img
-                src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
-                alt={currentUser.name}
-                className="w-8 h-8 rounded-lg object-cover ring-2 ring-[#E2E8F0] dark:ring-zinc-700"
+              <Avatar
+                name={currentUser.name}
+                src={currentUser.avatar}
+                size="md"
               />
               <ChevronDown className="w-3.5 h-3.5 text-[#000000] dark:text-[#64748B] hidden sm:block" />
             </button>

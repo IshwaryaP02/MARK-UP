@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UserRole } from '../../types';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
+import { SignupPage } from './SignupPage';
 import './login.css';
 
 const ROLES: Record<UserRole, { label: string; placeholder: string; autocomplete: string; pattern: RegExp; error: string }> = {
@@ -24,6 +25,7 @@ export const LoginPage: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
   const [status, setStatus] = useState('');
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
 
   useEffect(() => {
     try {
@@ -37,6 +39,10 @@ export const LoginPage: React.FC = () => {
       /* ignore */
     }
   }, []);
+
+  if (isSignup) {
+    return <SignupPage onNavigateToLogin={() => setIsSignup(false)} />;
+  }
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,7 +175,7 @@ export const LoginPage: React.FC = () => {
         </form>
 
         <footer className="card__foot">
-          <span className="pill">Don't have an account? <a className="link" href="#signup">Sign Up now</a></span>
+          <span className="pill">Don't have an account? <button type="button" className="link" onClick={() => setIsSignup(true)}>Sign Up now</button></span>
         </footer>
       </section>
 

@@ -299,6 +299,8 @@ export const TimetableBuilder: React.FC = () => {
         facultyId: defaultFaculty?.id || '',
         facultyName: defaultFaculty?.name || '',
         departmentId: selectedDeptId,
+        programme: selectedProgramme,
+        year: parseInt(selectedYear.split(' ')[0] === 'I' ? '1' : selectedYear.split(' ')[0] === 'II' ? '2' : selectedYear.split(' ')[0] === 'III' ? '3' : '4') || 1,
         semester: selectedSemester,
         section: selectedSection,
         shift: shiftLabel,
@@ -336,6 +338,8 @@ export const TimetableBuilder: React.FC = () => {
     saveTimetableSlot({
       ...editingSlot,
       departmentId: selectedDeptId,
+      programme: selectedProgramme,
+      year: parseInt(selectedYear.split(' ')[0] === 'I' ? '1' : selectedYear.split(' ')[0] === 'II' ? '2' : selectedYear.split(' ')[0] === 'III' ? '3' : '4') || 1,
       semester: selectedSemester,
       section: selectedSection,
       shift: shiftValue,

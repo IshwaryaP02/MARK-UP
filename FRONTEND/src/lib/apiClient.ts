@@ -67,6 +67,16 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
 
   if (!skipAuth && token) {
     finalHeaders['Authorization'] = `Bearer ${token}`;
+    
+    // Add Role-specific API Key
+    const role = localStorage.getItem('smart_att_role');
+    if (role) {
+      let expectedKey = `MARKUP-${role.toUpperCase()}-2026`;
+      if (role === 'hod') {
+        expectedKey = 'MARKUP-HOD-2026';
+      }
+      finalHeaders['X-Markup-Key'] = expectedKey;
+    }
   }
 
   let url = `${API_BASE}${path}`;
@@ -394,6 +404,11 @@ export const apiClient = {
       body: { type },
     }),
 
+  // Class Adviser OD Approvals
+  classAdviserOdRequests: () => request<any[]>('/faculty/od/class-adviser'),
+  reviewOdClassAdviser: (odId: string, status: string, remarks?: string) =>
+    request<any>(`/faculty/od/${odId}/review`, { method: 'PUT', body: { status, remarks: remarks || '' } }),
+
   // Faculty endpoints
   facultyDashboard: () => request<any>('/faculty/dashboard'),
   facultyActivePeriods: () => request<any[]>('/faculty/active-periods'),
@@ -447,6 +462,12 @@ export const apiClient = {
       method: 'POST',
       body: data,
     }),
+  odRequests: () => request<any[]>('/student/od'),
+  applyOd: (data: Record<string, unknown>) =>
+    request<any>('/student/od', {
+      method: 'POST',
+      body: data,
+    }),
   studentNotifications: () => request<any[]>('/student/notifications'),
   studentProfile: () => request<any>('/student/profile'),
   updateStudentProfile: (data: Record<string, unknown>) =>
@@ -462,6 +483,12 @@ export const apiClient = {
   hodMonitoring: () => request<any[]>('/hod/faculty-monitoring'),
   hodCorrections: () => request<any[]>('/hod/corrections'),
   hodLeaves: () => request<any[]>('/hod/leaves'),
+  hodBonafideRequests: () => request<any[]>('/hod/bonafide'),
+  reviewBonafideRequest: (bonafideId: string, status: string, remarks?: string) =>
+    request<any>(`/hod/bonafide/${bonafideId}/review`, { method: 'PUT', body: { status, remarks: remarks || '' } }),
+  hodOdRequests: () => request<any[]>('/hod/od/recommended'),
+  reviewOdHod: (odId: string, status: string, remarks?: string) =>
+    request<any>(`/hod/od/${odId}/review`, { method: 'PUT', body: { status, remarks: remarks || '' } }),
   hodSubstitutions: () => request<any[]>('/hod/substitutions'),
   reviewCorrection: (id: string, status: string, comment?: string) =>
     request<any>(`/hod/corrections/${id}/review`, {
@@ -501,4 +528,41 @@ export const apiClient = {
     request<void>('/notifications/read-all', {
       method: 'PUT',
     }),
+
+  // ── Circulars (DB-backed via Supabase) ────────────────────────────────────
+  circulars: () => request<any[]>('/circulars/'),
+  createCircular: (data: Record<string, unknown>) =>
+    request<any>('/circulars/', { method: 'POST', body: data }),
+  updateCircular: (id: string, data: Record<string, unknown>) =>
+    request<any>(`/circulars/${id}`, { method: 'PUT', body: data }),
+  signCircular: (id: string) =>
+    request<any>(`/circulars/${id}/sign`, { method: 'POST' }),
+  publishCircular: (id: string) =>
+    request<any>(`/circulars/${id}/publish`, { method: 'POST' }),
+  archiveCircular: (id: string) =>
+    request<any>(`/circulars/${id}/archive`, { method: 'POST' }),
+  deleteCircular: (id: string) =>
+    request<void>(`/circulars/${id}`, { method: 'DELETE' }),
+
+  // ── Bonafide Requests (DB-backed via Supabase) ───────────────────────────
+  bonafideRequests: () => request<any[]>('/bonafide/'),
+  submitBonafide: (data: { purpose: string; addressTo?: string }) =>
+    request<any>('/bonafide/', { method: 'POST', body: data }),
+  reviewBonafide: (id: string, status: string, comment?: string) =>
+    request<any>(`/bonafide/${id}/review`, {
+      method: 'PUT',
+      body: { status, comment },
+    }),
+  deleteBonafide: (id: string) =>
+    request<void>(`/bonafide/${id}`, { method: 'DELETE' }),
+
+  // ── Staff Day Orders (DB-backed via Supabase) ────────────────────────────
+  dayOrders: () => request<any[]>('/day-orders/'),
+  createDayOrder: (data: { date: string; dayNumber: number; label?: string; notes?: string }) =>
+    request<any>('/day-orders/', { method: 'POST', body: data }),
+  updateDayOrder: (id: string, data: { date: string; dayNumber: number; label?: string; notes?: string }) =>
+    request<any>(`/day-orders/${id}`, { method: 'PUT', body: data }),
+  deleteDayOrder: (id: string) =>
+    request<void>(`/day-orders/${id}`, { method: 'DELETE' }),
 };
+

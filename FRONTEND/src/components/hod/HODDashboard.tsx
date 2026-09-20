@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { apiClient } from '../../lib/apiClient';
 import { StatCard } from '../common/StatCard';
 import { DepartmentDailyAttendanceTrend } from './DepartmentDailyAttendanceTrend';
+import { Avatar } from '../common/Avatar';
 import {
   Users,
   CheckCircle2,
@@ -127,11 +128,7 @@ export const HODDashboard: React.FC = () => {
                 <tr key={fac.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
                   <td className="p-3.5 pl-4 font-bold text-[#0F172A] dark:text-zinc-100">
                     <div className="flex items-center gap-2">
-                      <img
-                        src={fac.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'}
-                        alt={fac.name}
-                        className="w-8 h-8 rounded-lg object-cover"
-                      />
+                      <Avatar name={fac.name} src={fac.avatar} size="md" />
                       <div>
                         <span>{fac.name}</span>
                         <span className="block text-[10px] font-mono text-[#2563EB] dark:text-[#3B82F6]">{fac.employeeId}</span>

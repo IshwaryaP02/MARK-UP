@@ -418,3 +418,178 @@ async def review_substitution(
     await db.commit()
     await db.refresh(sub)
     return await format_substitution(sub, db)
+
+
+from app.models.models import OdRequest, OdRequestStatus
+from app.schemas.entities import OdRequestRead, OdReview
+
+@router.get("/od/recommended", response_model=list[OdRequestRead])
+async def list_recommended_od_requests(
+    current_user: User = Depends(require_role("hod")),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(OdRequest).where(
+        OdRequest.department_id == current_user.department_id,
+        OdRequest.status == OdRequestStatus.recommended
+    ).order_by(OdRequest.created_at.desc())
+    result = await db.execute(stmt)
+    ods = result.scalars().all()
+    
+    out = []
+    for od in ods:
+        student = (await db.execute(select(User).where(User.id == od.student_id))).scalar_one_or_none()
+        if not student: continue
+        out.append({
+            "id": str(od.id),
+            "student_id": str(od.student_id),
+            "student_name": student.name,
+            "student_reg_no": student.reg_no or "",
+            "department_id": str(student.department_id),
+            "semester": student.semester or 0,
+            "section": student.section or "",
+            "from_date": _fmt_date(od.from_date),
+            "to_date": _fmt_date(od.to_date),
+            "from_period": od.from_period,
+            "to_period": od.to_period,
+            "reason": od.reason,
+            "proof_url": od.proof_url,
+            "status": str(od.status.value),
+            "class_adviser_id": str(od.class_adviser_id) if od.class_adviser_id else None,
+            "hod_id": str(od.hod_id) if od.hod_id else None,
+            "adviser_comment": od.adviser_comment,
+            "hod_comment": od.hod_comment,
+            "created_at": _fmt_datetime(od.created_at),
+        })
+    return out
+
+
+@router.put("/od/{od_id}/review", response_model=OdRequestRead)
+async def review_od_hod(
+    od_id: str,
+    review: OdReview,
+    current_user: User = Depends(require_role("hod")),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(OdRequest).where(OdRequest.id == od_id))
+    od = result.scalar_one_or_none()
+    if not od:
+        raise HTTPException(status_code=404, detail="OD Request not found")
+
+    if od.department_id != current_user.department_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this department")
+
+    if review.action == "approve":
+        od.status = OdRequestStatus.approved
+    elif review.action == "reject":
+        od.status = OdRequestStatus.rejected
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action. Use 'approve' or 'reject'.")
+
+    od.hod_comment = review.comment
+    od.hod_id = current_user.id
+    db.add(od)
+    await db.commit()
+
+    student = (await db.execute(select(User).where(User.id == od.student_id))).scalar_one_or_none()
+
+    if od.status == OdRequestStatus.approved and student:
+        # Loop through dates and periods, find timetable slots, create AttendanceSession and AttendanceEntry
+        from datetime import timedelta
+        delta = od.to_date - od.from_date
+        
+        for i in range(delta.days + 1):
+            curr_date = od.from_date + timedelta(days=i)
+            day_name = curr_date.strftime("%A")
+            
+            for p_num in range(od.from_period, od.to_period + 1):
+                # Find timetable slot for this day, period, section
+                tt_stmt = select(Timetable).where(
+                    Timetable.department_id == student.department_id,
+                    Timetable.semester == student.semester,
+                    Timetable.section == student.section,
+                    Timetable.day == day_name,
+                    Timetable.period_number == p_num
+                )
+                tt_slot = (await db.execute(tt_stmt)).scalar_one_or_none()
+                
+                if tt_slot:
+                    # Check if session exists
+                    sess_stmt = select(AttendanceSession).where(
+                        func.date(AttendanceSession.date) == curr_date,
+                        AttendanceSession.period_number == p_num,
+                        AttendanceSession.section == student.section,
+                    )
+                    sess = (await db.execute(sess_stmt)).scalar_one_or_none()
+                    
+                    if not sess:
+                        sess = AttendanceSession(
+                            id=uuid.uuid4(),
+                            subject_id=tt_slot.subject_id,
+                            faculty_id=tt_slot.faculty_id,
+                            date=curr_date,
+                            period_number=p_num,
+                            room_no=tt_slot.room_no,
+                            department_id=tt_slot.department_id,
+                            semester=tt_slot.semester,
+                            section=tt_slot.section,
+                            marked_at=datetime.utcnow(),
+                            marked_by=current_user.id
+                        )
+                        db.add(sess)
+                        await db.commit()
+                        await db.refresh(sess)
+                    
+                    # Upsert AttendanceEntry
+                    entry_stmt = select(AttendanceEntry).where(
+                        AttendanceEntry.session_id == sess.id,
+                        AttendanceEntry.student_id == student.id
+                    )
+                    entry = (await db.execute(entry_stmt)).scalar_one_or_none()
+                    if entry:
+                        entry.status = AttendanceStatus.od
+                        entry.remarks = "OD Approved"
+                    else:
+                        entry = AttendanceEntry(
+                            id=uuid.uuid4(),
+                            session_id=sess.id,
+                            student_id=student.id,
+                            status=AttendanceStatus.od,
+                            remarks="OD Approved",
+                            marked_at=datetime.utcnow()
+                        )
+                        db.add(entry)
+        
+        await db.commit()
+
+    if student:
+        notif = Notification(
+            title="OD Request Updated",
+            message=f"Your OD request has been {od.status.value} by the HOD.",
+            type=NotificationType.info,
+            user_id=od.student_id,
+            target_role=UserRole.student,
+        )
+        db.add(notif)
+        await db.commit()
+
+    return {
+        "id": str(od.id),
+        "student_id": str(od.student_id),
+        "student_name": student.name if student else "",
+        "student_reg_no": student.reg_no if student else "",
+        "department_id": str(student.department_id) if student else "",
+        "semester": student.semester or 0,
+        "section": student.section or "",
+        "from_date": _fmt_date(od.from_date),
+        "to_date": _fmt_date(od.to_date),
+        "from_period": od.from_period,
+        "to_period": od.to_period,
+        "reason": od.reason,
+        "proof_url": od.proof_url,
+        "status": str(od.status.value),
+        "class_adviser_id": str(od.class_adviser_id) if od.class_adviser_id else None,
+        "hod_id": str(od.hod_id) if od.hod_id else None,
+        "adviser_comment": od.adviser_comment,
+        "hod_comment": od.hod_comment,
+        "created_at": _fmt_datetime(od.created_at),
+    }

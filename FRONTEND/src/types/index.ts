@@ -21,7 +21,7 @@ export interface User {
   rollNo?: string;
   batch?: string;
   programme?: 'UG' | 'PG';
-  year?: string;
+  year?: number;
   shift?: string;
   guardianName?: string;
   guardianPhone?: string;
@@ -51,7 +51,7 @@ export interface Student {
   batch: string;
   // Master structure (Programme -> Department -> Year -> Shift).
   programme?: 'UG' | 'PG';
-  year?: string;   // 'I YEAR' | 'II YEAR' | 'III YEAR'
+  year?: number;   // 1, 2, 3, 4
   shift?: string;  // 'First Shift' | 'Second Shift'
   overallAttendancePct: number;
   guardianName: string;
@@ -125,8 +125,8 @@ export interface TimetableSlot {
     section: string;
     classroom?: string; // classroom / room label assigned to this slot
     programme?: 'UG' | 'PG';
-    year?: string; // 'I YEAR' | 'II YEAR' | 'III YEAR'
-    shift?: string; // Optional shift label (e.g. First Shift / Second Shift / Morning / Evening)
+    year?: number; // 1, 2, 3, 4
+    shift?: string; // Optional shift label
     dayOrder?: number; // Optional Day Order (1, 2, 3...) this slot belongs to. Undefined = applies to all day orders.
   }
 

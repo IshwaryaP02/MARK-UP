@@ -112,6 +112,8 @@ async def commit_ocr_timetable(
     dept_id: str,
     shift: str,
     semester: int,
+    programme: str,
+    year: int,
     published_by_id: str,
     db: AsyncSession,
 ) -> dict[str, Any]:
@@ -126,6 +128,8 @@ async def commit_ocr_timetable(
             Timetable.department_id == dept_id,
             Timetable.shift == shift,
             Timetable.semester == semester,
+            Timetable.programme == programme,
+            Timetable.year == year,
         )
     )
     await db.flush()
@@ -187,6 +191,8 @@ async def commit_ocr_timetable(
             semester=semester,
             section=section,
             shift=shift,
+            programme=programme,
+            year=year,
             source="ocr",
         )
         db.add(slot)
@@ -215,6 +221,8 @@ async def commit_allocation(
     dept_id: str,
     shift: str,
     semester: int,
+    programme: str,
+    year: int,
     published_by_id: str,
     db: AsyncSession,
 ) -> dict[str, Any]:
@@ -227,6 +235,8 @@ async def commit_allocation(
             Timetable.department_id == dept_id,
             Timetable.shift == shift,
             Timetable.semester == semester,
+            Timetable.programme == programme,
+            Timetable.year == year,
         )
     )
     await db.flush()
@@ -282,6 +292,8 @@ async def commit_allocation(
             semester=semester,
             section=section,
             shift=shift,
+            programme=programme,
+            year=year,
             source="allocator",
         )
         db.add(slot)

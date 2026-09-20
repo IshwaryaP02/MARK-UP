@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../common/Modal';
+import { Avatar } from '../common/Avatar';
 import { User, Camera, Trash2, Save, UserCheck, Phone, Mail, MapPin, Calendar, Building, Heart, Lock } from 'lucide-react';
 
 interface EditProfileModalProps {
@@ -166,13 +167,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
         {/* Photo & Role Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-800 rounded-2xl">
           <div className="relative group">
-            <img
-              src={
-                formData.avatar ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
-              }
-              alt={formData.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-[#2563EB] dark:border-[#3B82F6] shadow-md"
+            <Avatar
+              name={formData.name || currentUser.name}
+              src={formData.avatar}
+              size="lg"
+              className="border-2 border-[#2563EB] dark:border-[#3B82F6] shadow-md"
             />
             <div className="absolute bottom-0 right-0 p-1 bg-[#2563EB] text-white rounded-full shadow-sm">
               <Camera className="w-3.5 h-3.5" />
@@ -199,7 +198,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                   name="avatar"
                   value={formData.avatar}
                   onChange={handleChange}
-                  placeholder={isAdmin ? 'https://images.unsplash.com/photo-...' : 'Paste a photo URL (or upload a file)'}
+                  placeholder={isAdmin ? 'Paste a photo URL (or upload a file)' : 'Paste a photo URL (or upload a file)'}
                   className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl min-w-0"
                 />
                 <input

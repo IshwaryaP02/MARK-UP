@@ -130,6 +130,8 @@ async def timetable_ocr(
     department_id: Annotated[str | None, Form()] = None,
     shift: Annotated[str, Form()] = "First Shift",
     semester: Annotated[int, Form()] = 1,
+    programme: Annotated[str, Form()] = "UG",
+    year: Annotated[int, Form()] = 1,
     current_user: User = Depends(require_role("admin", "hod")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -168,6 +170,8 @@ async def timetable_ocr(
         "department_id": target_dept,
         "shift": shift,
         "semester": semester,
+        "programme": programme,
+        "year": year,
         "ocr_engine": ocr_engine,
         "raw_text": raw_text,
         "rows": rows,
@@ -181,6 +185,8 @@ async def timetable_ocr_commit(
     department_id: str,
     shift: str = "First Shift",
     semester: int = 1,
+    programme: str = "UG",
+    year: int = 1,
     current_user: User = Depends(require_role("admin", "hod")),
     db: AsyncSession = Depends(get_db),
 ):
@@ -194,6 +200,8 @@ async def timetable_ocr_commit(
         dept_id=target_dept,
         shift=shift,
         semester=semester,
+        programme=programme,
+        year=year,
         published_by_id=str(current_user.id),
         db=db,
     )

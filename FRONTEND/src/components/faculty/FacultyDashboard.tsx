@@ -6,6 +6,7 @@ import { StatCard } from '../common/StatCard';
 import { Modal } from '../common/Modal';
 import { StudentDetailModal } from '../common/StudentDetailModal';
 import { Student } from '../../types';
+import { Avatar } from '../common/Avatar';
 import {
   BookOpen,
   FileText,
@@ -242,11 +243,7 @@ export const FacultyDashboard: React.FC = () => {
                 onClick={() => setSelectedStudentForModal(s)}
               >
                 <div className="flex items-center gap-2">
-                  <img
-                    src={s.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
-                    alt={s.name}
-                    className="w-8 h-8 rounded-lg object-cover"
-                  />
+                  <Avatar name={s.name} src={s.avatar} size="md" />
                   <div>
                     <span className="font-bold text-[#0F172A] dark:text-zinc-100 block">{s.name}</span>
                     <span className="text-[10px] font-mono text-[#2563EB] dark:text-[#3B82F6] font-bold">{s.regNo}</span>

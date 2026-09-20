@@ -6,6 +6,7 @@ import { StatusBadge } from '../common/StatusBadge';
 import { BackButton } from '../common/BackButton';
 import { Search, Shield, UserCheck, KeyRound, Power, Clock, Users, GraduationCap } from 'lucide-react';
 import { academicYearLabel } from '../../services/academicStructure';
+import { Avatar } from '../common/Avatar';
 
 export const UserAccounts: React.FC = () => {
   const { users, students, addToast } = useApp();
@@ -128,11 +129,7 @@ export const UserAccounts: React.FC = () => {
                     <tr key={s.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
                       <td className="p-2.5 pl-3">
                         <div className="flex items-center gap-2.5">
-                          <img
-                            src={s.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
-                            alt={s.name}
-                            className="w-7 h-7 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
-                          />
+                          <Avatar name={s.name} src={s.avatar} size="sm" className="ring-1 ring-zinc-200 dark:ring-zinc-700" />
                           <div>
                             <span className="font-bold text-[#0F172A] dark:text-zinc-100 block">{s.name}</span>
                             <span className="text-[10px] text-[#000000] dark:text-[#64748B]">{s.email}</span>
@@ -207,11 +204,7 @@ export const UserAccounts: React.FC = () => {
               <tr key={u.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
                 <td className="p-3.5 pl-4">
                   <div className="flex items-center gap-3">
-                    <img
-                      src={u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
-                      alt={u.name}
-                      className="w-8 h-8 rounded-lg object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
-                    />
+                    <Avatar name={u.name} src={u.avatar} size="md" className="ring-1 ring-zinc-200 dark:ring-zinc-700" />
                     <div>
                       <span className="font-bold text-[#0F172A] dark:text-zinc-100 block">{u.name}</span>
                       <span className="text-[10px] text-[#000000] dark:text-[#64748B]">{u.email}</span>

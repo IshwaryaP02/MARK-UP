@@ -23,6 +23,8 @@ class StudentRead(BaseModel):
     name: str
     email: str
     avatar: Optional[str] = None
+    theme: Optional[str] = "Classic"
+    wallpaper_url: Optional[str] = None
     department_id: str
     department_name: str
     semester: int
@@ -74,6 +76,8 @@ class StudentUpdate(BaseModel):
     batch: Optional[str] = None
     phone: Optional[str] = None
     avatar: Optional[str] = None
+    theme: Optional[str] = None
+    wallpaper_url: Optional[str] = None
     gender: Optional[str] = None
     dob: Optional[str] = None
     address: Optional[str] = None
@@ -92,12 +96,19 @@ class FacultyRead(BaseModel):
     name: str
     email: str
     avatar: Optional[str] = None
+    theme: Optional[str] = "Classic"
+    wallpaper_url: Optional[str] = None
     department_id: str
     department_name: str
     designation: str
     phone: str
     assigned_subject_ids: List[str]
     is_hod: Optional[bool] = None
+    is_class_adviser: Optional[bool] = False
+    advising_programme: Optional[str] = None
+    advising_department_id: Optional[str] = None
+    advising_year: Optional[int] = None
+    advising_shift: Optional[str] = None
     active: bool = True
 
     model_config = ConfigDict(from_attributes=True)
@@ -124,7 +135,14 @@ class FacultyUpdate(BaseModel):
     phone: Optional[str] = None
     assigned_subject_ids: Optional[List[str]] = None
     avatar: Optional[str] = None
+    theme: Optional[str] = None
+    wallpaper_url: Optional[str] = None
     is_hod: Optional[bool] = None
+    is_class_adviser: Optional[bool] = None
+    advising_programme: Optional[str] = None
+    advising_department_id: Optional[str] = None
+    advising_year: Optional[int] = None
+    advising_shift: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -623,3 +641,50 @@ class HODDashboard(BaseModel):
     pending_substitutions: List[dict]
     attendance_trend: List[dict]
     flagged_students: List[dict]
+
+
+# ── OD Requests ────────────────────────────────────────────
+class OdRequestRead(BaseModel):
+    id: str
+    student_id: str
+    student_name: str
+    student_reg_no: str
+    department_id: str
+    semester: int
+    section: str
+    from_date: str
+    to_date: str
+    from_period: int
+    to_period: int
+    reason: str
+    proof_url: Optional[str] = None
+    status: str
+    class_adviser_id: Optional[str] = None
+    hod_id: Optional[str] = None
+    adviser_comment: Optional[str] = None
+    hod_comment: Optional[str] = None
+    created_at: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OdRequestCreate(BaseModel):
+    student_id: str
+    student_name: str
+    student_reg_no: str
+    department_id: str
+    semester: int
+    section: str
+    from_date: str
+    to_date: str
+    from_period: int
+    to_period: int
+    reason: str
+    proof_url: Optional[str] = None
+
+
+class OdReview(BaseModel):
+    action: str  # 'recommend', 'reject', 'approve'
+    reviewer_id: str
+    reviewer_name: str
+    comment: Optional[str] = None

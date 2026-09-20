@@ -157,6 +157,9 @@ class User(Base):
     semester = Column(Integer, nullable=True)
     section = Column(String(20), nullable=True)
     batch = Column(String(50), nullable=True)
+    programme = Column(String(20), nullable=True)
+    year = Column(Integer, nullable=True)
+    shift = Column(String(20), nullable=True)
 
     phone = Column(String(30), nullable=True)
     address = Column(Text, nullable=True)
@@ -167,6 +170,17 @@ class User(Base):
     guardian_name = Column(String(255), nullable=True)
     parent_phone = Column(String(30), nullable=True)
 
+    # Customization
+    theme = Column(String(50), default="Classic", nullable=True)
+    wallpaper_url = Column(Text, nullable=True)
+
+    # Class Adviser Role
+    is_class_adviser = Column(Boolean, default=False)
+    advising_programme = Column(String(20), nullable=True)
+    advising_department_id = Column(UUIDStr, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
+    advising_year = Column(Integer, nullable=True)
+    advising_shift = Column(String(20), nullable=True)
+
     is_hod = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     last_login = Column(DateTime, nullable=True)
@@ -175,11 +189,49 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     department = relationship("Department", primaryjoin="User.department_id == Department.id", lazy="selectin")
+    advising_department = relationship("Department", primaryjoin="User.advising_department_id == Department.id", lazy="selectin")
     faculty_subjects = relationship("FacultySubject", back_populates="faculty", lazy="selectin")
     timetable_slots = relationship("Timetable", primaryjoin="User.id == Timetable.faculty_id", back_populates="faculty", lazy="selectin")
     attendance_sessions = relationship("AttendanceSession", primaryjoin="User.id == AttendanceSession.faculty_id", back_populates="faculty", lazy="selectin")
     audit_logs = relationship("AuditLog", back_populates="user", lazy="selectin")
     notifications = relationship("Notification", primaryjoin="User.id == Notification.user_id", back_populates="user", lazy="selectin")
+
+
+class OdRequestStatus(str, PyEnum):
+    pending = "pending"
+    recommended = "recommended"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class OdRequest(Base):
+    """On-Duty workflow: Student -> Class Adviser -> HOD."""
+    __tablename__ = "od_requests"
+
+    id = Column(UUIDStr, primary_key=True, default=_gen_uuid)
+    student_id = Column(UUIDStr, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    from_date = Column(Date, nullable=False)
+    to_date = Column(Date, nullable=False)
+    from_period = Column(Integer, nullable=False)
+    to_period = Column(Integer, nullable=False)
+    
+    reason = Column(Text, nullable=False)
+    proof_url = Column(Text, nullable=True)
+    status = Column(Enum(OdRequestStatus), default=OdRequestStatus.pending, nullable=False)
+    
+    class_adviser_id = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    hod_id = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    
+    adviser_comment = Column(Text, nullable=True)
+    hod_comment = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", primaryjoin="OdRequest.student_id == User.id", lazy="selectin")
+    class_adviser = relationship("User", primaryjoin="OdRequest.class_adviser_id == User.id", lazy="selectin")
+    hod = relationship("User", primaryjoin="OdRequest.hod_id == User.id", lazy="selectin")
 
 
 class Subject(Base):
@@ -249,6 +301,8 @@ class Timetable(Base):
     department_id = Column(UUIDStr, ForeignKey("departments.id"), nullable=True)
     semester = Column(Integer, nullable=False)
     section = Column(String(20), nullable=False)
+    programme = Column(String(20), nullable=True)
+    year = Column(Integer, nullable=True)
     shift = Column(String(20), nullable=True, default="First Shift")  # "First Shift" | "Second Shift"
     source = Column(String(20), nullable=True, default="manual")     # "manual" | "ocr" | "allocator"
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -427,3 +481,92 @@ class TimetableVersion(Base):
 
     department = relationship("Department", lazy="selectin")
     publisher = relationship("User", primaryjoin="TimetableVersion.published_by == User.id", lazy="selectin")
+
+
+# ── NEW: Circulars ─────────────────────────────────────────────────────────────
+
+class CircularStatus(str, PyEnum):
+    draft = "draft"
+    signed = "signed"
+    published = "published"
+    archived = "archived"
+
+
+class Circular(Base):
+    """Department/global circulars authored by admins/HODs, visible to students/faculty."""
+    __tablename__ = "circulars"
+
+    id = Column(UUIDStr, primary_key=True, default=_gen_uuid)
+    title = Column(String(255), nullable=False)
+    content = Column(Text, nullable=False)
+    status = Column(Enum(CircularStatus), default=CircularStatus.draft, nullable=False)
+    target_role = Column(Enum(UserRole), nullable=True)          # None = everyone
+    department_id = Column(UUIDStr, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
+    target_semester = Column(Integer, nullable=True)
+    target_section = Column(String(20), nullable=True)
+    author_id = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    signer_id = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    signer_name = Column(String(255), nullable=True)
+    publisher_id = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    publisher_name = Column(String(255), nullable=True)
+    published_at = Column(DateTime, nullable=True)
+    recipient_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    author = relationship("User", primaryjoin="Circular.author_id == User.id", lazy="selectin")
+    department = relationship("Department", lazy="selectin")
+
+
+# ── NEW: Bonafide Requests ──────────────────────────────────────────────────────
+
+class BonafideStage(str, PyEnum):
+    pending_faculty = "pending_faculty"
+    pending_hod = "pending_hod"
+    pending_principal = "pending_principal"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class BonafideRequest(Base):
+    """Student bonafide certificate workflow: student → tutor faculty → HOD → principal."""
+    __tablename__ = "bonafide_requests"
+
+    id = Column(UUIDStr, primary_key=True, default=_gen_uuid)
+    student_id = Column(UUIDStr, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    purpose = Column(String(255), nullable=False)
+    address_to = Column(String(255), nullable=True)
+    stage = Column(Enum(BonafideStage), default=BonafideStage.pending_faculty, nullable=False)
+    faculty_id = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    faculty_comment = Column(Text, nullable=True)
+    faculty_reviewed_at = Column(DateTime, nullable=True)
+    hod_id = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    hod_comment = Column(Text, nullable=True)
+    hod_reviewed_at = Column(DateTime, nullable=True)
+    principal_comment = Column(Text, nullable=True)
+    principal_reviewed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    student = relationship("User", primaryjoin="BonafideRequest.student_id == User.id", lazy="selectin")
+    faculty = relationship("User", primaryjoin="BonafideRequest.faculty_id == User.id", lazy="selectin")
+    hod = relationship("User", primaryjoin="BonafideRequest.hod_id == User.id", lazy="selectin")
+
+
+# ── NEW: Staff Day Orders ──────────────────────────────────────────────────────
+
+class StaffDayOrder(Base):
+    """Day-order schedule entries set by admin; maps calendar dates to day numbers."""
+    __tablename__ = "staff_day_orders"
+
+    id = Column(UUIDStr, primary_key=True, default=_gen_uuid)
+    date = Column(Date, nullable=False, unique=True)
+    day_number = Column(Integer, nullable=False)   # 1-6
+    label = Column(String(100), nullable=True)     # e.g. "Day 3 (Monday schedule)"
+    notes = Column(Text, nullable=True)
+    created_by = Column(UUIDStr, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = relationship("User", lazy="selectin")
+

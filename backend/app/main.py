@@ -8,7 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.routers import auth, admin, faculty, student, hod, reports, notifications, timetable
-
+from app.routers import circulars, bonafide, day_orders, signup, upload
+from fastapi.staticfiles import StaticFiles
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +25,10 @@ app = FastAPI(
     redoc_url="/api/redoc",
     lifespan=lifespan,
 )
+
+import os
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,6 +49,8 @@ app.add_middleware(
 API_V1 = "/api"
 
 app.include_router(auth.router, prefix=f"{API_V1}/auth", tags=["authentication"])
+app.include_router(signup.router, prefix=f"{API_V1}/auth", tags=["auth"])
+app.include_router(upload.router, prefix=f"{API_V1}/upload", tags=["upload"])
 app.include_router(admin.router, prefix=f"{API_V1}/admin", tags=["admin"])
 app.include_router(faculty.router, prefix=f"{API_V1}/faculty", tags=["faculty"])
 app.include_router(student.router, prefix=f"{API_V1}/student", tags=["student"])
@@ -51,6 +58,9 @@ app.include_router(hod.router, prefix=f"{API_V1}/hod", tags=["hod"])
 app.include_router(reports.router, prefix=f"{API_V1}/reports", tags=["reports"])
 app.include_router(notifications.router, prefix=f"{API_V1}/notifications", tags=["notifications"])
 app.include_router(timetable.router, prefix=f"{API_V1}/timetable", tags=["timetable"])
+app.include_router(circulars.router, prefix=f"{API_V1}/circulars", tags=["circulars"])
+app.include_router(bonafide.router, prefix=f"{API_V1}/bonafide", tags=["bonafide"])
+app.include_router(day_orders.router, prefix=f"{API_V1}/day-orders", tags=["day-orders"])
 
 
 @app.get(f"{API_V1}/health")

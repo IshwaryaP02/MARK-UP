@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { CustomizationProvider } from './context/CustomizationContext';
 import { Navbar } from './components/common/Navbar';
 import { Sidebar } from './components/common/Sidebar';
 import { BottomNav } from './components/common/BottomNav';
@@ -16,6 +17,7 @@ import { SubjectManagement } from './components/admin/SubjectManagement';
 import { TimetableBuilder } from './components/admin/TimetableBuilder';
 import { AcademicCalendar } from './components/admin/AcademicCalendar';
 import { DayOrderOCR } from './components/admin/DayOrderOCR';
+import { HODODApprovals } from './components/hod/HODODApprovals';
 import { UserAccounts } from './components/admin/UserAccounts';
 import { ReportsHub } from './components/admin/ReportsHub';
 import { DBBackup } from './components/admin/DBBackup';
@@ -31,6 +33,7 @@ import { AttendanceHistory } from './components/faculty/AttendanceHistory';
 import { FacultyReports } from './components/faculty/FacultyReports';
 import { StudentSearch } from './components/faculty/StudentSearch';
 import { LeaveQueue } from './components/faculty/LeaveQueue';
+import { TutorODRequests } from './components/faculty/TutorODRequests';
 import { SubstitutionManager } from './components/faculty/SubstitutionManager';
 import { TutorCircular } from './components/faculty/TutorCircular';
 import { TutorClassStudents } from './components/faculty/TutorClassStudents';
@@ -47,6 +50,7 @@ import { StudentProfile } from './components/student/StudentProfile';
 import { StudentBonafide } from './components/student/StudentBonafide';
 
 // HOD Components
+import { StudentApplyOD } from './components/student/StudentApplyOD';
 import { HODDashboard } from './components/hod/HODDashboard';
 import { AllClassesView } from './components/hod/AllClassesView';
 import { FacultyMonitoring } from './components/hod/FacultyMonitoring';
@@ -108,6 +112,7 @@ const AppContent: React.FC = () => {
         case 'faculty_reports': return <FacultyReports />;
         case 'student_search': return <StudentSearch />;
         case 'leave_queue': return <LeaveQueue />;
+        case 'tutor_od_requests': return <TutorODRequests />;
         case 'substitution': return <SubstitutionManager />;
         case 'tutor_circular': return <TutorCircular />;
         case 'tutor_class_students': return <TutorClassStudents />;
@@ -121,6 +126,7 @@ const AppContent: React.FC = () => {
         case 'student_attendance': return <StudentAttendance />;
         case 'student_timetable': return <StudentTimetable />;
         case 'student_apply_leave': return <ApplyLeave />;
+        case 'student_apply_od': return <StudentApplyOD />;
         case 'student_reports': return <StudentReports />;
         case 'student_notifications': return <StudentNotifications />;
         case 'student_circulars': return <StudentCirculars />;
@@ -139,6 +145,7 @@ const AppContent: React.FC = () => {
         case 'faculty_monitoring': return <FacultyMonitoring />;
         case 'hod_corrections': return <ApproveCorrections />;
         case 'hod_leaves': return <ApproveLeaves />;
+        case 'hod_od_requests': return <HODODApprovals />;
         case 'hod_substitutions': return <ApproveSubstitutions />;
         case 'hod_bonafide': return <HODBonafide />;
         case 'hod_reports':
@@ -181,7 +188,9 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <CustomizationProvider>
+        <AppContent />
+      </CustomizationProvider>
     </AppProvider>
   );
 }

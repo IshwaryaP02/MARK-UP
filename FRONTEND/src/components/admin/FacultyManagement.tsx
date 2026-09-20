@@ -5,6 +5,7 @@ import { rankedSearch } from '../../utils/searchRank';
 import { Modal } from '../common/Modal';
 import { BackButton } from '../common/BackButton';
 import { Search, Plus, Edit2, Trash2, BookOpen, Mail, Phone, Building2 } from 'lucide-react';
+import { Avatar } from '../common/Avatar';
 
 export const FacultyManagement: React.FC = () => {
   const { facultyList, departments, subjects, addFaculty, updateFaculty, deleteFaculty, addToast } = useApp();
@@ -136,11 +137,7 @@ export const FacultyManagement: React.FC = () => {
             >
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src={fac.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'}
-                    alt={fac.name}
-                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-[#2563EB]/30"
-                  />
+                  <Avatar name={fac.name} src={fac.avatar} size="lg" className="rounded-xl  ring-2 ring-[#2563EB]/30" />
                   <div>
                     <h3 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">{fac.name}</h3>
                     <span className="text-[10px] font-mono font-bold text-[#2563EB] dark:text-[#3B82F6] block">

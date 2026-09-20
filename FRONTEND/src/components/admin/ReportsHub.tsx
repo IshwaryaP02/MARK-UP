@@ -31,6 +31,9 @@ export const ReportsHub: React.FC = () => {
   const applyFilters = () => {
     setAppliedDept(selectedDept);
     setAppliedDateRange(dateRange);
+    setAppliedProgramme(selectedProgramme);
+    setAppliedYear(selectedYear);
+    setAppliedShift(selectedShift);
     setAppliedClassQuery(classQuery);
     setAppliedClassProgramme(classProgramme);
     setAppliedClassDept(classDept);
@@ -41,8 +44,16 @@ export const ReportsHub: React.FC = () => {
   const clearFilters = () => {
     setSelectedDept(isHod ? 'hod_dept' : 'dept-cs');
     setDateRange('2026-08-01');
+    setSelectedProgramme('all');
+    setSelectedYear('all');
+    setSelectedShift('all');
+    
     setAppliedDept(isHod ? 'hod_dept' : 'dept-cs');
     setAppliedDateRange('2026-08-01');
+    setAppliedProgramme('all');
+    setAppliedYear('all');
+    setAppliedShift('all');
+
     setClassQuery('');
     setClassProgramme('UG');
     setClassDept('dept-cs');
@@ -54,6 +65,19 @@ export const ReportsHub: React.FC = () => {
     setAppliedClassYear('all');
     setAppliedClassShift('all');
   };
+
+  // Global filters
+  const [selectedProgramme, setSelectedProgramme] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
+  const [selectedShift, setSelectedShift] = useState<string>('all');
+
+  const [appliedProgramme, setAppliedProgramme] = useState<string>('all');
+  const [appliedYear, setAppliedYear] = useState<string>('all');
+  const [appliedShift, setAppliedShift] = useState<string>('all');
+
+  const globalYearOptions = selectedProgramme !== 'all' ? yearsForProgramme(selectedProgramme as Programme) : [];
+  const globalShiftOptions = selectedProgramme !== 'all' ? shiftsForProgramme(selectedProgramme as Programme) : [];
+
 
   // Student Class Search (scoped to selected department)
   const permittedDepts = departments;
@@ -88,7 +112,10 @@ export const ReportsHub: React.FC = () => {
     const scoped = students.filter((s) => {
       if (appliedClassDept !== 'all' && s.departmentId !== appliedClassDept) return false;
       if (appliedClassProgramme !== 'all' && s.programme && s.programme !== appliedClassProgramme) return false;
-      if (appliedClassYear !== 'all' && s.year && s.year !== appliedClassYear) return false;
+      if (appliedClassYear !== 'all' && s.year) {
+        const yNum = appliedClassYear === 'I YEAR' ? 1 : appliedClassYear === 'II YEAR' ? 2 : appliedClassYear === 'III YEAR' ? 3 : 4;
+        if (s.year !== yNum) return false;
+      }
       if (appliedClassShift !== 'all' && s.shift && s.shift !== appliedClassShift) return false;
       return true;
     });
@@ -131,19 +158,29 @@ export const ReportsHub: React.FC = () => {
     addToast('Excel / CSV Exported', `Downloaded full student roster attendance report CSV`, 'success');
   };
 
-  // Filter students based on HOD role or selected department
+  // Filter students based on HOD role or selected department, and global academic filters
   const filteredStudents = students.filter((s) => {
+    let deptMatch = false;
     if (isHod) {
-      return (
+      deptMatch = (
         s.departmentName?.toLowerCase().includes('computer') ||
         s.departmentName?.toLowerCase() === hodDeptName.toLowerCase() ||
         s.departmentId === currentUser.departmentId ||
         !s.departmentName
       );
+    } else {
+      deptMatch = appliedDept === 'all' || s.departmentId === appliedDept || s.departmentName?.toLowerCase().includes(appliedDept.toLowerCase());
     }
-
-    if (appliedDept === 'all') return true;
-    return s.departmentId === appliedDept || s.departmentName?.toLowerCase().includes(appliedDept.toLowerCase());
+    if (!deptMatch) return false;
+    
+    if (appliedProgramme !== 'all' && s.programme && s.programme !== appliedProgramme) return false;
+    if (appliedYear !== 'all' && s.year) {
+      const yNum = appliedYear === 'I YEAR' ? 1 : appliedYear === 'II YEAR' ? 2 : appliedYear === 'III YEAR' ? 3 : 4;
+      if (s.year !== yNum) return false;
+    }
+    if (appliedShift !== 'all' && s.shift && s.shift !== appliedShift) return false;
+    
+    return true;
   });
 
   const lowAttendanceList = filteredStudents.filter((s) => s.overallAttendancePct < 75);
@@ -310,8 +347,8 @@ export const ReportsHub: React.FC = () => {
       </div>
 
       {/* Filter Controls */}
-      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
+      <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl p-4 shadow-sm grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="lg:col-span-2">
           <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">
             Report Category
           </label>
@@ -328,7 +365,7 @@ export const ReportsHub: React.FC = () => {
           </select>
         </div>
 
-        <div>
+        <div className="lg:col-span-2">
           <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">
             Department Scope
           </label>
@@ -356,7 +393,7 @@ export const ReportsHub: React.FC = () => {
           )}
         </div>
 
-        <div>
+        <div className="lg:col-span-2">
           <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">
             Report Target Date
           </label>
@@ -369,7 +406,61 @@ export const ReportsHub: React.FC = () => {
           />
         </div>
 
-        <div className="sm:col-span-3 flex items-center justify-end gap-2 pt-1">
+        <div className="lg:col-span-2">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">
+            Programme
+          </label>
+          <select
+            value={selectedProgramme}
+            onChange={(e) => {
+              const prog = e.target.value;
+              setSelectedProgramme(prog);
+              setSelectedYear('all');
+              setSelectedShift('all');
+            }}
+            className="w-full p-2.5 text-xs bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-medium"
+          >
+            <option value="all">All Programmes</option>
+            <option value="UG">UG</option>
+            <option value="PG">PG</option>
+          </select>
+        </div>
+
+        <div className="lg:col-span-2">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">
+            Year
+          </label>
+          <select
+            value={selectedYear}
+            disabled={selectedProgramme === 'all'}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className={`w-full p-2.5 text-xs bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-medium ${selectedProgramme === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <option value="all">All Years</option>
+            {globalYearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="lg:col-span-2">
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#000000] dark:text-[#64748B] mb-1">
+            Shift
+          </label>
+          <select
+            value={selectedShift}
+            disabled={selectedProgramme === 'all'}
+            onChange={(e) => setSelectedShift(e.target.value)}
+            className={`w-full p-2.5 text-xs bg-[#F7F9FC] dark:bg-[#0A0A0A] border border-[#E2E8F0] dark:border-zinc-700 rounded-xl font-medium ${selectedProgramme === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <option value="all">All Shifts</option>
+            {globalShiftOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="sm:col-span-3 lg:col-span-6 flex items-center justify-end gap-2 pt-1">
           <button
             onClick={clearFilters}
             className="px-3.5 py-2 text-xs font-bold text-[#000000] dark:text-[#64748B] bg-[#F7F9FC] dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-colors"

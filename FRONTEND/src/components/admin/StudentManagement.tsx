@@ -15,6 +15,7 @@ import {
   semestersForSelection,
   departmentNameOf
 } from '../../services/programmeStructure';
+import { Avatar } from '../common/Avatar';
 import {
   Search,
   Plus,
@@ -328,11 +329,7 @@ export const StudentManagement: React.FC = () => {
                     <tr key={s.id} className="hover:bg-[#F7F9FC]/80 dark:hover:bg-zinc-800/40 transition-colors">
                       <td className="p-3.5 pl-4">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={s.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
-                            alt={s.name}
-                            className="w-9 h-9 rounded-xl object-cover ring-1 ring-zinc-200 dark:ring-zinc-700"
-                          />
+                          <Avatar name={s.name} src={s.avatar} size="md" className="rounded-xl  ring-1 ring-zinc-200 dark:ring-zinc-700" />
                           <div>
                             <span className="font-bold text-[#0F172A] dark:text-zinc-100 block">{s.name}</span>
                             <span className="text-[11px] text-[#000000] dark:text-[#64748B]">{s.email}</span>
@@ -612,11 +609,7 @@ export const StudentManagement: React.FC = () => {
         >
           <div className="space-y-4 text-xs">
             <div className="flex items-center gap-4 p-4 bg-[#F7F9FC] dark:bg-[#0A0A0A]/80 rounded-2xl">
-              <img
-                src={selectedStudent.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
-                alt={selectedStudent.name}
-                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#2563EB]"
-              />
+              <Avatar name={selectedStudent.name} src={selectedStudent.avatar} size="md" className="ring-2 ring-[#2563EB]" />
               <div>
                 <h4 className="text-sm font-bold text-[#0F172A] dark:text-zinc-100">{selectedStudent.name}</h4>
                 <p className="text-[#000000] dark:text-[#64748B]">{selectedStudent.email}</p>

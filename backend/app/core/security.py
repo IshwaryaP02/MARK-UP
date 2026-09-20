@@ -5,8 +5,8 @@ from app.core.config import settings
 
 
 def hash_password(password: str) -> str:
-    """Hash a plaintext password using bcrypt."""
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    """Hash a plaintext password using bcrypt (rounds=10 balances security & speed)."""
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=10)).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

@@ -3,6 +3,7 @@ import { Student } from '../../types';
 import { Modal } from './Modal';
 import { academicYearLabel } from '../../services/academicStructure';
 import { User, Mail, Phone, GraduationCap, Building2, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Avatar } from './Avatar';
 
 interface StudentDetailModalProps {
   isOpen: boolean;
@@ -26,11 +27,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ isOpen, 
       <div className="space-y-4 text-xs">
         {/* Student Avatar Header */}
         <div className="flex items-center gap-4 p-4 bg-[#FFFFFF] dark:bg-[#0A0A0A] rounded-2xl border border-[#E2E8F0]/80 dark:border-zinc-800">
-          <img
-            src={student.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100'}
-            alt={student.name}
-            className="w-16 h-16 rounded-2xl object-cover ring-2 ring-[#2563EB]/30 dark:ring-[#3B82F6]/30"
-          />
+          <Avatar name={student.name} src={student.avatar} size="md" className="ring-2 ring-[#2563EB]/30 dark:ring-[#3B82F6]/30" />
           <div>
             <h3 className="text-base font-bold text-[#0F172A] dark:text-zinc-100">{student.name}</h3>
             <p className="text-xs font-mono font-bold text-[#2563EB] dark:text-[#3B82F6]">Reg: {student.regNo}</p>

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import {
   User,
   UserRole,
@@ -45,6 +46,7 @@ interface AppContextType {
   periodTimes: PeriodTiming[];
   attendanceRecords: AttendanceRecord[];
   leaveRequests: LeaveRequest[];
+  odRequests: any[];
   correctionRequests: CorrectionRequest[];
   substitutionRequests: SubstitutionRequest[];
   calendarEvents: CalendarEvent[];
@@ -102,6 +104,10 @@ interface AppContextType {
   submitLeaveRequest: (leave: Omit<LeaveRequest, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   reviewLeaveRequest: (id: string, stage: 'faculty' | 'hod', status: 'approved' | 'rejected', reviewerId: string, reviewerName: string, comment?: string) => Promise<void>;
   deleteLeaveRequest: (id: string) => void;
+
+  submitOdRequest: (data: Record<string, unknown>) => Promise<void>;
+  reviewOdClassAdviser: (odId: string, status: string, remarks?: string) => Promise<void>;
+  reviewOdHod: (odId: string, status: string, remarks?: string) => Promise<void>;
 
   submitSubstitutionRequest: (sub: Omit<SubstitutionRequest, 'id' | 'createdAt' | 'status'>) => Promise<void>;
   reviewSubstitutionRequest: (id: string, action: 'accept' | 'reject' | 'approve') => Promise<void>;
@@ -179,36 +185,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [odRequests, setOdRequests] = useState<any[]>([]); // Student/Faculty/HOD OD state
   const [correctionRequests, setCorrectionRequests] = useState<CorrectionRequest[]>([]);
   const [substitutionRequests, setSubstitutionRequests] = useState<SubstitutionRequest[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [staffDayOrders, setStaffDayOrders] = useState<StaffDayOrder[]>(() => {
-    try {
-      const saved = localStorage.getItem('smart_att_staff_day_orders');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [staffDayOrders, setStaffDayOrders] = useState<StaffDayOrder[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [backups, setBackups] = useState<BackupSnapshot[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [circulars, setCirculars] = useState<Circular[]>(() => {
-    try {
-      const saved = localStorage.getItem('smart_att_circulars');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [bonafideRequests, setBonafideRequests] = useState<BonafideRequest[]>(() => {
-    try {
-      const saved = localStorage.getItem('smart_att_bonafide');
-      return saved ? JSON.parse(saved) : [] as BonafideRequest[];
-    } catch {
-      return [] as BonafideRequest[];
-    }
-  });
+  const [circulars, setCirculars] = useState<Circular[]>([]);
+  const [bonafideRequests, setBonafideRequests] = useState<BonafideRequest[]>([]);
 
   const [theme, setTheme] = useState<string>(() => {
     return localStorage.getItem('theme') || localStorage.getItem('smart_att_theme') || 'light';
@@ -282,13 +268,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('smart_att_period_times', JSON.stringify(periodTimes));
   }, [periodTimes]);
 
-  useEffect(() => {
-    localStorage.setItem('smart_att_substitutions', JSON.stringify(substitutionRequests));
-  }, [substitutionRequests]);
+  // ── Supabase Realtime channel refs ─────────────────────────────────────────
+  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  // Subscribe to Supabase Realtime for key tables so all users see DB changes immediately.
+  // The subscription is set up once after login and torn down on logout.
   useEffect(() => {
-    localStorage.setItem('smart_att_notifications', JSON.stringify(notifications));
-  }, [notifications]);
+    if (!isAuthenticated || !currentUser?.id) {
+      // Tear down existing subscription on logout
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
+      }
+      return;
+    }
+
+    const channel = supabase
+      .channel('db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        // Re-fetch students and faculty when the users table changes
+        const role = currentUser.role;
+        if (role === 'admin') {
+          apiClient.students().then(setStudents).catch(() => {});
+          apiClient.faculty().then(setFacultyList).catch(() => {});
+          apiClient.users().then(setUsers).catch(() => {});
+        } else {
+          apiClient.facultyStudentSearch().then(setStudents).catch(() => {});
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'circulars' }, () => {
+        apiClient.circulars().then(setCirculars).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bonafide_requests' }, () => {
+        apiClient.bonafideRequests().then(setBonafideRequests).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_day_orders' }, () => {
+        apiClient.dayOrders().then(setStaffDayOrders).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'substitutions' }, () => {
+        const role = currentUser.role;
+        if (role === 'faculty') apiClient.facultySubstitutions().then(setSubstitutionRequests).catch(() => {});
+        else if (role === 'hod') apiClient.hodSubstitutions().then(setSubstitutionRequests).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
+        const role = currentUser.role;
+        if (role === 'faculty') apiClient.facultyLeaveQueue().then(setLeaveRequests).catch(() => {});
+        else if (role === 'hod') apiClient.hodLeaves().then(setLeaveRequests).catch(() => {});
+        else if (role === 'student') apiClient.studentLeaves().then(setLeaveRequests).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'od_requests' }, () => {
+        const role = currentUser.role;
+        if (role === 'faculty') apiClient.classAdviserOdRequests().then(setOdRequests).catch(() => {});
+        else if (role === 'hod') apiClient.hodOdRequests().then(setOdRequests).catch(() => {});
+        else if (role === 'student') apiClient.odRequests().then(setOdRequests).catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
+        apiClient.notifications({ unreadOnly: false }).then(setNotifications).catch(() => {});
+      })
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      realtimeChannelRef.current = null;
+    };
+  }, [isAuthenticated, currentUser?.id, currentUser?.role]);
+
 
   const addToast = (title: string, message?: string, type: 'success' | 'danger' | 'warning' | 'info' = 'info') => {
     const id = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
@@ -436,6 +482,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         load(() => apiClient.subjects(), setSubjects),
         load(() => apiClient.hodCorrections(), setCorrectionRequests),
         load(() => apiClient.hodLeaves(), setLeaveRequests),
+        load(() => apiClient.hodOdRequests(), setOdRequests),
         load(() => apiClient.hodSubstitutions(), setSubstitutionRequests),
         load(() => apiClient.notifications({ unreadOnly: false }), setNotifications),
       ]);
@@ -446,6 +493,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         load(async () => (await apiClient.facultyTimetable()).map(normalizeTimetableSlot), setTimetable),
         load(() => apiClient.facultyAttendanceHistory(), setAttendanceRecords),
         load(() => apiClient.facultyLeaveQueue(), setLeaveRequests),
+        load(() => apiClient.classAdviserOdRequests(), setOdRequests),
         load(() => apiClient.facultySubstitutions(), setSubstitutionRequests),
         load(() => apiClient.facultyCorrections(), setCorrectionRequests),
         load(() => apiClient.calendarEvents(), setCalendarEvents),
@@ -462,6 +510,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await Promise.all([
         load(() => apiClient.departments(), setDepartments),
         load(() => apiClient.studentLeaves(), setLeaveRequests),
+        load(() => apiClient.odRequests(), setOdRequests),
         load(() => apiClient.notifications({ unreadOnly: false }), setNotifications),
         load(() => apiClient.users(), setUsers),
       ]);
@@ -504,7 +553,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setAttendanceRecords([]);
       }
     }
+
+    // Load new DB-backed data for all roles
+    await Promise.all([
+      load(() => apiClient.circulars(), setCirculars),
+      load(() => apiClient.bonafideRequests(), setBonafideRequests),
+      load(() => apiClient.dayOrders(), setStaffDayOrders),
+    ]);
   }, [currentUser]);
+
 
   const login = useCallback(async (username: string, password: string) => {
     try {
@@ -541,8 +598,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('smart_att_authed', 'true');
       setActiveScreen('dashboard');
       await loadDataForRole(apiUser.role, mappedUser);
-      addToast('Welcome Back', `Logged in as ${mappedUser.name}`, 'success');
-    } catch (error) {
+      addToast('Login Successful', `Welcome back, ${apiUser.name}`, 'success');
+      localStorage.setItem('smart_att_role', apiUser.role);
+    } catch (error: any) {
+      console.error('Login error:', error);
       clearJwt();
       setIsAuthenticated(false);
       addToast('Login Failed', error instanceof Error ? error.message : 'Invalid credentials', 'danger');
@@ -552,6 +611,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = useCallback(() => {
     clearJwt();
+    localStorage.removeItem('smart_att_role');
     setCurrentUserState({} as User);
     setIsAuthenticated(false);
     localStorage.setItem('smart_att_authed', 'false');
@@ -653,14 +713,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: s.name, email: s.email, regNo: s.regNo, rollNo: s.rollNo,
         departmentId: s.departmentId, semester: s.semester, section: s.section, batch: s.batch,
       })));
-      const createdList: Student[] = list.map((item, idx) => ({
-        ...item,
-        id: 'std-bulk-' + Date.now() + '-' + idx,
-        overallAttendancePct: 100.0,
-      }));
-      setStudents((prev) => [...createdList, ...prev]);
-      logAudit('BULK_IMPORT_STUDENTS', 'Students', `Imported ${createdList.length} students via CSV`);
-      addToast('CSV Import Complete', `Added ${createdList.length} students successfully`, 'success');
+      // Re-fetch from DB so we get real UUIDs (no fake bulk IDs)
+      const freshStudents = await apiClient.students();
+      setStudents(freshStudents);
+      logAudit('BULK_IMPORT_STUDENTS', 'Students', `Imported ${list.length} students via CSV`);
+      addToast('CSV Import Complete', `Added ${list.length} students successfully`, 'success');
     } catch (error) {
       addToast('Error', error instanceof Error ? error.message : 'Failed to import students', 'danger');
     }
@@ -1041,10 +1098,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const deleteLeaveRequest = (id: string) => {
-    const target = leaveRequests.find((l) => l.id === id);
     setLeaveRequests((prev) => prev.filter((l) => l.id !== id));
-    logAudit('DELETE_LEAVE', 'Student Leave', `Leave application ${id} deleted by ${target?.studentName || 'student'}`);
     addToast('Leave Deleted', 'Your leave application has been removed', 'warning');
+  };
+
+  const submitOdRequest = async (data: Record<string, unknown>) => {
+    try {
+      await apiClient.applyOd(data);
+      addToast('OD Applied', 'OD Request submitted successfully', 'success');
+      apiClient.odRequests().then(setOdRequests).catch(() => {});
+    } catch (error) {
+      addToast('Error', error instanceof Error ? error.message : 'Failed to submit OD request', 'danger');
+    }
+  };
+
+  const reviewOdClassAdviser = async (odId: string, status: string, remarks?: string) => {
+    try {
+      await apiClient.reviewOdClassAdviser(odId, status, remarks);
+      addToast('OD Reviewed', `OD Request marked as ${status}`, 'success');
+      apiClient.classAdviserOdRequests().then(setOdRequests).catch(() => {});
+    } catch (error) {
+      addToast('Error', error instanceof Error ? error.message : 'Failed to review OD request', 'danger');
+    }
+  };
+
+  const reviewOdHod = async (odId: string, status: string, remarks?: string) => {
+    try {
+      await apiClient.reviewOdHod(odId, status, remarks);
+      addToast('OD Reviewed', `OD Request marked as ${status}`, 'success');
+      apiClient.hodOdRequests().then(setOdRequests).catch(() => {});
+    } catch (error) {
+      addToast('Error', error instanceof Error ? error.message : 'Failed to review OD request', 'danger');
+    }
   };
 
   // Substitutions
@@ -1209,10 +1294,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Day Order (OCR-extracted date → day order mapping)
-  useEffect(() => {
-    localStorage.setItem('smart_att_staff_day_orders', JSON.stringify(staffDayOrders));
-  }, [staffDayOrders]);
+  // Day Order persistence is now handled via Supabase Realtime (no localStorage)
 
   const saveStaffDayOrder = (data: Omit<StaffDayOrder, 'id' | 'createdAt' | 'updatedAt'>) => {
     const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
@@ -1350,15 +1432,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     initAuth();
   }, [isAuthenticated, loadDataForRole]);
 
-  // Circular CRUD
-  useEffect(() => {
-    localStorage.setItem('smart_att_circulars', JSON.stringify(circulars));
-  }, [circulars]);
-
-  // Bonafide persistence
-  useEffect(() => {
-    localStorage.setItem('smart_att_bonafide', JSON.stringify(bonafideRequests));
-  }, [bonafideRequests]);
+  // Circular and Bonafide persistence is now DB-backed (Supabase) — no localStorage needed.
 
   const addCircular = (circularData: Omit<Circular, 'id' | 'createdAt' | 'recipientCount'>): Circular => {
     const recipientCount =
@@ -1741,6 +1815,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         periodTimes,
         attendanceRecords,
         leaveRequests,
+        odRequests,
         correctionRequests,
         substitutionRequests,
         calendarEvents,
@@ -1797,6 +1872,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         submitLeaveRequest,
         reviewLeaveRequest,
         deleteLeaveRequest,
+
+        submitOdRequest,
+        reviewOdClassAdviser,
+        reviewOdHod,
 
         submitSubstitutionRequest,
         reviewSubstitutionRequest,

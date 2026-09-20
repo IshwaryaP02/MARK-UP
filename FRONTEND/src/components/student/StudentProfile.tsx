@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { academicYearLabel } from '../../services/academicStructure';
 import { Lock } from 'lucide-react';
 import { BackButton } from '../common/BackButton';
+import { Avatar } from '../common/Avatar';
 
 export const StudentProfile: React.FC = () => {
   const { currentUser } = useApp();
@@ -25,10 +26,11 @@ export const StudentProfile: React.FC = () => {
 
       <div className="bg-white dark:bg-[#0A0A0A] border border-[#E2E8F0]/80 dark:border-zinc-800 rounded-2xl p-6 shadow-sm space-y-6">
         <div className="flex items-center gap-4">
-          <img
-            src={currentUser.avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200'}
-            alt={currentUser.name}
-            className="w-20 h-20 rounded-2xl object-cover ring-4 ring-[#2563EB]/30 dark:ring-[#3B82F6]/30"
+          <Avatar
+            name={currentUser.name}
+            src={currentUser.avatar}
+            size="xl"
+            className="rounded-2xl ring-4 ring-[#2563EB]/30 dark:ring-[#3B82F6]/30"
           />
           <div>
             <h3 className="text-lg font-bold text-[#0F172A] dark:text-zinc-100">{currentUser.name}</h3>

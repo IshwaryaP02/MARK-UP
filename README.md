@@ -164,3 +164,4 @@ docker run -p 8001:8000 smart-attendance-api
 **In progress.** The backend API is fully implemented and the frontend has been
 wired to it end-to-end via `FRONTEND/src/lib/apiClient.ts` + `AppContext` (live
 data replaces the legacy `mock/` fixtures). Backend verification is ongoing.
+done
